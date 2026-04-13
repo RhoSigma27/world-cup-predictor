@@ -40,6 +40,14 @@ export default async function DashboardPage() {
           <span className="font-bold text-xl text-yellow-400">World Cup Predictor</span>
         </div>
         <div className="flex items-center gap-4">
+          {profile?.is_superadmin && (
+            <Link
+              href="/admin"
+              className="text-xs px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-full hover:bg-yellow-500/30 transition-colors"
+            >
+              ⚡ Admin
+            </Link>
+          )}
           <span className="text-gray-400 text-sm">👤 {profile?.display_name}</span>
           <form action="/auth/signout" method="post">
             <button className="text-sm text-gray-500 hover:text-white transition-colors">
