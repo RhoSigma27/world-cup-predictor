@@ -112,7 +112,13 @@ export default async function LeaguePage({ params, searchParams }) {
             ))}
           </div>
         </div>
-
+        {/* Standings */}
+        <Link
+          href={`/dashboard/league/${id}/standings`}
+          className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-center transition-colors mb-3"
+        >
+          🏅 League Standings
+        </Link>
         {/* Predictions button */}
         <Link
           href={`/dashboard/league/${id}/predictions`}
@@ -124,4 +130,3 @@ export default async function LeaguePage({ params, searchParams }) {
     </main>
   )
 }
-

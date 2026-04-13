@@ -36,6 +36,11 @@ export async function middleware(request) {
     return NextResponse.redirect(new URL('/auth/signin', request.url))
   }
 
+  // Protect admin routes
+  if (!user && request.nextUrl.pathname.startsWith('/admin')) {
+    return NextResponse.redirect(new URL('/auth/signin', request.url))
+  }
+
   // If user is signed in and tries to visit signin page, redirect to dashboard
   if (user && request.nextUrl.pathname === '/auth/signin') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
