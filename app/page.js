@@ -1,5 +1,9 @@
 import Link from 'next/link'
 
+export const viewport = {
+  themeColor: '#e8c96b',
+}
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-950 text-white">
