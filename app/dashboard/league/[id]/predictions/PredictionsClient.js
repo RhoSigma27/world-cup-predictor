@@ -24,22 +24,26 @@ const GROUP_TEAMS = {
   L:['England','Croatia','Ghana','Panama'],
 }
 
-const FLAGS = {
-  'Mexico':'🇲🇽','South Africa':'🇿🇦','South Korea':'🇰🇷','Czechia':'🇨🇿',
-  'Canada':'🇨🇦','Italy':'🇮🇹','Qatar':'🇶🇦','Switzerland':'🇨🇭',
-  'Brazil':'🇧🇷','Morocco':'🇲🇦','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Haiti':'🇭🇹',
-  'USA':'🇺🇸','Paraguay':'🇵🇾','Australia':'🇦🇺','Türkiye':'🇹🇷',
-  'Germany':'🇩🇪','Portugal':'🇵🇹','Colombia':'🇨🇴','Uzbekistan':'🇺🇿',
-  'Argentina':'🇦🇷','Belgium':'🇧🇪','Slovenia':'🇸🇮','Egypt':'🇪🇬',
-  'Netherlands':'🇳🇱','Chile':'🇨🇱','Iran':'🇮🇷','Curaçao':'🇨🇼',
-  'Spain':'🇪🇸','Japan':'🇯🇵','Venezuela':'🇻🇪','Algeria':'🇩🇿',
-  'France':'🇫🇷','Senegal':'🇸🇳','Norway':'🇳🇴','Iraq':'🇮🇶',
-  'Uruguay':'🇺🇾',"Côte d'Ivoire":'🇨🇮','Poland':'🇵🇱','Cabo Verde':'🇨🇻',
-  'Serbia':'🇷🇸','New Zealand':'🇳🇿','Denmark':'🇩🇰','Kenya':'🇰🇪',
-  'England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Croatia':'🇭🇷','Ghana':'🇬🇭','Panama':'🇵🇦','TBD':'❓'
+const COUNTRY_CODES = {
+  'Mexico':'mx','South Africa':'za','South Korea':'kr','Czechia':'cz',
+  'Canada':'ca','Italy':'it','Qatar':'qa','Switzerland':'ch',
+  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'USA':'us','Paraguay':'py','Australia':'au','Türkiye':'tr',
+  'Germany':'de','Portugal':'pt','Colombia':'co','Uzbekistan':'uz',
+  'Argentina':'ar','Belgium':'be','Slovenia':'si','Egypt':'eg',
+  'Netherlands':'nl','Chile':'cl','Iran':'ir','Curaçao':'cw',
+  'Spain':'es','Japan':'jp','Venezuela':'ve','Algeria':'dz',
+  'France':'fr','Senegal':'sn','Norway':'no','Iraq':'iq',
+  'Uruguay':'uy',"Côte d'Ivoire":'ci','Poland':'pl','Cabo Verde':'cv',
+  'Serbia':'rs','New Zealand':'nz','Denmark':'dk','Kenya':'ke',
+  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
 }
 
-const flag = t => FLAGS[t] || '🏳️'
+const flag = (t) => {
+  const code = COUNTRY_CODES[t]
+  if (!code) return '🏳️'
+  return `https://flagcdn.com/24x18/${code}.png`
+}
 
 function getResult(s1, s2) {
   if (s1 > s2) return 'H'
@@ -134,7 +138,7 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
                 <td className="px-3 py-2 text-gray-500">{i + 1}</td>
                 <td className="px-3 py-2 font-medium text-white">
                   <span className="flex items-center gap-1">
-                    <span>{flag(row.team)}</span>
+                    <img src={flag(row.team)} alt={row.team} className="w-5 h-3 object-cover rounded-sm inline-block" onError={e => e.target.style.display='none'}/>
                     <span className="truncate max-w-20">{row.team}</span>
                     {i < 2 && <span className="text-green-400 text-xs">✓</span>}
                   </span>
@@ -337,7 +341,7 @@ export default function PredictionsClient({
                       <td className="px-2 py-2 text-right">
                         <span className="font-medium text-white flex items-center justify-end gap-1.5">
                           <span className="hidden sm:inline text-sm">{f.home_team}</span>
-                          <span className="text-base">{flag(f.home_team)}</span>
+                          <img src={flag(f.home_team)} alt={f.home_team} className="w-6 h-4 object-cover rounded-sm" onError={e => e.target.style.display='none'}/>
                         </span>
                       </td>
                       <td className="px-1 py-2 text-center">
@@ -349,7 +353,7 @@ export default function PredictionsClient({
                       </td>
                       <td className="px-2 py-2">
                         <span className="font-medium text-white flex items-center gap-1.5">
-                          <span className="text-base">{flag(f.away_team)}</span>
+                          <img src={flag(f.away_team)} alt={f.away_team} className="w-6 h-4 object-cover rounded-sm" onError={e => e.target.style.display='none'}/>
                           <span className="hidden sm:inline text-sm">{f.away_team}</span>
                         </span>
                       </td>
@@ -434,7 +438,7 @@ export default function PredictionsClient({
                 <button key={team} onClick={() => { setStarPick(team); setShowStarPicker(false) }}
                   className={`px-3 py-2 rounded-lg text-sm text-left transition-colors flex items-center gap-2
                     ${starPick === team ? 'bg-yellow-500 text-gray-950 font-bold' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
-                  <span>{flag(team)}</span>
+                  <img src={flag(team)} alt={team} className="w-5 h-3 object-cover rounded-sm" onError={e => e.target.style.display='none'}/>
                   <span className="truncate">{team}</span>
                 </button>
               ))}

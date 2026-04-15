@@ -15,7 +15,6 @@ export const metadata = {
   title: "World Cup Predictor 2026",
   description: "Predict every match of the 2026 World Cup and compete with friends in private leagues",
   manifest: "/manifest.json",
-  themeColor: "#e8c96b",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
