@@ -2,13 +2,18 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function SignInPage() {
+function SignInForm() {
   const [email, setEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState(null)
+  const searchParams = useSearchParams()
+  const invite = searchParams.get('invite')
+  const next = invite ? `/join/${invite}` : '/dashboard'
 
   const handleSignIn = async (e) => {
     e.preventDefault()
@@ -20,7 +25,7 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         data: {
           display_name: displayName,
         }
@@ -45,6 +50,11 @@ export default function SignInPage() {
           <p className="text-gray-400 mb-4">
             We sent a magic link to <strong className="text-white">{email}</strong>
           </p>
+          {invite && (
+            <p className="text-yellow-400 text-sm mb-4">
+              You'll be automatically joined to the league after signing in.
+            </p>
+          )}
           <p className="text-gray-500 text-sm">
             Click the link in the email to sign in. It expires in 1 hour.
           </p>
@@ -59,7 +69,13 @@ export default function SignInPage() {
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">⚽</div>
           <h1 className="text-3xl font-bold text-white">World Cup Predictor</h1>
-          <p className="text-gray-400 mt-2">Sign in to join or create a league</p>
+          {invite ? (
+            <p className="text-yellow-400 mt-2 font-medium">
+              You've been invited to join a league! Sign in to accept.
+            </p>
+          ) : (
+            <p className="text-gray-400 mt-2">Sign in to join or create a league</p>
+          )}
         </div>
 
         <form onSubmit={handleSignIn} className="space-y-4">
@@ -109,5 +125,13 @@ export default function SignInPage() {
         </p>
       </div>
     </main>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInForm />
+    </Suspense>
   )
 }
