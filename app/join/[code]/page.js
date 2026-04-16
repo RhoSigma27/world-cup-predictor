@@ -13,32 +13,37 @@ export default async function JoinViaLinkPage({ params }) {
   }
 
   // Find the league
-  const { data: league } = await supabase
+  const { data: league, error: leagueError } = await supabase
     .from('leagues')
     .select('*')
     .eq('invite_code', code.toUpperCase())
     .single()
 
-  if (!league) {
+  if (leagueError || !league) {
     redirect('/dashboard?error=invalid-invite')
   }
 
-  // Check if already a member
+  // Check if already a member - use maybeSingle() instead of single()
   const { data: existing } = await supabase
     .from('league_members')
     .select('id')
     .eq('league_id', league.id)
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!existing) {
     // Auto-join the league
-    await supabase
+    const { error: joinError } = await supabase
       .from('league_members')
       .insert({
         league_id: league.id,
         user_id: user.id,
       })
+
+    if (joinError) {
+      console.error('Join error:', joinError)
+      redirect('/dashboard?error=join-failed')
+    }
   }
 
   redirect(`/dashboard/league/${league.id}`)
