@@ -166,6 +166,7 @@ export default function PredictionsClient({
   const [saveStatus, setSaveStatus] = useState('saved')
   const [toast, setToast] = useState(null)
   const [showStarPicker, setShowStarPicker] = useState(false)
+  const [showMobileTables, setShowMobileTables] = useState(false)
   const saveTimers = useRef({})
   const supabaseRef = useRef(null)
 
@@ -341,6 +342,7 @@ export default function PredictionsClient({
                       <td className="px-2 py-2 text-right">
                         <span className="font-medium text-white flex items-center justify-end gap-1.5">
                           <span className="hidden sm:inline text-sm">{f.home_team}</span>
+                          <span className="sm:hidden text-xs font-medium">{f.home_team.length > 8 ? f.home_team.slice(0,8) : f.home_team}</span>
                           <img src={flag(f.home_team)} alt={f.home_team} className="w-6 h-4 object-cover rounded-sm" onError={e => e.target.style.display='none'}/>
                         </span>
                       </td>
@@ -355,6 +357,7 @@ export default function PredictionsClient({
                         <span className="font-medium text-white flex items-center gap-1.5">
                           <img src={flag(f.away_team)} alt={f.away_team} className="w-6 h-4 object-cover rounded-sm" onError={e => e.target.style.display='none'}/>
                           <span className="hidden sm:inline text-sm">{f.away_team}</span>
+                          <span className="sm:hidden text-xs font-medium">{f.away_team.length > 8 ? f.away_team.slice(0,8) : f.away_team}</span>
                         </span>
                       </td>
                       <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
@@ -420,11 +423,31 @@ export default function PredictionsClient({
           )}
         </div>
 
-        {/* Right — group tables */}
+        {/* Mobile group tables toggle */}
+        <div className="lg:hidden fixed bottom-16 right-4 z-30">
+          <button
+            onClick={() => setShowMobileTables(prev => !prev)}
+            className="bg-yellow-500 text-gray-950 font-bold rounded-full px-4 py-2 text-sm shadow-lg"
+          >
+            📊 Tables
+          </button>
+        </div>
+
+        {/* Mobile group tables drawer */}
+        {showMobileTables && (
+          <div className="lg:hidden fixed inset-0 bg-gray-950 z-40 overflow-y-auto pb-20">
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <span className="font-bold text-yellow-400">Group Tables</span>
+              <button onClick={() => setShowMobileTables(false)} className="text-gray-400 text-xl">✕</button>
+            </div>
+            <GroupTablePanel predictions={predictions} fixtures={fixtures} activeGroup={activeGroup}/>
+          </div>
+        )}
+
+        {/* Desktop group tables */}
         <div className="hidden lg:block w-72 border-l border-gray-800 bg-gray-900/50">
           <GroupTablePanel predictions={predictions} fixtures={fixtures} activeGroup={activeGroup}/>
         </div>
-      </div>
 
       {/* Star picker modal */}
       {showStarPicker && (
