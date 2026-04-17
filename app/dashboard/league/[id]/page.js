@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import CopyButton from './CopyButton'
@@ -11,6 +12,8 @@ export default async function LeaguePage({ params, searchParams }) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/signin')
 
+  const adminSupabase = createAdminClient()
+
   // Get league details
   const { data: league, error } = await supabase
     .from('leagues')
@@ -21,7 +24,7 @@ export default async function LeaguePage({ params, searchParams }) {
   if (error || !league) redirect('/dashboard')
 
   // Get members
-  const { data: members } = await supabase
+  const { data: members } = await adminSupabase
     .from('league_members')
     .select(`
       user_id,
