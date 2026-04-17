@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
@@ -73,6 +74,8 @@ export default async function StandingsPage({ params }) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/signin')
 
+  const adminSupabase = createAdminClient()
+
   // Get league
   const { data: league } = await supabase
     .from('leagues')
@@ -89,7 +92,7 @@ export default async function StandingsPage({ params }) {
     .order('match_number', { ascending: true })
 
   // Get all league members with profiles
-  const { data: members } = await supabase
+  const { data: members } = await adminSupabase
     .from('league_members')
     .select(`
       user_id,
@@ -108,13 +111,13 @@ export default async function StandingsPage({ params }) {
     .single()
 
   // Get all predictions for this league
-  const { data: allPredictions } = await supabase
+  const { data: allPredictions } = await adminSupabase
     .from('predictions')
     .select('*')
     .eq('league_id', id)
 
   // Get all extras predictions for this league
-  const { data: allExtras } = await supabase
+  const { data: allExtras } = await adminSupabase
     .from('extras_predictions')
     .select('*')
     .eq('league_id', id)
