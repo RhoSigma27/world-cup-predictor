@@ -75,6 +75,29 @@ export default function ResultsClient({ fixtures }) {
     else showToast('✓ Saved')
   }
 
+  const clearResult = async (fixtureId) => {
+    setSaving(true)
+    const { error } = await supabase
+      .from('fixtures')
+      .update({
+        home_score: null,
+        away_score: null,
+        status: 'scheduled'
+      })
+      .eq('id', fixtureId)
+    if (!error) {
+      setResults(prev => {
+        const next = { ...prev }
+        delete next[fixtureId]
+        return next
+      })
+      showToast('Result cleared')
+    } else {
+      showToast('Clear failed', 'error')
+    }
+    setSaving(false)
+  }
+
   const updateResult = (fixtureId, side, value) => {
     setResults(prev => {
       const current = prev[fixtureId] || {}
@@ -98,7 +121,7 @@ export default function ResultsClient({ fixtures }) {
     return r?.home != null && r?.away != null
   }).length
 
-  const renderTable = (fixtureList) => (
+const renderTable = (fixtureList) => (
     <div className="bg-gray-900 rounded-xl overflow-hidden">
       <table className="w-full text-sm">
         <thead>
@@ -110,6 +133,7 @@ export default function ResultsClient({ fixtures }) {
             <th className="px-1 py-2 text-center text-xs text-gray-500 w-8">A</th>
             <th className="px-2 py-2 text-left text-xs text-gray-500">Away</th>
             <th className="px-2 py-2 text-right text-xs text-gray-500 hidden md:table-cell">Date</th>
+            <th className="px-2 py-2 text-center text-xs text-gray-500 w-8"></th>
           </tr>
         </thead>
         <tbody>
@@ -119,8 +143,10 @@ export default function ResultsClient({ fixtures }) {
             const t1 = f.home_team || f.slot1
             const t2 = f.away_team || f.slot2
             return (
-              <tr key={f.id}
-                className={`border-b border-gray-800/50 ${hasResult ? 'bg-green-500/5' : 'hover:bg-gray-800/30'}`}>
+              <tr
+                key={f.id}
+                className={`border-b border-gray-800/50 ${hasResult ? 'bg-green-500/5' : 'hover:bg-gray-800/30'}`}
+              >
                 <td className="px-3 py-2 text-gray-600 text-xs">{f.match_number}</td>
                 <td className="px-2 py-2 text-right">
                   <span className="font-medium text-white flex items-center justify-end gap-1.5">
@@ -144,6 +170,18 @@ export default function ResultsClient({ fixtures }) {
                 <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
                   {new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </td>
+                {hasResult ? (
+                  <td className="px-2 py-2 text-center">
+                    <button
+                      onClick={() => clearResult(f.id)}
+                      className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                ) : (
+                  <td/>
+                )}
               </tr>
             )
           })}
