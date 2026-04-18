@@ -594,7 +594,7 @@ export default function PredictionsClient({
               {Object.values(GROUP_TEAMS).flat().sort().map(team => (
                 <button
                   key={team}
-                  onClick={() => { setStarPick(team); setShowStarPicker(false) }}
+                  onClick={() => { setStarPick(team); setShowStarPicker(false); saveExtras(extras, team) }}
                   className={`px-3 py-2 rounded-lg text-sm text-left transition-colors flex items-center gap-2
                     ${starPick === team
                       ? 'bg-yellow-500 text-gray-950 font-bold'
@@ -614,7 +614,7 @@ export default function PredictionsClient({
             </div>
             {starPick && (
               <button
-                onClick={() => { setStarPick(null); setShowStarPicker(false) }}
+                onClick={() => { setStarPick(null); setShowStarPicker(false); saveExtras(extras, null) }}
                 className="w-full mt-3 py-2 bg-red-900/30 text-red-400 rounded-lg text-sm hover:bg-red-900/50 transition-colors"
               >
                 Remove Star Pick
