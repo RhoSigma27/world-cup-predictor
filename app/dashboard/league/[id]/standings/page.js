@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import PointsChart from './PointsChart'
 
 // ─── Scoring Engine ───────────────────────────────────────────
 function getResult(s1, s2) {
@@ -154,6 +155,49 @@ export default async function StandingsPage({ params }) {
 
   const resultsEntered = fixtures?.filter(f => f.home_score != null && f.away_score != null).length || 0
 
+  // Build chart data — cumulative points per player per match
+  const completedFixtures = fixtures
+    .filter(f => f.home_score != null && f.away_score != null)
+    .sort((a, b) => a.match_number - b.match_number)
+
+  const chartData = completedFixtures.map((f, idx) => {
+    const point = { match: f.match_number }
+    standings.forEach(s => {
+      // Find this player's prediction for this fixture
+      const pred = allPredictions?.find(p => p.user_id === s.userId && p.fixture_id === f.id)
+      if (!pred || pred.predicted_home == null || pred.predicted_away == null) {
+        point[s.displayName] = idx === 0 ? 0 : null
+        return
+      }
+      const masterResult = getResult(f.home_score, f.away_score)
+      const predResult = getResult(pred.predicted_home, pred.predicted_away)
+      if (masterResult !== predResult) {
+        point[s.displayName] = 0
+        return
+      }
+      const roundPoints = {
+        group: [10, 5], R32: [10, 5], R16: [20, 10],
+        QF: [30, 15], SF: [50, 25], '3RD': [80, 40], FINAL: [80, 40],
+      }
+      const [base, bonus] = roundPoints[f.round] || [0, 0]
+      let pts = base
+      if (pred.predicted_home === f.home_score && pred.predicted_away === f.away_score) pts += bonus
+      if (s.starPick && (f.home_team === s.starPick || f.away_team === s.starPick)) pts *= 2
+      point[s.displayName] = pts
+    })
+    return point
+  })
+
+  // Convert to cumulative
+  const cumulativeChart = chartData.map((point, idx) => {
+    const cumPoint = { match: point.match }
+    standings.forEach(s => {
+      const prev = idx > 0 ? (cumulativeChart[idx - 1]?.[s.displayName] || 0) : 0
+      cumPoint[s.displayName] = prev + (point[s.displayName] || 0)
+    })
+    return cumPoint
+  })
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 bg-gray-950 z-40">
@@ -244,6 +288,10 @@ export default async function StandingsPage({ params }) {
           <strong className="text-gray-400">Scoring:</strong> Group/R32: 10pts result + 5pts score · R16: 20+10 · QF: 30+15 · SF: 50+25 · Final: 80+40 · Star Pick = 2× · Extras: 50pts closest
         </div>
       </div>
+
+      {/* Points progression chart */}
+      <PointsChart data={cumulativeChart} players={standings.map(s => s.displayName)} />
+    
     </main>
   )
 }
