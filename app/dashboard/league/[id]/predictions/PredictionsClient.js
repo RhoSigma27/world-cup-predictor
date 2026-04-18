@@ -45,14 +45,20 @@ const flag = (t) => {
   return `https://flagcdn.com/24x18/${code}.png`
 }
 
-// Short name for mobile display
 const shortName = (name) => {
   const shorts = {
-    'South Africa':'S Africa','South Korea':'S Korea','Czechia':'Czechia',
-    'Switzerland':'Swiss','Australia':'Austral','Uzbekistan':'Uzbek',
-    'Netherlands':'Nether','Argentina':'Argent','Slovenia':'Sloven',
-    'Venezuela':'Venezu',"Côte d'Ivoire":'C Ivoire','Cabo Verde':'C Verde',
-    'New Zealand':'NZ','Saudi Arabia':'S Arabia',
+    'South Africa':'S Africa',
+    'South Korea':'S Korea',
+    'Switzerland':'Swiss',
+    'Australia':'Austral',
+    'Uzbekistan':'Uzbek',
+    'Netherlands':'Nether',
+    'Argentina':'Argent',
+    'Slovenia':'Sloven',
+    'Venezuela':'Venezu',
+    "Côte d'Ivoire":'C Ivoire',
+    'Cabo Verde':'C Verde',
+    'New Zealand':'NZ',
   }
   return shorts[name] || (name.length > 8 ? name.slice(0, 7) : name)
 }
@@ -106,9 +112,12 @@ function ScoreInput({ value, onChange, disabled }) {
       value={value ?? ''} placeholder="–"
       disabled={disabled}
       className={`w-9 text-center py-1 rounded-md text-sm font-bold outline-none transition-colors
-        ${disabled ? 'bg-gray-800 border border-gray-700 text-gray-500 cursor-not-allowed'
-          : highlight ? 'bg-yellow-500/10 border border-yellow-500/50 text-white'
-          : 'bg-gray-700 border border-gray-600 text-white'}`}
+        ${disabled
+          ? 'bg-gray-800 border border-gray-700 text-gray-500 cursor-not-allowed'
+          : highlight
+            ? 'bg-yellow-500/10 border border-yellow-500/50 text-white'
+            : 'bg-gray-700 border border-gray-600 text-white'
+        }`}
       onChange={e => onChange(e.target.value === '' ? null : parseInt(e.target.value))}
     />
   )
@@ -120,12 +129,20 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
   const tables = calcGroupTables(predictions, fixtures)
   return (
     <div className="p-4 overflow-y-auto">
-      <h3 className="font-bold text-yellow-400 mb-3 text-sm uppercase tracking-wider">Group Tables</h3>
+      <h3 className="font-bold text-yellow-400 mb-3 text-sm uppercase tracking-wider">
+        Group Tables
+      </h3>
       <div className="flex flex-wrap gap-1 mb-4">
         {GROUPS.map(g => (
-          <button key={g} onClick={() => setSelectedGroup(g)}
+          <button
+            key={g}
+            onClick={() => setSelectedGroup(g)}
             className={`text-xs px-2 py-1 rounded font-bold transition-colors
-              ${displayGroup === g ? 'bg-yellow-500 text-gray-950' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+              ${displayGroup === g
+                ? 'bg-yellow-500 text-gray-950'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}
+          >
             {g}
           </button>
         ))}
@@ -150,7 +167,13 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
                 <td className="px-3 py-2 text-gray-500">{i + 1}</td>
                 <td className="px-3 py-2 font-medium text-white">
                   <span className="flex items-center gap-1">
-                    {flag(row.team) && <img src={flag(row.team)} alt={row.team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
+                    {flag(row.team) && (
+                      <img
+                        src={flag(row.team)}
+                        alt={row.team}
+                        className="w-5 h-3 object-cover rounded-sm flex-shrink-0"
+                      />
+                    )}
                     <span className="truncate max-w-24">{row.team}</span>
                     {i < 2 && <span className="text-green-400 text-xs">✓</span>}
                   </span>
@@ -279,12 +302,17 @@ export default function PredictionsClient({
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-500">{totalGroupPredictions}/72</span>
           <div className="flex items-center gap-1.5">
-            <div className={`w-2 h-2 rounded-full ${saveStatus === 'saved' ? 'bg-green-400' : saveStatus === 'saving' ? 'bg-yellow-400' : 'bg-red-400'}`}/>
+            <div className={`w-2 h-2 rounded-full ${
+              saveStatus === 'saved' ? 'bg-green-400' :
+              saveStatus === 'saving' ? 'bg-yellow-400' : 'bg-red-400'
+            }`}/>
             <span className="text-xs text-gray-500">
               {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving…' : 'Unsaved'}
             </span>
           </div>
-          <div className={`text-xs px-2 py-1 rounded-full font-medium ${locked ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+          <div className={`text-xs px-2 py-1 rounded-full font-medium ${
+            locked ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
+          }`}>
             {locked ? '🔒 Locked' : '🔓 Open'}
           </div>
         </div>
@@ -293,6 +321,7 @@ export default function PredictionsClient({
       <div className="flex">
         {/* Left — match grid */}
         <div className="flex-1 p-4 pb-24 overflow-x-auto">
+
           {/* Progress bar */}
           <div className="mb-4">
             <div className="flex justify-between text-xs text-gray-500 mb-1">
@@ -300,7 +329,10 @@ export default function PredictionsClient({
               <span>{progressPct}% complete</span>
             </div>
             <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-              <div className="h-full bg-yellow-500 rounded-full transition-all duration-300" style={{ width: `${progressPct}%` }}/>
+              <div
+                className="h-full bg-yellow-500 rounded-full transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
             </div>
           </div>
 
@@ -313,18 +345,29 @@ export default function PredictionsClient({
                 return p?.home != null && p?.away != null
               })
               return (
-                <button key={g} onClick={() => setActiveGroup(g)}
+                <button
+                  key={g}
+                  onClick={() => setActiveGroup(g)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors
-                    ${activeGroup === g ? 'bg-yellow-500 text-gray-950'
-                      : done ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+                    ${activeGroup === g
+                      ? 'bg-yellow-500 text-gray-950'
+                      : done
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                >
                   {g} {done ? '✓' : ''}
                 </button>
               )
             })}
-            <button onClick={() => setActiveGroup('ALL')}
+            <button
+              onClick={() => setActiveGroup('ALL')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors
-                ${activeGroup === 'ALL' ? 'bg-yellow-500 text-gray-950' : 'bg-gray-800 text-gray-400'}`}>
+                ${activeGroup === 'ALL'
+                  ? 'bg-yellow-500 text-gray-950'
+                  : 'bg-gray-800 text-gray-400'
+                }`}
+            >
               All
             </button>
           </div>
@@ -347,25 +390,47 @@ export default function PredictionsClient({
                   const pred = predictions[f.id] || {}
                   const bothFilled = pred.home != null && pred.away != null
                   return (
-                    <tr key={f.id}
-                      className={`border-b border-gray-800/50 transition-colors ${bothFilled ? '' : 'hover:bg-gray-800/50'}`}>
+                    <tr
+                      key={f.id}
+                      className={`border-b border-gray-800/50 transition-colors ${bothFilled ? '' : 'hover:bg-gray-800/50'}`}
+                    >
                       <td className="px-2 py-2 text-right">
                         <span className="font-medium text-white flex items-center justify-end gap-1 flex-nowrap">
                           <span className="hidden sm:inline text-sm">{f.home_team}</span>
                           <span className="sm:hidden text-xs">{shortName(f.home_team)}</span>
-                          {flag(f.home_team) && <img src={flag(f.home_team)} alt={f.home_team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
+                          {flag(f.home_team) && (
+                            <img
+                              src={flag(f.home_team)}
+                              alt={f.home_team}
+                              className="w-5 h-3 object-cover rounded-sm flex-shrink-0"
+                            />
+                          )}
                         </span>
                       </td>
                       <td className="px-1 py-2 text-center">
-                        <ScoreInput value={pred.home} onChange={v => updatePrediction(f.id, 'home', v)} disabled={locked}/>
+                        <ScoreInput
+                          value={pred.home}
+                          onChange={v => updatePrediction(f.id, 'home', v)}
+                          disabled={locked}
+                        />
                       </td>
                       <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
                       <td className="px-1 py-2 text-center">
-                        <ScoreInput value={pred.away} onChange={v => updatePrediction(f.id, 'away', v)} disabled={locked}/>
+                        <ScoreInput
+                          value={pred.away}
+                          onChange={v => updatePrediction(f.id, 'away', v)}
+                          disabled={locked}
+                        />
                       </td>
                       <td className="px-2 py-2">
                         <span className="font-medium text-white flex items-center gap-1 flex-nowrap">
-                          {flag(f.away_team) && <img src={flag(f.away_team)} alt={f.away_team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
+                          {flag(f.away_team) && (
+                            <img
+                              src={flag(f.away_team)}
+                              alt={f.away_team}
+                              className="w-5 h-3 object-cover rounded-sm flex-shrink-0"
+                            />
+                          )}
                           <span className="hidden sm:inline text-sm">{f.away_team}</span>
                           <span className="sm:hidden text-xs">{shortName(f.away_team)}</span>
                         </span>
@@ -384,53 +449,93 @@ export default function PredictionsClient({
           {!allGroupsDone && (
             <div className="mt-6 p-6 bg-gray-900 border border-dashed border-gray-700 rounded-xl text-center">
               <div className="text-3xl mb-2">🔐</div>
-              <p className="text-gray-400 text-sm">Complete all 72 group stage predictions to unlock the knockout bracket</p>
-              <p className="text-gray-600 text-xs mt-1">{72 - totalGroupPredictions} predictions remaining</p>
+              <p className="text-gray-400 text-sm">
+                Complete all 72 group stage predictions to unlock the knockout bracket
+              </p>
+              <p className="text-gray-600 text-xs mt-1">
+                {72 - totalGroupPredictions} predictions remaining
+              </p>
             </div>
           )}
 
-          {/* Extras panel */}
-          {allGroupsDone && (
+          {/* Star pick — always visible */}
+          {!locked && (
             <div className="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-sm">⭐ Star Pick</p>
+                  <p className="text-gray-500 text-xs mt-0.5">
+                    Choose a team — they score double points all tournament
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowStarPicker(true)}
+                  className="text-xs px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors flex-shrink-0 ml-3"
+                >
+                  {starPick ? `⭐ ${starPick}` : 'Choose team'}
+                </button>
+              </div>
+              {starPick && (
+                <button
+                  onClick={() => { setStarPick(null); saveExtras(extras, null) }}
+                  className="mt-3 text-xs text-gray-500 hover:text-red-400 transition-colors"
+                >
+                  Remove star pick
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Extras — unlocks after all group predictions done */}
+          {allGroupsDone && (
+            <div className="mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
               <h3 className="font-bold text-lg mb-1">🎯 Tournament Extras</h3>
               <p className="text-gray-500 text-sm mb-4">Closest answer wins 50 points each</p>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">Total Red Cards</label>
-                  <input type="number" min="0" value={extras.redcards ?? ''} disabled={locked} placeholder="e.g. 24"
+                  <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">
+                    Total Red Cards
+                  </label>
+                  <input
+                    type="number" min="0"
+                    value={extras.redcards ?? ''}
+                    disabled={locked}
+                    placeholder="e.g. 24"
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
-                    onChange={e => setExtras(prev => ({ ...prev, redcards: e.target.value === '' ? null : parseInt(e.target.value) }))}/>
+                    onChange={e => setExtras(prev => ({
+                      ...prev,
+                      redcards: e.target.value === '' ? null : parseInt(e.target.value)
+                    }))}
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">Total Goals (excl. pens)</label>
-                  <input type="number" min="0" value={extras.goals ?? ''} disabled={locked} placeholder="e.g. 142"
+                  <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">
+                    Total Goals (excl. pens)
+                  </label>
+                  <input
+                    type="number" min="0"
+                    value={extras.goals ?? ''}
+                    disabled={locked}
+                    placeholder="e.g. 142"
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
-                    onChange={e => setExtras(prev => ({ ...prev, goals: e.target.value === '' ? null : parseInt(e.target.value) }))}/>
-                </div>
-              </div>
-              <div className="border-t border-gray-800 pt-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">⭐ Star Pick</p>
-                    <p className="text-gray-500 text-xs">Double points for your chosen team all tournament</p>
-                  </div>
-                  {!locked && (
-                    <button onClick={() => setShowStarPicker(true)}
-                      className="text-xs px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors">
-                      {starPick ? starPick : 'Choose team'}
-                    </button>
-                  )}
-                  {locked && starPick && <span className="text-sm font-bold text-yellow-400">{starPick}</span>}
+                    onChange={e => setExtras(prev => ({
+                      ...prev,
+                      goals: e.target.value === '' ? null : parseInt(e.target.value)
+                    }))}
+                  />
                 </div>
               </div>
               {!locked && (
-                <button onClick={() => saveExtras(extras, starPick)}
-                  className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors">
+                <button
+                  onClick={() => saveExtras(extras, starPick)}
+                  className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors"
+                >
                   Save Extras
                 </button>
               )}
             </div>
           )}
+
         </div>
 
         {/* Mobile group tables toggle button */}
@@ -448,39 +553,70 @@ export default function PredictionsClient({
           <div className="lg:hidden fixed inset-0 bg-gray-950 z-40 overflow-y-auto pb-20">
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
               <span className="font-bold text-yellow-400">Group Tables</span>
-              <button onClick={() => setShowMobileTables(false)} className="text-gray-400 text-xl">✕</button>
+              <button
+                onClick={() => setShowMobileTables(false)}
+                className="text-gray-400 text-xl"
+              >
+                ✕
+              </button>
             </div>
-            <GroupTablePanel predictions={predictions} fixtures={fixtures} activeGroup={activeGroup}/>
+            <GroupTablePanel
+              predictions={predictions}
+              fixtures={fixtures}
+              activeGroup={activeGroup}
+            />
           </div>
         )}
 
         {/* Desktop group tables */}
         <div className="hidden lg:block w-72 border-l border-gray-800 bg-gray-900/50">
-          <GroupTablePanel predictions={predictions} fixtures={fixtures} activeGroup={activeGroup}/>
+          <GroupTablePanel
+            predictions={predictions}
+            fixtures={fixtures}
+            activeGroup={activeGroup}
+          />
         </div>
 
       </div>{/* closes flex div */}
 
       {/* Star picker modal */}
       {showStarPicker && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
-          onClick={() => setShowStarPicker(false)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full max-h-96 overflow-y-auto"
-            onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowStarPicker(false)}
+        >
+          <div
+            className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full max-h-96 overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <h3 className="font-bold text-lg mb-4">⭐ Choose Your Star Pick</h3>
             <div className="grid grid-cols-2 gap-2">
               {Object.values(GROUP_TEAMS).flat().sort().map(team => (
-                <button key={team} onClick={() => { setStarPick(team); setShowStarPicker(false) }}
+                <button
+                  key={team}
+                  onClick={() => { setStarPick(team); setShowStarPicker(false) }}
                   className={`px-3 py-2 rounded-lg text-sm text-left transition-colors flex items-center gap-2
-                    ${starPick === team ? 'bg-yellow-500 text-gray-950 font-bold' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
-                  {flag(team) && <img src={flag(team)} alt={team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
+                    ${starPick === team
+                      ? 'bg-yellow-500 text-gray-950 font-bold'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                >
+                  {flag(team) && (
+                    <img
+                      src={flag(team)}
+                      alt={team}
+                      className="w-5 h-3 object-cover rounded-sm flex-shrink-0"
+                    />
+                  )}
                   <span className="truncate">{team}</span>
                 </button>
               ))}
             </div>
             {starPick && (
-              <button onClick={() => { setStarPick(null); setShowStarPicker(false) }}
-                className="w-full mt-3 py-2 bg-red-900/30 text-red-400 rounded-lg text-sm hover:bg-red-900/50 transition-colors">
+              <button
+                onClick={() => { setStarPick(null); setShowStarPicker(false) }}
+                className="w-full mt-3 py-2 bg-red-900/30 text-red-400 rounded-lg text-sm hover:bg-red-900/50 transition-colors"
+              >
                 Remove Star Pick
               </button>
             )}
@@ -491,10 +627,15 @@ export default function PredictionsClient({
       {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium z-50
-          ${toast.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
+          ${toast.type === 'error'
+            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+            : 'bg-green-500/20 text-green-400 border border-green-500/30'
+          }`}
+        >
           {toast.msg}
         </div>
       )}
+
     </div>
   )
 }
