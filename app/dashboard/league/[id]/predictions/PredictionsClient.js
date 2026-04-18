@@ -41,8 +41,20 @@ const COUNTRY_CODES = {
 
 const flag = (t) => {
   const code = COUNTRY_CODES[t]
-  if (!code) return '🏳️'
+  if (!code) return null
   return `https://flagcdn.com/24x18/${code}.png`
+}
+
+// Short name for mobile display
+const shortName = (name) => {
+  const shorts = {
+    'South Africa':'S Africa','South Korea':'S Korea','Czechia':'Czechia',
+    'Switzerland':'Swiss','Australia':'Austral','Uzbekistan':'Uzbek',
+    'Netherlands':'Nether','Argentina':'Argent','Slovenia':'Sloven',
+    'Venezuela':'Venezu',"Côte d'Ivoire":'C Ivoire','Cabo Verde':'C Verde',
+    'New Zealand':'NZ','Saudi Arabia':'S Arabia',
+  }
+  return shorts[name] || (name.length > 8 ? name.slice(0, 7) : name)
 }
 
 function getResult(s1, s2) {
@@ -93,7 +105,7 @@ function ScoreInput({ value, onChange, disabled }) {
       type="number" min="0" max="99"
       value={value ?? ''} placeholder="–"
       disabled={disabled}
-      className={`w-10 text-center py-1 rounded-md text-sm font-bold outline-none transition-colors
+      className={`w-9 text-center py-1 rounded-md text-sm font-bold outline-none transition-colors
         ${disabled ? 'bg-gray-800 border border-gray-700 text-gray-500 cursor-not-allowed'
           : highlight ? 'bg-yellow-500/10 border border-yellow-500/50 text-white'
           : 'bg-gray-700 border border-gray-600 text-white'}`}
@@ -138,8 +150,8 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
                 <td className="px-3 py-2 text-gray-500">{i + 1}</td>
                 <td className="px-3 py-2 font-medium text-white">
                   <span className="flex items-center gap-1">
-                    <img src={flag(row.team)} alt={row.team} className="w-5 h-3 object-cover rounded-sm inline-block" onError={e => e.target.style.display='none'}/>
-                    <span className="truncate max-w-20">{row.team}</span>
+                    {flag(row.team) && <img src={flag(row.team)} alt={row.team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
+                    <span className="truncate max-w-24">{row.team}</span>
                     {i < 2 && <span className="text-green-400 text-xs">✓</span>}
                   </span>
                 </td>
@@ -319,14 +331,13 @@ export default function PredictionsClient({
 
           {/* Match table */}
           <div className="bg-gray-900 rounded-xl overflow-hidden">
-            <table className="w-full text-sm min-w-96">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 bg-yellow-500/5">
-                  <th className="px-3 py-2 text-left text-xs text-gray-500 w-8">#</th>
                   <th className="px-2 py-2 text-right text-xs text-gray-500">Home</th>
-                  <th className="px-1 py-2 text-center text-xs text-gray-500 w-8">H</th>
+                  <th className="px-1 py-2 text-center text-xs text-gray-500 w-9">H</th>
                   <th className="px-1 py-2 text-center text-xs text-gray-500 w-4">–</th>
-                  <th className="px-1 py-2 text-center text-xs text-gray-500 w-8">A</th>
+                  <th className="px-1 py-2 text-center text-xs text-gray-500 w-9">A</th>
                   <th className="px-2 py-2 text-left text-xs text-gray-500">Away</th>
                   <th className="px-2 py-2 text-right text-xs text-gray-500 hidden md:table-cell">Date</th>
                 </tr>
@@ -338,12 +349,11 @@ export default function PredictionsClient({
                   return (
                     <tr key={f.id}
                       className={`border-b border-gray-800/50 transition-colors ${bothFilled ? '' : 'hover:bg-gray-800/50'}`}>
-                      <td className="px-3 py-2 text-gray-600 text-xs">{f.match_number}</td>
                       <td className="px-2 py-2 text-right">
-                        <span className="font-medium text-white flex items-center justify-end gap-1.5">
+                        <span className="font-medium text-white flex items-center justify-end gap-1 flex-nowrap">
                           <span className="hidden sm:inline text-sm">{f.home_team}</span>
-                          <span className="sm:hidden text-xs font-medium">{f.home_team.length > 8 ? f.home_team.slice(0,8) : f.home_team}</span>
-                          <img src={flag(f.home_team)} alt={f.home_team} className="w-6 h-4 object-cover rounded-sm" onError={e => e.target.style.display='none'}/>
+                          <span className="sm:hidden text-xs">{shortName(f.home_team)}</span>
+                          {flag(f.home_team) && <img src={flag(f.home_team)} alt={f.home_team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
                         </span>
                       </td>
                       <td className="px-1 py-2 text-center">
@@ -354,10 +364,10 @@ export default function PredictionsClient({
                         <ScoreInput value={pred.away} onChange={v => updatePrediction(f.id, 'away', v)} disabled={locked}/>
                       </td>
                       <td className="px-2 py-2">
-                        <span className="font-medium text-white flex items-center gap-1.5">
-                          <img src={flag(f.away_team)} alt={f.away_team} className="w-6 h-4 object-cover rounded-sm" onError={e => e.target.style.display='none'}/>
+                        <span className="font-medium text-white flex items-center gap-1 flex-nowrap">
+                          {flag(f.away_team) && <img src={flag(f.away_team)} alt={f.away_team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
                           <span className="hidden sm:inline text-sm">{f.away_team}</span>
-                          <span className="sm:hidden text-xs font-medium">{f.away_team.length > 8 ? f.away_team.slice(0,8) : f.away_team}</span>
+                          <span className="sm:hidden text-xs">{shortName(f.away_team)}</span>
                         </span>
                       </td>
                       <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
@@ -379,7 +389,7 @@ export default function PredictionsClient({
             </div>
           )}
 
-          {/* Extras panel — shows when all group predictions done */}
+          {/* Extras panel */}
           {allGroupsDone && (
             <div className="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
               <h3 className="font-bold text-lg mb-1">🎯 Tournament Extras</h3>
@@ -407,10 +417,10 @@ export default function PredictionsClient({
                   {!locked && (
                     <button onClick={() => setShowStarPicker(true)}
                       className="text-xs px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors">
-                      {starPick ? `${flag(starPick)} ${starPick}` : 'Choose team'}
+                      {starPick ? starPick : 'Choose team'}
                     </button>
                   )}
-                  {locked && starPick && <span className="text-sm font-bold text-yellow-400">{flag(starPick)} {starPick}</span>}
+                  {locked && starPick && <span className="text-sm font-bold text-yellow-400">{starPick}</span>}
                 </div>
               </div>
               {!locked && (
@@ -423,7 +433,7 @@ export default function PredictionsClient({
           )}
         </div>
 
-        {/* Mobile group tables toggle */}
+        {/* Mobile group tables toggle button */}
         <div className="lg:hidden fixed bottom-16 right-4 z-30">
           <button
             onClick={() => setShowMobileTables(prev => !prev)}
@@ -449,6 +459,8 @@ export default function PredictionsClient({
           <GroupTablePanel predictions={predictions} fixtures={fixtures} activeGroup={activeGroup}/>
         </div>
 
+      </div>{/* closes flex div */}
+
       {/* Star picker modal */}
       {showStarPicker && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
@@ -461,7 +473,7 @@ export default function PredictionsClient({
                 <button key={team} onClick={() => { setStarPick(team); setShowStarPicker(false) }}
                   className={`px-3 py-2 rounded-lg text-sm text-left transition-colors flex items-center gap-2
                     ${starPick === team ? 'bg-yellow-500 text-gray-950 font-bold' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
-                  <img src={flag(team)} alt={team} className="w-5 h-3 object-cover rounded-sm" onError={e => e.target.style.display='none'}/>
+                  {flag(team) && <img src={flag(team)} alt={team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
                   <span className="truncate">{team}</span>
                 </button>
               ))}
