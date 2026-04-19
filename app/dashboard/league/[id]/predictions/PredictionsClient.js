@@ -95,125 +95,24 @@ function calcGroupTables(predictions, fixtures) {
   return tables
 }
 
-// Get the 8 best 3rd place teams using FIFA Annex C criteria
-function calcBest3rd(tables) {
+function calcAllThirds(tables) {
   const thirds = GROUPS.map(g => ({ ...tables[g][2], group: g }))
   thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
-  return thirds.slice(0, 8)
+  return thirds
 }
 
-// FIFA 2026 Annex C slot mapping for best 3rd place teams
-// Maps the combination of groups that qualified 3rd place teams to R32 slots
-const ANNEX_C = {
-  'ABCD': { '3A':'1E', '3B':'1F', '3C':'1G', '3D':'1H' },
-  'ABCE': { '3A':'1F', '3B':'1E', '3C':'1G', '3E':'1H' },
-  'ABCF': { '3A':'1F', '3B':'1E', '3C':'1H', '3F':'1G' },
-  'ABCG': { '3A':'1G', '3B':'1H', '3C':'1E', '3G':'1F' },
-  'ABCH': { '3A':'1H', '3B':'1G', '3C':'1F', '3H':'1E' },
-  'ABDE': { '3A':'1E', '3B':'1F', '3D':'1H', '3E':'1G' },
-  'ABDF': { '3A':'1F', '3B':'1E', '3D':'1H', '3F':'1G' },
-  'ABDG': { '3A':'1G', '3B':'1H', '3D':'1E', '3G':'1F' },
-  'ABDH': { '3A':'1H', '3B':'1G', '3D':'1F', '3H':'1E' },
-  'ABEF': { '3A':'1E', '3B':'1F', '3E':'1H', '3F':'1G' },
-  'ABEG': { '3A':'1G', '3B':'1H', '3E':'1E', '3G':'1F' },
-  'ABEH': { '3A':'1H', '3B':'1G', '3E':'1F', '3H':'1E' },
-  'ABFG': { '3A':'1G', '3B':'1H', '3F':'1E', '3G':'1F' },
-  'ABFH': { '3A':'1H', '3B':'1G', '3F':'1F', '3H':'1E' },
-  'ABGH': { '3A':'1H', '3B':'1G', '3G':'1E', '3H':'1F' },
-  'ACDE': { '3A':'1E', '3C':'1F', '3D':'1H', '3E':'1G' },
-  'ACDF': { '3A':'1F', '3C':'1E', '3D':'1H', '3F':'1G' },
-  'ACDG': { '3A':'1G', '3C':'1H', '3D':'1E', '3G':'1F' },
-  'ACDH': { '3A':'1H', '3C':'1G', '3D':'1F', '3H':'1E' },
-  'ACEF': { '3A':'1E', '3C':'1F', '3E':'1H', '3F':'1G' },
-  'ACEG': { '3A':'1G', '3C':'1H', '3E':'1E', '3G':'1F' },
-  'ACEH': { '3A':'1H', '3C':'1G', '3E':'1F', '3H':'1E' },
-  'ACFG': { '3A':'1G', '3C':'1H', '3F':'1E', '3G':'1F' },
-  'ACFH': { '3A':'1H', '3C':'1G', '3F':'1F', '3H':'1E' },
-  'ACGH': { '3A':'1H', '3C':'1G', '3G':'1E', '3H':'1F' },
-  'ADEF': { '3A':'1E', '3D':'1F', '3E':'1H', '3F':'1G' },
-  'ADEG': { '3A':'1G', '3D':'1H', '3E':'1E', '3G':'1F' },
-  'ADEH': { '3A':'1H', '3D':'1G', '3E':'1F', '3H':'1E' },
-  'ADFG': { '3A':'1G', '3D':'1H', '3F':'1E', '3G':'1F' },
-  'ADFH': { '3A':'1H', '3D':'1G', '3F':'1F', '3H':'1E' },
-  'ADGH': { '3A':'1H', '3D':'1G', '3G':'1E', '3H':'1F' },
-  'AEFG': { '3A':'1G', '3E':'1H', '3F':'1E', '3G':'1F' },
-  'AEFH': { '3A':'1H', '3E':'1G', '3F':'1F', '3H':'1E' },
-  'AEGH': { '3A':'1H', '3E':'1G', '3G':'1E', '3H':'1F' },
-  'AFGH': { '3A':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
-  'BCDE': { '3B':'1E', '3C':'1F', '3D':'1H', '3E':'1G' },
-  'BCDF': { '3B':'1F', '3C':'1E', '3D':'1H', '3F':'1G' },
-  'BCDG': { '3B':'1G', '3C':'1H', '3D':'1E', '3G':'1F' },
-  'BCDH': { '3B':'1H', '3C':'1G', '3D':'1F', '3H':'1E' },
-  'BCEF': { '3B':'1E', '3C':'1F', '3E':'1H', '3F':'1G' },
-  'BCEG': { '3B':'1G', '3C':'1H', '3E':'1E', '3G':'1F' },
-  'BCEH': { '3B':'1H', '3C':'1G', '3E':'1F', '3H':'1E' },
-  'BCFG': { '3B':'1G', '3C':'1H', '3F':'1E', '3G':'1F' },
-  'BCFH': { '3B':'1H', '3C':'1G', '3F':'1F', '3H':'1E' },
-  'BCGH': { '3B':'1H', '3C':'1G', '3G':'1E', '3H':'1F' },
-  'BDEF': { '3B':'1E', '3D':'1F', '3E':'1H', '3F':'1G' },
-  'BDEG': { '3B':'1G', '3D':'1H', '3E':'1E', '3G':'1F' },
-  'BDEH': { '3B':'1H', '3D':'1G', '3E':'1F', '3H':'1E' },
-  'BDFG': { '3B':'1G', '3D':'1H', '3F':'1E', '3G':'1F' },
-  'BDFH': { '3B':'1H', '3D':'1G', '3F':'1F', '3H':'1E' },
-  'BDGH': { '3B':'1H', '3D':'1G', '3G':'1E', '3H':'1F' },
-  'BEFG': { '3B':'1G', '3E':'1H', '3F':'1E', '3G':'1F' },
-  'BEFH': { '3B':'1H', '3E':'1G', '3F':'1F', '3H':'1E' },
-  'BEGH': { '3B':'1H', '3E':'1G', '3G':'1E', '3H':'1F' },
-  'BFGH': { '3B':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
-  'CDEF': { '3C':'1E', '3D':'1F', '3E':'1H', '3F':'1G' },
-  'CDEG': { '3C':'1G', '3D':'1H', '3E':'1E', '3G':'1F' },
-  'CDEH': { '3C':'1H', '3D':'1G', '3E':'1F', '3H':'1E' },
-  'CDFG': { '3C':'1G', '3D':'1H', '3F':'1E', '3G':'1F' },
-  'CDFH': { '3C':'1H', '3D':'1G', '3F':'1F', '3H':'1E' },
-  'CDGH': { '3C':'1H', '3D':'1G', '3G':'1E', '3H':'1F' },
-  'CEFG': { '3C':'1G', '3E':'1H', '3F':'1E', '3G':'1F' },
-  'CEFH': { '3C':'1H', '3E':'1G', '3F':'1F', '3H':'1E' },
-  'CEGH': { '3C':'1H', '3E':'1G', '3G':'1E', '3H':'1F' },
-  'CFGH': { '3C':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
-  'DEFG': { '3D':'1G', '3E':'1H', '3F':'1E', '3G':'1F' },
-  'DEFH': { '3D':'1H', '3E':'1G', '3F':'1F', '3H':'1E' },
-  'DEGH': { '3D':'1H', '3E':'1G', '3G':'1E', '3H':'1F' },
-  'DFGH': { '3D':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
-  'EFGH': { '3E':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
-}
-
-// Resolve a slot code like "1A", "2B", "3C" to a team name
-function resolveSlot(slot, tables, best3rd) {
-  if (!slot) return '?'
-  const match = slot.match(/^([123])([A-L])$/)
-  if (!match) return slot
-  const [, pos, grp] = match
-  const table = tables[grp]
-  if (!table) return slot
-  if (pos === '1') return table[0]?.team || slot
-  if (pos === '2') return table[1]?.team || slot
-  if (pos === '3') {
-    const t = best3rd.find(x => x.group === grp)
-    return t?.team || slot
-  }
-  return slot
-}
-
-// Build a map of slot -> team for the R32 fixtures
 function deriveKOTeams(tables) {
-  const best3rd = calcBest3rd(tables)
-  const qualifiedGroups = best3rd.map(t => t.group).sort().join('')
-  const annexMapping = ANNEX_C[qualifiedGroups] || {}
+  const allThirds = calcAllThirds(tables)
+  const best3rd = allThirds.slice(0, 8)
 
   const slotMap = {}
 
-  // 1st and 2nd place from each group
   for (const g of GROUPS) {
     slotMap[`1${g}`] = tables[g][0]?.team || `1${g}`
     slotMap[`2${g}`] = tables[g][1]?.team || `2${g}`
   }
 
-  // 3rd place teams mapped via Annex C
-  for (const [slot, target] of Object.entries(annexMapping)) {
-    const grp = slot.replace('3', '')
-    const team = best3rd.find(t => t.group === grp)?.team
-    if (team) slotMap[target] = team
-  }
+  slotMap['__best3rd__'] = best3rd
 
   return slotMap
 }
@@ -242,7 +141,7 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
   const [selectedGroup, setSelectedGroup] = useState(null)
   const displayGroup = selectedGroup || (activeGroup === 'ALL' ? 'A' : activeGroup)
   const tables = calcGroupTables(predictions, fixtures)
-  const best3rd = calcBest3rd(tables)
+  const allThirds = calcAllThirds(tables)
 
   const renderTable = (rows, title, highlightCount) => (
     <div className="bg-gray-900 rounded-xl overflow-hidden mb-4">
@@ -307,11 +206,10 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
 
       {renderTable(tables[displayGroup] || [], `Group ${displayGroup}`, 2)}
 
-      {/* Best 3rd place table */}
-      <div className="mt-2">
-        <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider font-bold">Best 3rd Place (Top 8 Advance)</p>
-        {renderTable(best3rd, 'Best 3rd Place Teams', 8)}
-      </div>
+      <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider font-bold">
+        Best 3rd Place (Top 8 Advance)
+      </p>
+      {renderTable(allThirds, 'All 3rd Place Teams', 8)}
     </div>
   )
 }
@@ -416,18 +314,23 @@ export default function PredictionsClient({
   const allGroupsDone = totalGroupPredictions === 72
   const progressPct = Math.round((totalGroupPredictions / 72) * 100)
 
-  // Derive KO team names from group predictions
   const tables = calcGroupTables(predictions, fixtures)
   const slotMap = allGroupsDone ? deriveKOTeams(tables) : {}
 
-  // Resolve a fixture's team names using slotMap
   const resolveTeam = (nameOrSlot) => {
     if (!nameOrSlot) return '?'
-    // If it looks like a slot code e.g. "1A", "2B", use slotMap
-    if (/^[123][A-L]$/.test(nameOrSlot)) {
+    // 1st or 2nd place slot e.g. "1A", "2B"
+    if (/^[12][A-L]$/.test(nameOrSlot)) {
       return slotMap[nameOrSlot] || nameOrSlot
     }
-    // Otherwise use as-is (already a team name for later rounds)
+    // 3rd place slot e.g. "3ABCDF" — find best 3rd place team from those groups
+    if (/^3[A-L]+$/.test(nameOrSlot)) {
+      const groups = nameOrSlot.replace(/^3/, '').split('')
+      const best3rd = slotMap['__best3rd__'] || []
+      const match = best3rd.find(t => groups.includes(t.group))
+      return match?.team || nameOrSlot
+    }
+    // Winner references like "W73" — keep as is
     return nameOrSlot
   }
 
