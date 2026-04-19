@@ -47,18 +47,10 @@ const flag = (t) => {
 
 const shortName = (name) => {
   const shorts = {
-    'South Africa':'S Africa',
-    'South Korea':'S Korea',
-    'Switzerland':'Swiss',
-    'Australia':'Austral',
-    'Uzbekistan':'Uzbek',
-    'Netherlands':'Nether',
-    'Argentina':'Argent',
-    'Slovenia':'Sloven',
-    'Venezuela':'Venezu',
-    "Côte d'Ivoire":'C Ivoire',
-    'Cabo Verde':'C Verde',
-    'New Zealand':'NZ',
+    'South Africa':'S Africa','South Korea':'S Korea','Switzerland':'Swiss',
+    'Australia':'Austral','Uzbekistan':'Uzbek','Netherlands':'Nether',
+    'Argentina':'Argent','Slovenia':'Sloven','Venezuela':'Venezu',
+    "Côte d'Ivoire":'C Ivoire','Cabo Verde':'C Verde','New Zealand':'NZ',
   }
   return shorts[name] || (name.length > 8 ? name.slice(0, 7) : name)
 }
@@ -74,7 +66,7 @@ function calcGroupTables(predictions, fixtures) {
   for (const g of GROUPS) {
     tables[g] = GROUP_TEAMS[g].map(t => ({
       team: t, played: 0, won: 0, drawn: 0, lost: 0,
-      gf: 0, ga: 0, gd: 0, pts: 0
+      gf: 0, ga: 0, gd: 0, pts: 0, group: g
     }))
   }
   const groupFixtures = fixtures.filter(f => f.round === 'group')
@@ -97,11 +89,133 @@ function calcGroupTables(predictions, fixtures) {
       t1.drawn++; t1.pts++; t2.drawn++; t2.pts++
     }
   }
-  console.log('Total fixtures:',fixtures.length,'Group:',groupFixtures.length)
   for (const g of GROUPS) {
     tables[g].sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
   }
   return tables
+}
+
+// Get the 8 best 3rd place teams using FIFA Annex C criteria
+function calcBest3rd(tables) {
+  const thirds = GROUPS.map(g => ({ ...tables[g][2], group: g }))
+  thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+  return thirds.slice(0, 8)
+}
+
+// FIFA 2026 Annex C slot mapping for best 3rd place teams
+// Maps the combination of groups that qualified 3rd place teams to R32 slots
+const ANNEX_C = {
+  'ABCD': { '3A':'1E', '3B':'1F', '3C':'1G', '3D':'1H' },
+  'ABCE': { '3A':'1F', '3B':'1E', '3C':'1G', '3E':'1H' },
+  'ABCF': { '3A':'1F', '3B':'1E', '3C':'1H', '3F':'1G' },
+  'ABCG': { '3A':'1G', '3B':'1H', '3C':'1E', '3G':'1F' },
+  'ABCH': { '3A':'1H', '3B':'1G', '3C':'1F', '3H':'1E' },
+  'ABDE': { '3A':'1E', '3B':'1F', '3D':'1H', '3E':'1G' },
+  'ABDF': { '3A':'1F', '3B':'1E', '3D':'1H', '3F':'1G' },
+  'ABDG': { '3A':'1G', '3B':'1H', '3D':'1E', '3G':'1F' },
+  'ABDH': { '3A':'1H', '3B':'1G', '3D':'1F', '3H':'1E' },
+  'ABEF': { '3A':'1E', '3B':'1F', '3E':'1H', '3F':'1G' },
+  'ABEG': { '3A':'1G', '3B':'1H', '3E':'1E', '3G':'1F' },
+  'ABEH': { '3A':'1H', '3B':'1G', '3E':'1F', '3H':'1E' },
+  'ABFG': { '3A':'1G', '3B':'1H', '3F':'1E', '3G':'1F' },
+  'ABFH': { '3A':'1H', '3B':'1G', '3F':'1F', '3H':'1E' },
+  'ABGH': { '3A':'1H', '3B':'1G', '3G':'1E', '3H':'1F' },
+  'ACDE': { '3A':'1E', '3C':'1F', '3D':'1H', '3E':'1G' },
+  'ACDF': { '3A':'1F', '3C':'1E', '3D':'1H', '3F':'1G' },
+  'ACDG': { '3A':'1G', '3C':'1H', '3D':'1E', '3G':'1F' },
+  'ACDH': { '3A':'1H', '3C':'1G', '3D':'1F', '3H':'1E' },
+  'ACEF': { '3A':'1E', '3C':'1F', '3E':'1H', '3F':'1G' },
+  'ACEG': { '3A':'1G', '3C':'1H', '3E':'1E', '3G':'1F' },
+  'ACEH': { '3A':'1H', '3C':'1G', '3E':'1F', '3H':'1E' },
+  'ACFG': { '3A':'1G', '3C':'1H', '3F':'1E', '3G':'1F' },
+  'ACFH': { '3A':'1H', '3C':'1G', '3F':'1F', '3H':'1E' },
+  'ACGH': { '3A':'1H', '3C':'1G', '3G':'1E', '3H':'1F' },
+  'ADEF': { '3A':'1E', '3D':'1F', '3E':'1H', '3F':'1G' },
+  'ADEG': { '3A':'1G', '3D':'1H', '3E':'1E', '3G':'1F' },
+  'ADEH': { '3A':'1H', '3D':'1G', '3E':'1F', '3H':'1E' },
+  'ADFG': { '3A':'1G', '3D':'1H', '3F':'1E', '3G':'1F' },
+  'ADFH': { '3A':'1H', '3D':'1G', '3F':'1F', '3H':'1E' },
+  'ADGH': { '3A':'1H', '3D':'1G', '3G':'1E', '3H':'1F' },
+  'AEFG': { '3A':'1G', '3E':'1H', '3F':'1E', '3G':'1F' },
+  'AEFH': { '3A':'1H', '3E':'1G', '3F':'1F', '3H':'1E' },
+  'AEGH': { '3A':'1H', '3E':'1G', '3G':'1E', '3H':'1F' },
+  'AFGH': { '3A':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
+  'BCDE': { '3B':'1E', '3C':'1F', '3D':'1H', '3E':'1G' },
+  'BCDF': { '3B':'1F', '3C':'1E', '3D':'1H', '3F':'1G' },
+  'BCDG': { '3B':'1G', '3C':'1H', '3D':'1E', '3G':'1F' },
+  'BCDH': { '3B':'1H', '3C':'1G', '3D':'1F', '3H':'1E' },
+  'BCEF': { '3B':'1E', '3C':'1F', '3E':'1H', '3F':'1G' },
+  'BCEG': { '3B':'1G', '3C':'1H', '3E':'1E', '3G':'1F' },
+  'BCEH': { '3B':'1H', '3C':'1G', '3E':'1F', '3H':'1E' },
+  'BCFG': { '3B':'1G', '3C':'1H', '3F':'1E', '3G':'1F' },
+  'BCFH': { '3B':'1H', '3C':'1G', '3F':'1F', '3H':'1E' },
+  'BCGH': { '3B':'1H', '3C':'1G', '3G':'1E', '3H':'1F' },
+  'BDEF': { '3B':'1E', '3D':'1F', '3E':'1H', '3F':'1G' },
+  'BDEG': { '3B':'1G', '3D':'1H', '3E':'1E', '3G':'1F' },
+  'BDEH': { '3B':'1H', '3D':'1G', '3E':'1F', '3H':'1E' },
+  'BDFG': { '3B':'1G', '3D':'1H', '3F':'1E', '3G':'1F' },
+  'BDFH': { '3B':'1H', '3D':'1G', '3F':'1F', '3H':'1E' },
+  'BDGH': { '3B':'1H', '3D':'1G', '3G':'1E', '3H':'1F' },
+  'BEFG': { '3B':'1G', '3E':'1H', '3F':'1E', '3G':'1F' },
+  'BEFH': { '3B':'1H', '3E':'1G', '3F':'1F', '3H':'1E' },
+  'BEGH': { '3B':'1H', '3E':'1G', '3G':'1E', '3H':'1F' },
+  'BFGH': { '3B':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
+  'CDEF': { '3C':'1E', '3D':'1F', '3E':'1H', '3F':'1G' },
+  'CDEG': { '3C':'1G', '3D':'1H', '3E':'1E', '3G':'1F' },
+  'CDEH': { '3C':'1H', '3D':'1G', '3E':'1F', '3H':'1E' },
+  'CDFG': { '3C':'1G', '3D':'1H', '3F':'1E', '3G':'1F' },
+  'CDFH': { '3C':'1H', '3D':'1G', '3F':'1F', '3H':'1E' },
+  'CDGH': { '3C':'1H', '3D':'1G', '3G':'1E', '3H':'1F' },
+  'CEFG': { '3C':'1G', '3E':'1H', '3F':'1E', '3G':'1F' },
+  'CEFH': { '3C':'1H', '3E':'1G', '3F':'1F', '3H':'1E' },
+  'CEGH': { '3C':'1H', '3E':'1G', '3G':'1E', '3H':'1F' },
+  'CFGH': { '3C':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
+  'DEFG': { '3D':'1G', '3E':'1H', '3F':'1E', '3G':'1F' },
+  'DEFH': { '3D':'1H', '3E':'1G', '3F':'1F', '3H':'1E' },
+  'DEGH': { '3D':'1H', '3E':'1G', '3G':'1E', '3H':'1F' },
+  'DFGH': { '3D':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
+  'EFGH': { '3E':'1H', '3F':'1G', '3G':'1E', '3H':'1F' },
+}
+
+// Resolve a slot code like "1A", "2B", "3C" to a team name
+function resolveSlot(slot, tables, best3rd) {
+  if (!slot) return '?'
+  const match = slot.match(/^([123])([A-L])$/)
+  if (!match) return slot
+  const [, pos, grp] = match
+  const table = tables[grp]
+  if (!table) return slot
+  if (pos === '1') return table[0]?.team || slot
+  if (pos === '2') return table[1]?.team || slot
+  if (pos === '3') {
+    const t = best3rd.find(x => x.group === grp)
+    return t?.team || slot
+  }
+  return slot
+}
+
+// Build a map of slot -> team for the R32 fixtures
+function deriveKOTeams(tables) {
+  const best3rd = calcBest3rd(tables)
+  const qualifiedGroups = best3rd.map(t => t.group).sort().join('')
+  const annexMapping = ANNEX_C[qualifiedGroups] || {}
+
+  const slotMap = {}
+
+  // 1st and 2nd place from each group
+  for (const g of GROUPS) {
+    slotMap[`1${g}`] = tables[g][0]?.team || `1${g}`
+    slotMap[`2${g}`] = tables[g][1]?.team || `2${g}`
+  }
+
+  // 3rd place teams mapped via Annex C
+  for (const [slot, target] of Object.entries(annexMapping)) {
+    const grp = slot.replace('3', '')
+    const team = best3rd.find(t => t.group === grp)?.team
+    if (team) slotMap[target] = team
+  }
+
+  return slotMap
 }
 
 function ScoreInput({ value, onChange, disabled }) {
@@ -128,6 +242,48 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
   const [selectedGroup, setSelectedGroup] = useState(null)
   const displayGroup = selectedGroup || (activeGroup === 'ALL' ? 'A' : activeGroup)
   const tables = calcGroupTables(predictions, fixtures)
+  const best3rd = calcBest3rd(tables)
+
+  const renderTable = (rows, title, highlightCount) => (
+    <div className="bg-gray-900 rounded-xl overflow-hidden mb-4">
+      <div className="bg-yellow-500/10 px-3 py-2 text-xs font-bold text-yellow-400 uppercase tracking-wider">
+        {title}
+      </div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-gray-800">
+            <th className="text-left px-3 py-2 text-gray-500">#</th>
+            <th className="text-left px-3 py-2 text-gray-500">Team</th>
+            <th className="px-2 py-2 text-gray-500">P</th>
+            <th className="px-2 py-2 text-gray-500">GD</th>
+            <th className="px-2 py-2 text-gray-500">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={row.team} className={`border-b border-gray-800/50 ${i < highlightCount ? 'bg-green-500/5' : ''}`}>
+              <td className="px-3 py-2 text-gray-500">{i + 1}</td>
+              <td className="px-3 py-2 font-medium text-white">
+                <span className="flex items-center gap-1">
+                  {flag(row.team) && (
+                    <img src={flag(row.team)} alt={row.team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>
+                  )}
+                  <span className="truncate max-w-24">{row.team}</span>
+                  {i < highlightCount && <span className="text-green-400 text-xs">✓</span>}
+                </span>
+              </td>
+              <td className="px-2 py-2 text-center text-gray-400">{row.played}</td>
+              <td className={`px-2 py-2 text-center ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                {row.gd > 0 ? '+' : ''}{row.gd}
+              </td>
+              <td className="px-2 py-2 text-center font-bold text-yellow-400">{row.pts}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+
   return (
     <div className="p-4 overflow-y-auto">
       <h3 className="font-bold text-yellow-400 mb-3 text-sm uppercase tracking-wider">
@@ -148,46 +304,13 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
           </button>
         ))}
       </div>
-      <div className="bg-gray-900 rounded-xl overflow-hidden mb-4">
-        <div className="bg-yellow-500/10 px-3 py-2 text-xs font-bold text-yellow-400 uppercase tracking-wider">
-          Group {displayGroup}
-        </div>
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left px-3 py-2 text-gray-500">#</th>
-              <th className="text-left px-3 py-2 text-gray-500">Team</th>
-              <th className="px-2 py-2 text-gray-500">P</th>
-              <th className="px-2 py-2 text-gray-500">GD</th>
-              <th className="px-2 py-2 text-gray-500">Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tables[displayGroup]?.map((row, i) => (
-              <tr key={row.team} className={`border-b border-gray-800/50 ${i < 2 ? 'bg-green-500/5' : ''}`}>
-                <td className="px-3 py-2 text-gray-500">{i + 1}</td>
-                <td className="px-3 py-2 font-medium text-white">
-                  <span className="flex items-center gap-1">
-                    {flag(row.team) && (
-                      <img
-                        src={flag(row.team)}
-                        alt={row.team}
-                        className="w-5 h-3 object-cover rounded-sm flex-shrink-0"
-                      />
-                    )}
-                    <span className="truncate max-w-24">{row.team}</span>
-                    {i < 2 && <span className="text-green-400 text-xs">✓</span>}
-                  </span>
-                </td>
-                <td className="px-2 py-2 text-center text-gray-400">{row.played}</td>
-                <td className={`px-2 py-2 text-center ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
-                  {row.gd > 0 ? '+' : ''}{row.gd}
-                </td>
-                <td className="px-2 py-2 text-center font-bold text-yellow-400">{row.pts}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {renderTable(tables[displayGroup] || [], `Group ${displayGroup}`, 2)}
+
+      {/* Best 3rd place table */}
+      <div className="mt-2">
+        <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider font-bold">Best 3rd Place (Top 8 Advance)</p>
+        {renderTable(best3rd, 'Best 3rd Place Teams', 8)}
       </div>
     </div>
   )
@@ -292,6 +415,26 @@ export default function PredictionsClient({
 
   const allGroupsDone = totalGroupPredictions === 72
   const progressPct = Math.round((totalGroupPredictions / 72) * 100)
+
+  // Derive KO team names from group predictions
+  const tables = calcGroupTables(predictions, fixtures)
+  const slotMap = allGroupsDone ? deriveKOTeams(tables) : {}
+
+  // Resolve a fixture's team names using slotMap
+  const resolveTeam = (nameOrSlot) => {
+    if (!nameOrSlot) return '?'
+    // If it looks like a slot code e.g. "1A", "2B", use slotMap
+    if (/^[123][A-L]$/.test(nameOrSlot)) {
+      return slotMap[nameOrSlot] || nameOrSlot
+    }
+    // Otherwise use as-is (already a team name for later rounds)
+    return nameOrSlot
+  }
+
+  const roundLabels = {
+    R32:'Round of 32', R16:'Round of 16', QF:'Quarter Finals',
+    SF:'Semi Finals', '3RD':'Bronze Final', FINAL:'The Final'
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -400,37 +543,21 @@ export default function PredictionsClient({
                           <span className="hidden sm:inline text-sm">{f.home_team}</span>
                           <span className="sm:hidden text-xs">{shortName(f.home_team)}</span>
                           {flag(f.home_team) && (
-                            <img
-                              src={flag(f.home_team)}
-                              alt={f.home_team}
-                              className="w-5 h-3 object-cover rounded-sm flex-shrink-0"
-                            />
+                            <img src={flag(f.home_team)} alt={f.home_team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>
                           )}
                         </span>
                       </td>
                       <td className="px-1 py-2 text-center">
-                        <ScoreInput
-                          value={pred.home}
-                          onChange={v => updatePrediction(f.id, 'home', v)}
-                          disabled={locked}
-                        />
+                        <ScoreInput value={pred.home} onChange={v => updatePrediction(f.id, 'home', v)} disabled={locked}/>
                       </td>
                       <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
                       <td className="px-1 py-2 text-center">
-                        <ScoreInput
-                          value={pred.away}
-                          onChange={v => updatePrediction(f.id, 'away', v)}
-                          disabled={locked}
-                        />
+                        <ScoreInput value={pred.away} onChange={v => updatePrediction(f.id, 'away', v)} disabled={locked}/>
                       </td>
                       <td className="px-2 py-2">
                         <span className="font-medium text-white flex items-center gap-1 flex-nowrap">
                           {flag(f.away_team) && (
-                            <img
-                              src={flag(f.away_team)}
-                              alt={f.away_team}
-                              className="w-5 h-3 object-cover rounded-sm flex-shrink-0"
-                            />
+                            <img src={flag(f.away_team)} alt={f.away_team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>
                           )}
                           <span className="hidden sm:inline text-sm">{f.away_team}</span>
                           <span className="sm:hidden text-xs">{shortName(f.away_team)}</span>
@@ -459,28 +586,22 @@ export default function PredictionsClient({
             </div>
           )}
 
-          {/* Knockout bracket and predictions — unlocks when all group done */}
+          {/* Knockout bracket */}
           {allGroupsDone && (
             <>
-              {/* KO bracket placeholder — will show team names from group results */}
               <div className="mt-6">
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
                   <p className="text-yellow-400 text-sm font-medium">
-                    ⚡ Knockout bracket unlocked! Predict the remaining 32 matches below.
+                    ⚡ Knockout bracket unlocked! Teams shown based on your group predictions.
                   </p>
                   <p className="text-gray-500 text-xs mt-1">
-                    Team names will be confirmed after the group stage ends on June 26.
+                    Predict the score for each knockout match below.
                   </p>
                 </div>
               </div>
 
-              {/* KO match predictions */}
               {['R32','R16','QF','SF','3RD','FINAL'].map(round => {
                 const roundFixtures = fixtures.filter(f => f.round === round)
-                const roundLabels = {
-                  R32:'Round of 32', R16:'Round of 16', QF:'Quarter Finals',
-                  SF:'Semi Finals', '3RD':'Bronze Final', FINAL:'The Final'
-                }
                 return (
                   <div key={round} className="mt-6">
                     <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 pb-2 border-b border-gray-800">
@@ -491,35 +612,29 @@ export default function PredictionsClient({
                         <tbody>
                           {roundFixtures.map(f => {
                             const pred = predictions[f.id] || {}
-                            const t1 = f.home_team || f.slot1
-                            const t2 = f.away_team || f.slot2
+                            const t1 = resolveTeam(f.slot1 || f.home_team)
+                            const t2 = resolveTeam(f.slot2 || f.away_team)
                             return (
                               <tr key={f.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                                 <td className="px-2 py-2 text-right">
                                   <span className="font-medium text-white flex items-center justify-end gap-1 flex-nowrap">
-                                    <span className="text-xs">{t1}</span>
+                                    <span className="hidden sm:inline text-sm">{t1}</span>
+                                    <span className="sm:hidden text-xs">{shortName(t1)}</span>
                                     {flag(t1) && <img src={flag(t1)} alt={t1} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
                                   </span>
                                 </td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput
-                                    value={pred.home}
-                                    onChange={v => updatePrediction(f.id, 'home', v)}
-                                    disabled={locked}
-                                  />
+                                  <ScoreInput value={pred.home} onChange={v => updatePrediction(f.id, 'home', v)} disabled={locked}/>
                                 </td>
                                 <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput
-                                    value={pred.away}
-                                    onChange={v => updatePrediction(f.id, 'away', v)}
-                                    disabled={locked}
-                                  />
+                                  <ScoreInput value={pred.away} onChange={v => updatePrediction(f.id, 'away', v)} disabled={locked}/>
                                 </td>
                                 <td className="px-2 py-2">
                                   <span className="font-medium text-white flex items-center gap-1 flex-nowrap">
                                     {flag(t2) && <img src={flag(t2)} alt={t2} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
-                                    <span className="text-xs">{t2}</span>
+                                    <span className="hidden sm:inline text-sm">{t2}</span>
+                                    <span className="sm:hidden text-xs">{shortName(t2)}</span>
                                   </span>
                                 </td>
                                 <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
@@ -536,7 +651,7 @@ export default function PredictionsClient({
               })}
             </>
           )}
-          
+
           {/* Star pick — always visible */}
           {!locked && (
             <div className="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
@@ -565,7 +680,7 @@ export default function PredictionsClient({
             </div>
           )}
 
-          {/* Extras — unlocks after all group predictions done */}
+          {/* Extras */}
           {allGroupsDone && (
             <div className="mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
               <h3 className="font-bold text-lg mb-1">🎯 Tournament Extras</h3>
@@ -632,28 +747,15 @@ export default function PredictionsClient({
           <div className="lg:hidden fixed inset-0 bg-gray-950 z-40 overflow-y-auto pb-20">
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
               <span className="font-bold text-yellow-400">Group Tables</span>
-              <button
-                onClick={() => setShowMobileTables(false)}
-                className="text-gray-400 text-xl"
-              >
-                ✕
-              </button>
+              <button onClick={() => setShowMobileTables(false)} className="text-gray-400 text-xl">✕</button>
             </div>
-            <GroupTablePanel
-              predictions={predictions}
-              fixtures={fixtures}
-              activeGroup={activeGroup}
-            />
+            <GroupTablePanel predictions={predictions} fixtures={fixtures} activeGroup={activeGroup}/>
           </div>
         )}
 
         {/* Desktop group tables */}
         <div className="hidden lg:block w-72 border-l border-gray-800 bg-gray-900/50">
-          <GroupTablePanel
-            predictions={predictions}
-            fixtures={fixtures}
-            activeGroup={activeGroup}
-          />
+          <GroupTablePanel predictions={predictions} fixtures={fixtures} activeGroup={activeGroup}/>
         </div>
 
       </div>{/* closes flex div */}
@@ -681,11 +783,7 @@ export default function PredictionsClient({
                     }`}
                 >
                   {flag(team) && (
-                    <img
-                      src={flag(team)}
-                      alt={team}
-                      className="w-5 h-3 object-cover rounded-sm flex-shrink-0"
-                    />
+                    <img src={flag(team)} alt={team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>
                   )}
                   <span className="truncate">{team}</span>
                 </button>
