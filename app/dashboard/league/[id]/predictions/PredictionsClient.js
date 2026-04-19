@@ -97,6 +97,7 @@ function calcGroupTables(predictions, fixtures) {
       t1.drawn++; t1.pts++; t2.drawn++; t2.pts++
     }
   }
+  console.log('Total fixtures:',fixtures.length,'Group:',groupFixtures.length)
   for (const g of GROUPS) {
     tables[g].sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
   }
@@ -458,6 +459,84 @@ export default function PredictionsClient({
             </div>
           )}
 
+          {/* Knockout bracket and predictions — unlocks when all group done */}
+          {allGroupsDone && (
+            <>
+              {/* KO bracket placeholder — will show team names from group results */}
+              <div className="mt-6">
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
+                  <p className="text-yellow-400 text-sm font-medium">
+                    ⚡ Knockout bracket unlocked! Predict the remaining 32 matches below.
+                  </p>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Team names will be confirmed after the group stage ends on June 26.
+                  </p>
+                </div>
+              </div>
+
+              {/* KO match predictions */}
+              {['R32','R16','QF','SF','3RD','FINAL'].map(round => {
+                const roundFixtures = fixtures.filter(f => f.round === round)
+                const roundLabels = {
+                  R32:'Round of 32', R16:'Round of 16', QF:'Quarter Finals',
+                  SF:'Semi Finals', '3RD':'Bronze Final', FINAL:'The Final'
+                }
+                return (
+                  <div key={round} className="mt-6">
+                    <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 pb-2 border-b border-gray-800">
+                      {roundLabels[round]}
+                    </div>
+                    <div className="bg-gray-900 rounded-xl overflow-hidden">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {roundFixtures.map(f => {
+                            const pred = predictions[f.id] || {}
+                            const t1 = f.home_team || f.slot1
+                            const t2 = f.away_team || f.slot2
+                            return (
+                              <tr key={f.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                                <td className="px-2 py-2 text-right">
+                                  <span className="font-medium text-white flex items-center justify-end gap-1 flex-nowrap">
+                                    <span className="text-xs">{t1}</span>
+                                    {flag(t1) && <img src={flag(t1)} alt={t1} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
+                                  </span>
+                                </td>
+                                <td className="px-1 py-2 text-center">
+                                  <ScoreInput
+                                    value={pred.home}
+                                    onChange={v => updatePrediction(f.id, 'home', v)}
+                                    disabled={locked}
+                                  />
+                                </td>
+                                <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
+                                <td className="px-1 py-2 text-center">
+                                  <ScoreInput
+                                    value={pred.away}
+                                    onChange={v => updatePrediction(f.id, 'away', v)}
+                                    disabled={locked}
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <span className="font-medium text-white flex items-center gap-1 flex-nowrap">
+                                    {flag(t2) && <img src={flag(t2)} alt={t2} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
+                                    <span className="text-xs">{t2}</span>
+                                  </span>
+                                </td>
+                                <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
+                                  {new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          )}
+          
           {/* Star pick — always visible */}
           {!locked && (
             <div className="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
