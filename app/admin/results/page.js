@@ -20,7 +20,18 @@ export default async function ResultsPage() {
     .select('*')
     .order('match_number', { ascending: true })
 
+  // Fetch the global master_extras row (single global row, no league_id)
+  const { data: masterExtrasRows } = await supabase
+    .from('master_extras')
+    .select('*')
+    .limit(1)
+
+  const masterExtras = masterExtrasRows?.[0] ?? null
+
   return (
-    <ResultsClient fixtures={fixtures || []} />
+    <ResultsClient
+      fixtures={fixtures || []}
+      masterExtras={masterExtras}
+    />
   )
 }
