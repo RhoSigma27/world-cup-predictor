@@ -15,8 +15,18 @@ function getResult(s1, s2) {
 // matchNumber → column index in the Annex C row
 const ANNEX_C_R32_MATCHES = new Set([74, 77, 79, 80, 81, 82, 85, 87])
 
-function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, starPick, effectiveThirdPlaceGroups = []) {
+function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, effectiveThirdPlaceGroups = []) {
   let groupPts = 0, koPts = 0, extrasPts = 0
+
+  // Build per-round star pick map from new columns
+  const starPicks = {
+    group: extrasPred?.star_pick_group ?? null,
+    R32:   extrasPred?.star_pick_r32   ?? null,
+    R16:   extrasPred?.star_pick_r16   ?? null,
+    QF:    extrasPred?.star_pick_qf    ?? null,
+    SF:    extrasPred?.star_pick_sf    ?? null,
+    FINAL: extrasPred?.star_pick_final ?? null,
+  }
 
   for (const f of fixtures) {
     if (f.home_score == null || f.away_score == null) continue
@@ -44,7 +54,9 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, starP
       pts += bonus
     }
 
-    // Star pick doubles points
+    // Star pick doubles points — use the pick for this specific round
+    const roundKey = f.round === '3RD' ? 'FINAL' : f.round // bronze uses FINAL pick
+    const starPick = starPicks[roundKey] ?? null
     const teamInvolved = f.home_team === starPick || f.away_team === starPick
     if (starPick && teamInvolved) pts *= 2
 
@@ -168,9 +180,8 @@ export default async function StandingsPage({ params }) {
   const standings = members?.map(member => {
     const userPreds = allPredictions?.filter(p => p.user_id === member.user_id) || []
     const userExtras = allExtras?.find(e => e.user_id === member.user_id) || null
-    const starPick = userExtras?.star_pick || null
 
-    const score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras, starPick, effectiveThirdPlaceGroups)
+    const score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras, effectiveThirdPlaceGroups)
     const filled = userPreds.filter(p => p.predicted_home != null && p.predicted_away != null).length
 
     return {
@@ -178,7 +189,14 @@ export default async function StandingsPage({ params }) {
       displayName: member.profiles?.display_name,
       isAdmin: member.user_id === league.admin_id,
       isCurrentUser: member.user_id === user.id,
-      starPick,
+      starPicks: {
+        group: userExtras?.star_pick_group ?? null,
+        R32:   userExtras?.star_pick_r32   ?? null,
+        R16:   userExtras?.star_pick_r16   ?? null,
+        QF:    userExtras?.star_pick_qf    ?? null,
+        SF:    userExtras?.star_pick_sf    ?? null,
+        FINAL: userExtras?.star_pick_final ?? null,
+      },
       filled,
       ...score,
     }
@@ -223,7 +241,9 @@ export default async function StandingsPage({ params }) {
       const [base, bonus] = roundPoints[f.round] || [0, 0]
       let pts = base
       if (pred.predicted_home === f.home_score && pred.predicted_away === f.away_score) pts += bonus
-      if (s.starPick && (f.home_team === s.starPick || f.away_team === s.starPick)) pts *= 2
+      const chartRoundKey = f.round === '3RD' ? 'FINAL' : f.round
+      const chartStarPick = s.starPicks?.[chartRoundKey] ?? null
+      if (chartStarPick && (f.home_team === chartStarPick || f.away_team === chartStarPick)) pts *= 2
       point[s.displayName] = pts
     })
     return point
@@ -302,8 +322,8 @@ export default async function StandingsPage({ params }) {
                             {isCurrentUser && <span className="ml-1 text-xs text-yellow-400">(you)</span>}
                             {s.isAdmin && <span className="ml-1 text-xs text-gray-500">⭐</span>}
                           </p>
-                          {s.starPick && (
-                            <p className="text-xs text-gray-500">⭐ {s.starPick}</p>
+                          {s.starPicks?.group && (
+                            <p className="text-xs text-gray-500">⭐ {s.starPicks.group} <span className="text-gray-700">(group)</span></p>
                           )}
                         </div>
                       </div>

@@ -1047,9 +1047,9 @@ export default function PredictionsClient({
   const [activeGroup, setActiveGroup] = useState('A')
   const [saveStatus, setSaveStatus] = useState('saved')
   const [toast, setToast] = useState(null)
-  const [showStarPicker, setShowStarPicker] = useState(false)
   const [showMobileTables, setShowMobileTables] = useState(false)
   const [showBracketModal, setShowBracketModal] = useState(false)
+  const [starPickRound, setStarPickRound] = useState(null) // which round's picker is open
   const saveTimers = useRef({})
   const supabaseRef = useRef(null)
   if (!supabaseRef.current) supabaseRef.current = createClient()
@@ -1081,7 +1081,14 @@ export default function PredictionsClient({
     redcards: extrasPrediction?.predicted_red_cards ?? null,
     goals: extrasPrediction?.predicted_total_goals ?? null,
   })
-  const [starPick, setStarPick] = useState(extrasPrediction?.star_pick ?? null)
+  const [starPicks, setStarPicks] = useState({
+    group: extrasPrediction?.star_pick_group ?? null,
+    R32:   extrasPrediction?.star_pick_r32   ?? null,
+    R16:   extrasPrediction?.star_pick_r16   ?? null,
+    QF:    extrasPrediction?.star_pick_qf    ?? null,
+    SF:    extrasPrediction?.star_pick_sf    ?? null,
+    FINAL: extrasPrediction?.star_pick_final ?? null,
+  })
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -1130,18 +1137,39 @@ export default function PredictionsClient({
     })
   }
 
-  const saveExtras = async (newExtras, newStarPick) => {
+  const saveExtras = async (newExtras, newStarPicks) => {
     const { error } = await supabase
       .from('extras_predictions')
       .upsert({
         user_id: userId, league_id: leagueId,
         predicted_red_cards: newExtras.redcards,
         predicted_total_goals: newExtras.goals,
-        star_pick: newStarPick,
+        star_pick_group: newStarPicks.group,
+        star_pick_r32:   newStarPicks.R32,
+        star_pick_r16:   newStarPicks.R16,
+        star_pick_qf:    newStarPicks.QF,
+        star_pick_sf:    newStarPicks.SF,
+        star_pick_final: newStarPicks.FINAL,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,league_id' })
-    if (!error) showToast('Extras saved ✓')
+    if (!error) showToast('Saved ✓')
     else showToast('Save failed', 'error')
+  }
+
+  const saveStarPick = async (round, team) => {
+    const newStarPicks = { ...starPicks, [round]: team }
+    setStarPicks(newStarPicks)
+    setStarPickRound(null)
+    const colMap = { group: 'star_pick_group', R32: 'star_pick_r32', R16: 'star_pick_r16', QF: 'star_pick_qf', SF: 'star_pick_sf', FINAL: 'star_pick_final' }
+    const { error } = await supabase
+      .from('extras_predictions')
+      .upsert({
+        user_id: userId, league_id: leagueId,
+        [colMap[round]]: team,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,league_id' })
+    if (error) showToast('Save failed', 'error')
+    else showToast(`⭐ Star pick saved for ${roundLabels[round] || round}`)
   }
 
   // ── Derived bracket state (recomputed on every prediction change) ──────────
@@ -1178,6 +1206,45 @@ export default function PredictionsClient({
   // Resolve a team for a given slot code + the fixture's match number context
   const resolve = (slotCode, matchNum) =>
     resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum)
+
+  // ── Per-round star pick helpers ──────────────────────────────────────────────
+
+  // Lock time for each round = kickoff of first fixture in that round
+  const roundLockTimes = {}
+  const starPickRounds = ['group', 'R32', 'R16', 'QF', 'SF', 'FINAL']
+  for (const round of starPickRounds) {
+    const key = round === 'group' ? 'group' : round
+    const roundFs = fixtures.filter(f => f.round === (round === 'group' ? 'group' : round))
+    if (roundFs.length) {
+      const earliest = roundFs.reduce((a, b) => new Date(a.kickoff_utc) < new Date(b.kickoff_utc) ? a : b)
+      roundLockTimes[round] = new Date(earliest.kickoff_utc)
+    }
+  }
+  const isRoundLocked = (round) => {
+    const lockTime = roundLockTimes[round]
+    return lockTime ? new Date() >= lockTime : false
+  }
+
+  // Teams available for star pick per round — derived from bracket resolution
+  const teamsForRound = (round) => {
+    if (round === 'group') return Object.values(GROUP_TEAMS).flat().sort()
+    const roundFs = koFixtures.filter(f => f.round === round)
+    const teams = new Set()
+    for (const f of roundFs) {
+      const t1 = resolve(f.slot1 || f.home_team, f.match_number)
+      const t2 = resolve(f.slot2 || f.away_team, f.match_number)
+      if (t1 && t1 !== 'TBD') teams.add(t1)
+      if (t2 && t2 !== 'TBD') teams.add(t2)
+    }
+    return [...teams].sort()
+  }
+
+  // Check if a star pick is still valid (team is in the predicted bracket for that round)
+  const isStarPickValid = (round, team) => {
+    if (!team) return true
+    if (round === 'group') return true // all 48 always valid
+    return teamsForRound(round).includes(team)
+  }
 
   const roundLabels = {
     R32:'Round of 32', R16:'Round of 16', QF:'Quarter Finals',
@@ -1373,27 +1440,63 @@ export default function PredictionsClient({
             })}
           </div>
 
-          {/* Star pick */}
-          {!locked && (
-            <div className="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-sm">⭐ Star Pick</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Choose a team — they score double points all tournament</p>
-                </div>
-                <button onClick={() => setShowStarPicker(true)}
-                  className="text-xs px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors flex-shrink-0 ml-3">
-                  {starPick ? `⭐ ${starPick}` : 'Choose team'}
-                </button>
-              </div>
-              {starPick && (
-                <button onClick={() => { setStarPick(null); saveExtras(extras, null) }}
-                  className="mt-3 text-xs text-gray-500 hover:text-red-400 transition-colors">
-                  Remove star pick
-                </button>
-              )}
+          {/* Star Picks — per round */}
+          <div className="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-bold text-sm">⭐ Star Team — per round</h3>
             </div>
-          )}
+            <p className="text-gray-500 text-xs mb-4">Pick a team per round — their points are doubled. Locks when the first match of each round kicks off.</p>
+            <div className="space-y-2">
+              {[
+                { round: 'group', label: 'Group Stage' },
+                { round: 'R32',   label: 'Round of 32' },
+                { round: 'R16',   label: 'Round of 16' },
+                { round: 'QF',    label: 'Quarter Finals' },
+                { round: 'SF',    label: 'Semi Finals' },
+                { round: 'FINAL', label: 'The Final' },
+              ].map(({ round, label }) => {
+                const pick = starPicks[round]
+                const roundLocked = isRoundLocked(round)
+                const valid = isStarPickValid(round, pick)
+                const availableTeams = teamsForRound(round)
+                const noTeamsYet = round !== 'group' && availableTeams.length === 0
+                return (
+                  <div key={round} className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border
+                    ${roundLocked ? 'border-gray-800 bg-gray-800/30 opacity-60' : 'border-gray-700 bg-gray-800/40'}`}>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-gray-300">{label}</p>
+                      {roundLocked && <p className="text-xs text-gray-600">Locked</p>}
+                      {!roundLocked && noTeamsYet && <p className="text-xs text-gray-600">Fill in predictions to unlock teams</p>}
+                      {!valid && pick && <p className="text-xs text-amber-400">⚠ {pick} not in your predicted {label}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {pick && (
+                        <div className="flex items-center gap-1.5">
+                          <FlagImg team={pick} />
+                          <span className="text-xs text-yellow-400 font-medium">{pick}</span>
+                        </div>
+                      )}
+                      {!roundLocked && (
+                        <button
+                          onClick={() => setStarPickRound(round)}
+                          disabled={noTeamsYet}
+                          className="text-xs px-2.5 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                          {pick ? 'Change' : 'Pick'}
+                        </button>
+                      )}
+                      {!roundLocked && pick && (
+                        <button
+                          onClick={() => saveStarPick(round, null)}
+                          className="text-xs text-gray-600 hover:text-red-400 transition-colors">
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
 
           {/* Extras */}
           <div className="mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
@@ -1414,7 +1517,7 @@ export default function PredictionsClient({
               </div>
             </div>
             {!locked && (
-              <button onClick={() => saveExtras(extras, starPick)}
+              <button onClick={() => saveExtras(extras, starPicks)}
                 className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors">
                 Save Extras
               </button>
@@ -1448,24 +1551,43 @@ export default function PredictionsClient({
         </div>
       </div>
 
-      {/* Star picker modal */}
-      {showStarPicker && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setShowStarPicker(false)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full max-h-96 overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-lg mb-4">⭐ Choose Your Star Pick</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.values(GROUP_TEAMS).flat().sort().map(team => (
-                <button key={team}
-                  onClick={() => { setStarPick(team); setShowStarPicker(false); saveExtras(extras, team) }}
-                  className={`px-3 py-2 rounded-lg text-sm text-left flex items-center gap-2 transition-colors
-                    ${starPick === team ? 'bg-yellow-500 text-gray-950 font-bold' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
-                  <FlagImg team={team} />
-                  <span className="truncate">{team}</span>
-                </button>
-              ))}
+      {/* Star pick modal — per round */}
+      {starPickRound && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setStarPickRound(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-lg">⭐ Star Pick</h3>
+              <button onClick={() => setStarPickRound(null)} className="text-gray-500 hover:text-white">✕</button>
             </div>
-            {starPick && (
-              <button onClick={() => { setStarPick(null); setShowStarPicker(false); saveExtras(extras, null) }}
+            <p className="text-xs text-gray-500 mb-4">
+              {starPickRound === 'group' ? 'Group Stage' :
+               starPickRound === 'R32' ? 'Round of 32' :
+               starPickRound === 'R16' ? 'Round of 16' :
+               starPickRound === 'QF' ? 'Quarter Finals' :
+               starPickRound === 'SF' ? 'Semi Finals' : 'The Final'} — points doubled for this team's match
+            </p>
+            {(() => {
+              const teams = teamsForRound(starPickRound)
+              const current = starPicks[starPickRound]
+              if (teams.length === 0) return (
+                <p className="text-gray-500 text-sm text-center py-4">No teams resolved yet — fill in your predictions first.</p>
+              )
+              return (
+                <div className="grid grid-cols-2 gap-2">
+                  {teams.map(team => (
+                    <button key={team}
+                      onClick={() => saveStarPick(starPickRound, team)}
+                      className={`px-3 py-2 rounded-lg text-sm text-left flex items-center gap-2 transition-colors
+                        ${current === team ? 'bg-yellow-500 text-gray-950 font-bold' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
+                      <FlagImg team={team} />
+                      <span className="truncate">{team}</span>
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
+            {starPicks[starPickRound] && (
+              <button onClick={() => saveStarPick(starPickRound, null)}
                 className="w-full mt-3 py-2 bg-red-900/30 text-red-400 rounded-lg text-sm hover:bg-red-900/50 transition-colors">
                 Remove Star Pick
               </button>
