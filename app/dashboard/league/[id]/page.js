@@ -128,7 +128,20 @@ export default async function LeaguePage({ params, searchParams }) {
           🏅 League Standings
         </Link>
 
-        {/* Predictions button */}
+        {/* Predictions button — inline on desktop only */}
+        <Link
+          href={`/dashboard/league/${id}/predictions`}
+          className="hidden sm:block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg text-center transition-colors"
+        >
+          📝 Enter My Predictions →
+        </Link>
+
+        {/* Spacer so content clears the mobile sticky bar */}
+        <div className="h-24 sm:hidden" />
+      </div>
+
+      {/* Predictions button — sticky footer on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-950/95 backdrop-blur border-t border-gray-800 sm:hidden z-40">
         <Link
           href={`/dashboard/league/${id}/predictions`}
           className="block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg text-center transition-colors"
