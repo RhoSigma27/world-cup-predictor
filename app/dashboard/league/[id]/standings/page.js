@@ -11,7 +11,11 @@ function getResult(s1, s2) {
   return 'D'
 }
 
-function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, starPick) {
+// R32 matches that host a 3rd-place team (Annex C slot positions)
+// matchNumber → column index in the Annex C row
+const ANNEX_C_R32_MATCHES = new Set([74, 77, 79, 80, 81, 82, 85, 87])
+
+function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, starPick, effectiveThirdPlaceGroups = []) {
   let groupPts = 0, koPts = 0, extrasPts = 0
 
   for (const f of fixtures) {
@@ -104,12 +108,49 @@ export default async function StandingsPage({ params }) {
     `)
     .eq('league_id', id)
 
-  // Get master extras for this league
+  // Get master extras for this league (includes third_place_override if set)
   const { data: masterExtras } = await supabase
     .from('master_extras')
     .select('*')
     .eq('league_id', id)
     .single()
+
+  // Determine the effective 3rd-place qualifying groups:
+  // If admin has set a manual override, use that; otherwise derive from real scores.
+  // This is used to correctly identify which 3rd-place team slot each R32 fixture
+  // belongs to when applying star-pick bonuses and future bracket logic.
+  const effectiveThirdPlaceGroups = masterExtras?.third_place_override
+    ? masterExtras.third_place_override  // e.g. ['C','F','G','H','I','J','K','L']
+    : (() => {
+        // Auto-compute from completed group fixtures
+        const groupFixtures = fixtures?.filter(f => f.round === 'group') || []
+        const groupStats = {}
+        for (const f of groupFixtures) {
+          if (f.home_score == null || f.away_score == null) continue
+          const g = f.match_group
+          if (!groupStats[g]) {
+            groupStats[g] = {}
+          }
+          for (const [team, gf, ga] of [
+            [f.home_team, f.home_score, f.away_score],
+            [f.away_team, f.away_score, f.home_score],
+          ]) {
+            if (!groupStats[g][team]) groupStats[g][team] = { pts: 0, gd: 0, gf: 0, played: 0 }
+            const s = groupStats[g][team]
+            s.played++; s.gf += gf; s.ga += ga; s.gd += gf - ga
+            if (gf > ga) s.pts += 3
+            else if (gf === ga) s.pts += 1
+          }
+        }
+        // Get 3rd-place team per group, then rank by pts/gd/gf, take top 8
+        const thirds = Object.entries(groupStats).map(([g, teams]) => {
+          const sorted = Object.entries(teams)
+            .sort(([, a], [, b]) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+          return sorted[2] ? { group: g, ...(sorted[2][1]) } : null
+        }).filter(Boolean)
+        thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+        return thirds.slice(0, 8).map(t => t.group)
+      })()
 
   // Get all predictions for this league
   const { data: allPredictions } = await adminSupabase
@@ -129,7 +170,7 @@ export default async function StandingsPage({ params }) {
     const userExtras = allExtras?.find(e => e.user_id === member.user_id) || null
     const starPick = userExtras?.star_pick || null
 
-    const score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras, starPick)
+    const score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras, starPick, effectiveThirdPlaceGroups)
     const filled = userPreds.filter(p => p.predicted_home != null && p.predicted_away != null).length
 
     return {
@@ -205,6 +246,9 @@ export default async function StandingsPage({ params }) {
           ← {league.league_name}
         </Link>
         <span className="text-xs text-gray-500">{resultsEntered}/104 results in</span>
+        {masterExtras?.third_place_override && (
+          <span className="text-xs text-amber-400 ml-2" title="Admin has manually set 3rd place qualifiers">⚠ 3rd override</span>
+        )}
       </nav>
 
       <div className="max-w-4xl mx-auto p-4 pb-16">
