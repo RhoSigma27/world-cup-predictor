@@ -90,27 +90,22 @@ export default async function LeaguePage({ params, searchParams }) {
 
         {/* Members */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
-          <h2 className="font-bold text-lg mb-4">
+          <h2 className="font-bold text-lg mb-3">
             👥 Members ({members?.length || 0})
           </h2>
-          <div className="space-y-2">
-            {members?.map(({ user_id, joined_at, profiles: profile }) => (
-              <div key={user_id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-sm">
+          <div className="space-y-0">
+            {members?.map(({ user_id, profiles: profile }) => (
+              <div key={user_id} className="flex items-center py-2 border-b border-gray-800/60 last:border-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
                     {profile?.display_name?.[0]?.toUpperCase()}
                   </div>
-                  <div>
-                    <p className="font-medium">
-                      {profile?.display_name}
-                      {user_id === league.admin_id && (
-                        <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>
-                      )}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Joined {new Date(joined_at).toLocaleDateString('en-GB')}
-                    </p>
-                  </div>
+                  <p className="font-medium text-sm">
+                    {profile?.display_name}
+                    {user_id === league.admin_id && (
+                      <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>
+                    )}
+                  </p>
                 </div>
               </div>
             ))}
