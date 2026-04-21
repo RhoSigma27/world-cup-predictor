@@ -901,6 +901,141 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  BRACKET MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tables, annexMap, fixturesByMatchNum }) {
+  const koFixtures = fixtures.filter(f => f.round !== 'group')
+
+  const resolveSlot = (slotCode, matchNum) =>
+    resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum)
+
+  const getWinner = (f) => {
+    const pred = koPredictions[f.id]
+    if (!pred || pred.home == null || pred.away == null || pred.home === pred.away) return null
+    const t1 = resolveSlot(f.slot1 || f.home_team, f.match_number)
+    const t2 = resolveSlot(f.slot2 || f.away_team, f.match_number)
+    return pred.home > pred.away ? t1 : t2
+  }
+
+  // Build match card
+  const MatchCard = ({ f, compact = false }) => {
+    if (!f) return <div className="w-44 h-16 rounded-lg bg-gray-800/40 border border-gray-700/30" />
+    const pred = koPredictions[f.id] || {}
+    const t1 = resolveSlot(f.slot1 || f.home_team, f.match_number)
+    const t2 = resolveSlot(f.slot2 || f.away_team, f.match_number)
+    const winner = getWinner(f)
+    const hasPred = pred.home != null && pred.away != null
+    const isTbd1 = t1 === 'TBD'
+    const isTbd2 = t2 === 'TBD'
+
+    const TeamRow = ({ team, score, isWinner, isTbd }) => (
+      <div className={`flex items-center justify-between px-2 py-1 rounded
+        ${isWinner ? 'bg-yellow-500/15' : ''}`}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {!isTbd && <FlagImg team={team} className="w-4 h-3 flex-shrink-0" />}
+          <span className={`text-xs truncate max-w-[90px] ${isTbd ? 'text-gray-600 italic' : isWinner ? 'text-yellow-300 font-bold' : 'text-gray-300'}`}>
+            {isTbd ? 'TBD' : team}
+          </span>
+        </div>
+        <span className={`text-xs font-bold ml-1 flex-shrink-0 ${isWinner ? 'text-yellow-400' : hasPred ? 'text-gray-400' : 'text-gray-700'}`}>
+          {hasPred ? score : '–'}
+        </span>
+      </div>
+    )
+
+    return (
+      <div className={`w-44 bg-gray-900 border rounded-lg overflow-hidden flex-shrink-0
+        ${hasPred ? 'border-gray-600' : 'border-gray-700/50'}`}>
+        <div className="px-2 pt-1 pb-0.5 text-[10px] text-gray-600 border-b border-gray-800">
+          M{f.match_number}
+        </div>
+        <div className="p-1 space-y-0.5">
+          <TeamRow team={t1} score={pred.home} isWinner={winner === t1 && !isTbd1} isTbd={isTbd1} />
+          <TeamRow team={t2} score={pred.away} isWinner={winner === t2 && !isTbd2} isTbd={isTbd2} />
+        </div>
+      </div>
+    )
+  }
+
+  const rounds = ['R32', 'R16', 'QF', 'SF', 'FINAL']
+  const roundLabels = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter Finals', SF: 'Semi Finals', FINAL: 'Final' }
+  const bronze = koFixtures.find(f => f.round === '3RD')
+
+  // For each round, get fixtures in match_number order
+  const roundFixtures = (round) => koFixtures.filter(f => f.round === round).sort((a, b) => a.match_number - b.match_number)
+
+  // Connector line heights — used to visually pair matches between rounds
+  // R32 has 16 matches → R16 has 8 → QF 4 → SF 2 → F 1
+  // Each match card is ~80px tall, gap between pairs creates the tree structure
+
+  return (
+    <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={onClose}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950 flex-shrink-0"
+        onClick={e => e.stopPropagation()}>
+        <div>
+          <h2 className="font-bold text-white">🏆 My Predicted Bracket</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Based on your current predictions · winner highlighted in gold</p>
+        </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-white text-xl px-2">✕</button>
+      </div>
+
+      {/* Scrollable bracket area */}
+      <div className="flex-1 overflow-auto p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex gap-6 items-start min-w-max">
+
+          {rounds.map((round, roundIdx) => {
+            const fs = roundFixtures(round)
+            // Card height + gap unit. Each successive round doubles the slot height.
+            const CARD_H = 80   // px — approximate rendered height of one MatchCard
+            const BASE_GAP = 8  // px — gap between cards in R32
+            const slotH = (CARD_H + BASE_GAP) * Math.pow(2, roundIdx)
+
+            return (
+              <div key={round} className="flex flex-col flex-shrink-0">
+                {/* Round label */}
+                <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 text-center w-44">
+                  {roundLabels[round]}
+                </div>
+                {/* Match cards — each sits in a slot of slotH, centred vertically */}
+                <div className="flex flex-col">
+                  {fs.map((f) => (
+                    <div key={f.id}
+                      style={{ height: `${slotH}px` }}
+                      className="flex items-center">
+                      <MatchCard f={f} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Bronze play-off — separate column, aligned at top */}
+          {bronze && (
+            <div className="flex flex-col flex-shrink-0 opacity-75 ml-4">
+              <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 text-center w-44">
+                Bronze Final
+              </div>
+              <div style={{ height: `${(80 + 8) * 8}px` }} className="flex items-start pt-2">
+                <MatchCard f={bronze} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-8 flex items-center gap-4 text-xs text-gray-600">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500/15 inline-block border border-yellow-500/30" /> predicted winner</span>
+          <span className="flex items-center gap-1"><span className="text-gray-600 italic">TBD</span> = team not yet determined from your predictions</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -914,6 +1049,7 @@ export default function PredictionsClient({
   const [toast, setToast] = useState(null)
   const [showStarPicker, setShowStarPicker] = useState(false)
   const [showMobileTables, setShowMobileTables] = useState(false)
+  const [showBracketModal, setShowBracketModal] = useState(false)
   const saveTimers = useRef({})
   const supabaseRef = useRef(null)
   if (!supabaseRef.current) supabaseRef.current = createClient()
@@ -1166,12 +1302,20 @@ export default function PredictionsClient({
 
           {/* KO bracket — always shown, TBD until teams are known */}
           <div className="mt-8">
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
-              <p className="text-yellow-400 text-sm font-medium">⚡ Knockout bracket</p>
-              <p className="text-gray-500 text-xs mt-1">
-                Teams update live as you enter predictions. Complete all 72 group matches to finalise the R32 draw.
-                Enter a score for each KO match to advance teams to the next round.
-              </p>
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-yellow-400 text-sm font-medium">⚡ Knockout bracket</p>
+                <p className="text-gray-500 text-xs mt-1">
+                  Teams update live as you enter predictions. Complete all 72 group matches to finalise the R32 draw.
+                  Enter a score for each KO match to advance teams to the next round.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowBracketModal(true)}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
+              >
+                🏆 View bracket
+              </button>
             </div>
 
             {roundOrder.map(round => {
@@ -1328,6 +1472,19 @@ export default function PredictionsClient({
             )}
           </div>
         </div>
+      )}
+
+      {/* Bracket modal */}
+      {showBracketModal && (
+        <BracketModal
+          onClose={() => setShowBracketModal(false)}
+          fixtures={fixtures}
+          groupPredictions={groupPredictions}
+          koPredictions={koPredictions}
+          tables={tables}
+          annexMap={annexMap}
+          fixturesByMatchNum={fixturesByMatchNum}
+        />
       )}
 
       {/* Toast */}
