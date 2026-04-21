@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import CopyButton from './CopyButton'
+import ScoringGuide from './ScoringGuide'
 
 export default async function LeaguePage({ params, searchParams }) {
   const supabase = await createServerSupabaseClient()
@@ -115,6 +116,10 @@ export default async function LeaguePage({ params, searchParams }) {
             ))}
           </div>
         </div>
+
+        {/* Scoring guide */}
+        <ScoringGuide />
+
         {/* Standings */}
         <Link
           href={`/dashboard/league/${id}/standings`}
@@ -122,6 +127,7 @@ export default async function LeaguePage({ params, searchParams }) {
         >
           🏅 League Standings
         </Link>
+
         {/* Predictions button */}
         <Link
           href={`/dashboard/league/${id}/predictions`}
