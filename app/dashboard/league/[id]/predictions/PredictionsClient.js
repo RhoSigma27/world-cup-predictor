@@ -1018,6 +1018,13 @@ export default function PredictionsClient({
     const p = groupPredictions[f.id]
     return p?.home != null && p?.away != null
   }).length
+
+  const totalKoPredictions = koFixtures.filter(f => {
+    const p = koPredictions[f.id]
+    return p?.home != null && p?.away != null
+  }).length
+
+  const totalPredictions = totalGroupPredictions + totalKoPredictions
   const progressPct = Math.round((totalGroupPredictions / 72) * 100)
 
   // Build fixture index by match_number for KO resolution
@@ -1050,7 +1057,13 @@ export default function PredictionsClient({
           ← {league?.league_name}
         </Link>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500">{totalGroupPredictions}/72</span>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span title="Group stage">{totalGroupPredictions}/72</span>
+            <span className="text-gray-700">·</span>
+            <span title="Knockout stage">{totalKoPredictions}/32 KO</span>
+            <span className="text-gray-700">·</span>
+            <span className={totalPredictions === 104 ? 'text-green-400 font-medium' : ''}>{totalPredictions}/104</span>
+          </div>
           <div className="flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full ${saveStatus === 'saved' ? 'bg-green-400' : saveStatus === 'saving' ? 'bg-yellow-400' : 'bg-red-400'}`}/>
             <span className="text-xs text-gray-500">
@@ -1067,13 +1080,24 @@ export default function PredictionsClient({
         <div className="flex-1 p-4 pb-24 overflow-x-auto">
 
           {/* Progress */}
-          <div className="mb-4">
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>Group stage predictions</span>
-              <span>{progressPct}% complete</span>
+          <div className="mb-4 space-y-2">
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Group stage</span>
+                <span>{totalGroupPredictions}/72 · {progressPct}%</span>
+              </div>
+              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-yellow-500 rounded-full transition-all duration-300" style={{ width: `${progressPct}%` }}/>
+              </div>
             </div>
-            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-              <div className="h-full bg-yellow-500 rounded-full transition-all duration-300" style={{ width: `${progressPct}%` }}/>
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Knockout stage</span>
+                <span>{totalKoPredictions}/32 · {Math.round((totalKoPredictions / 32) * 100)}%</span>
+              </div>
+              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 rounded-full transition-all duration-300" style={{ width: `${Math.round((totalKoPredictions / 32) * 100)}%` }}/>
+              </div>
             </div>
           </div>
 
