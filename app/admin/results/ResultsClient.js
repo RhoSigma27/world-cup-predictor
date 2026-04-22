@@ -888,20 +888,25 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
 
   // ── 3rd place override ────────────────────────────────────────────────────────
 
+  const draftOverrideRef = useRef(draftOverride)
+
   const toggleDraftGroup = (g) => {
-    setDraftOverride(prev => {
-      const next = prev ? new Set(prev) : new Set()
-      if (next.has(g)) next.delete(g)
-      else if (next.size < 8) next.add(g)
-      return next
-    })
+    const prev = draftOverrideRef.current
+    const next = prev ? new Set(prev) : new Set()
+    if (next.has(g)) next.delete(g)
+    else if (next.size < 8) next.add(g)
+    draftOverrideRef.current = next
+    setDraftOverride(new Set(next))
   }
 
   const saveOverride = async () => {
-    if (!draftOverride || draftOverride.size !== 8) {
+    const current = draftOverrideRef.current
+    console.log('[SaveOverride] draftOverride ref:', current ? [...current] : null)
+    if (!current || current.size !== 8) {
       showToast('Select exactly 8 groups', 'error'); return
     }
-    const value = [...draftOverride].sort()
+    const value = [...current].sort()
+    console.log('[SaveOverride] saving value:', value)
     const { error } = await supabase
       .from('master_extras')
       .update({ third_place_override: value, updated_at: new Date().toISOString() })
@@ -923,6 +928,7 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
       .update({ third_place_override: null, updated_at: new Date().toISOString() })
       .not('id', 'is', null)
     if (!error) {
+      draftOverrideRef.current = null
       setOverrideGroups(null)
       setDraftOverride(null)
       showToast('Override cleared — using auto-computed ranking')
