@@ -1021,8 +1021,8 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
     const value = [...current].sort()
     const { error } = await supabase
       .from('master_extras')
-      .update({ third_place_override: value, updated_at: new Date().toISOString() })
-      .not('id', 'is', null)
+      .upsert({ id: '00000000-0000-0000-0000-000000000001', third_place_override: value, updated_at: new Date().toISOString() })
+      .eq('id', '00000000-0000-0000-0000-000000000001')
     if (!error) {
       const newOverride = new Set(value)
       setOverrideGroups(newOverride)
@@ -1037,8 +1037,8 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
   const clearOverride = async () => {
     const { error } = await supabase
       .from('master_extras')
-      .update({ third_place_override: null, updated_at: new Date().toISOString() })
-      .not('id', 'is', null)
+      .upsert({ id: '00000000-0000-0000-0000-000000000001', third_place_override: null, updated_at: new Date().toISOString() })
+      .eq('id', '00000000-0000-0000-0000-000000000001')
     if (!error) {
       draftOverrideRef.current = null
       setOverrideGroups(null)
