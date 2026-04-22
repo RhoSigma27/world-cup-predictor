@@ -224,7 +224,7 @@ export default async function StandingsPage({ params }) {
   const resultsEntered = fixtures?.filter(f => f.home_score != null && f.away_score != null).length || 0
 
   // Build chart data — cumulative points per player per match
-  const completedFixtures = fixtures
+  const completedFixtures = (fixtures || [])
     .filter(f => f.home_score != null && f.away_score != null)
     .sort((a, b) => a.match_number - b.match_number)
 
@@ -269,15 +269,16 @@ export default async function StandingsPage({ params }) {
     return point
   })
 
-  // Convert to cumulative
-  const cumulativeChart = chartData.map((point, idx) => {
+  // Convert to cumulative — use a mutable array to avoid temporal dead zone
+  const cumulativeChart = []
+  for (const point of chartData) {
     const cumPoint = { match: point.match }
+    const prev = cumulativeChart[cumulativeChart.length - 1]
     standings.forEach(s => {
-      const prev = idx > 0 ? (cumulativeChart[idx - 1]?.[s.displayName] || 0) : 0
-      cumPoint[s.displayName] = prev + (point[s.displayName] || 0)
+      cumPoint[s.displayName] = (prev?.[s.displayName] || 0) + (point[s.displayName] || 0)
     })
-    return cumPoint
-  })
+    cumulativeChart.push(cumPoint)
+  }
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
