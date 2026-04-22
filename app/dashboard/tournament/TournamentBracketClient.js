@@ -147,13 +147,53 @@ const ROUND_LABELS = {
   SF: 'Semi Finals', '3RD': 'Bronze Final', FINAL: 'The Final',
 }
 
-export default function TournamentBracketClient({ fixtures }) {
+export default function TournamentBracketClient({ fixtures, masterExtras }) {
   const [view, setView] = useState('bracket') // 'bracket' | 'groups'
 
   const koFixtures = fixtures.filter(f => f.round !== 'group')
   const groupFixtures = fixtures.filter(f => f.round === 'group')
   const resultsEntered = fixtures.filter(f => f.home_score != null && f.away_score != null).length
   const koStarted = koFixtures.some(f => f.home_score != null)
+
+  // Build all group tables for 3rd place ranking
+  const allGroupStats = {}
+  for (const g of GROUPS) {
+    const teamStats = {}
+    const gFixtures = groupFixtures.filter(f => f.match_group === g)
+    for (const f of gFixtures) {
+      for (const [team, gf, ga] of [[f.home_team, f.home_score, f.away_score], [f.away_team, f.away_score, f.home_score]]) {
+        if (!teamStats[team]) teamStats[team] = { pts: 0, gd: 0, gf: 0, played: 0 }
+        if (f.home_score == null) continue
+        teamStats[team].played++
+        teamStats[team].gf += gf
+        teamStats[team].gd += gf - ga
+        if (gf > ga) teamStats[team].pts += 3
+        else if (gf === ga) teamStats[team].pts += 1
+      }
+    }
+    const sorted = Object.entries(teamStats).sort(([,a],[,b]) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf)
+    allGroupStats[g] = sorted
+  }
+
+  // 3rd place teams — the 3rd entry from each group
+  const allThirds = GROUPS
+    .map(g => {
+      const third = allGroupStats[g]?.[2]
+      return third ? { group: g, team: third[0], ...third[1] } : null
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+
+  // Effective top 8 — use override if set, else auto
+  const overrideGroups = masterExtras?.third_place_override
+    ? new Set(masterExtras.third_place_override)
+    : null
+  const effectiveThirds = overrideGroups
+    ? [
+        ...allThirds.filter(r => overrideGroups.has(r.group)),
+        ...allThirds.filter(r => !overrideGroups.has(r.group)),
+      ]
+    : allThirds
 
   const roundFixtures = (round) =>
     koFixtures.filter(f => f.round === round).sort((a, b) => a.match_number - b.match_number)
@@ -191,8 +231,74 @@ export default function TournamentBracketClient({ fixtures }) {
 
       {/* Group tables view */}
       {view === 'groups' && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {GROUPS.map(g => <GroupCard key={g} group={g} fixtures={fixtures} />)}
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {GROUPS.map(g => <GroupCard key={g} group={g} fixtures={fixtures} />)}
+          </div>
+
+          {/* 3rd place ranking */}
+          {allThirds.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-sm font-bold text-amber-400 uppercase tracking-wider">Best 3rd Place (Top 8 Advance)</h2>
+                {overrideGroups && (
+                  <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">Override active</span>
+                )}
+              </div>
+              <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-800 bg-yellow-500/5">
+                      <th className="px-3 py-2 text-left text-xs text-gray-500">#</th>
+                      <th className="px-3 py-2 text-left text-xs text-gray-500">Team</th>
+                      <th className="px-2 py-2 text-center text-xs text-gray-500">Grp</th>
+                      <th className="px-2 py-2 text-center text-xs text-gray-500">Pts</th>
+                      <th className="px-2 py-2 text-center text-xs text-gray-500">GD</th>
+                      <th className="px-2 py-2 text-center text-xs text-gray-500">GF</th>
+                      <th className="px-2 py-2 text-center text-xs text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {effectiveThirds.map((row, i) => {
+                      const qualifies = overrideGroups ? overrideGroups.has(row.group) : i < 8
+                      const overrideChanged = overrideGroups && (
+                        (overrideGroups.has(row.group) && i >= 8) ||
+                        (!overrideGroups.has(row.group) && i < 8)
+                      )
+                      return (
+                        <tr key={row.group} className={`border-b border-gray-800/50
+                          ${qualifies ? overrideChanged ? 'bg-amber-500/10' : 'bg-green-500/5' : ''}`}>
+                          <td className="px-3 py-2 text-gray-500 text-xs">{i + 1}</td>
+                          <td className="px-3 py-2 font-medium text-white">
+                            <span className="flex items-center gap-1.5">
+                              <FlagImg team={row.team} />
+                              <span>{row.team}</span>
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 text-center font-bold text-yellow-400 text-xs">{row.group}</td>
+                          <td className="px-2 py-2 text-center text-gray-300 text-xs font-bold">{row.pts}</td>
+                          <td className={`px-2 py-2 text-center text-xs ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                            {row.gd > 0 ? '+' : ''}{row.gd}
+                          </td>
+                          <td className="px-2 py-2 text-center text-gray-400 text-xs">{row.gf}</td>
+                          <td className="px-2 py-2 text-center text-xs">
+                            {qualifies
+                              ? <span className={`font-bold ${overrideChanged ? 'text-amber-400' : 'text-green-400'}`}>
+                                  {overrideChanged ? '⚠ Override' : '✓ Advances'}
+                                </span>
+                              : overrideChanged
+                                ? <span className="text-red-400">✕ Overridden</span>
+                                : <span className="text-gray-600">Eliminated</span>
+                            }
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

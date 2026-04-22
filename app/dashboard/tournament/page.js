@@ -14,6 +14,12 @@ export default async function TournamentPage() {
     .select('*')
     .order('match_number', { ascending: true })
 
+  const { data: masterExtras } = await supabase
+    .from('master_extras')
+    .select('*')
+    .eq('id', '00000000-0000-0000-0000-000000000001')
+    .maybeSingle()
+
   const resultsEntered = fixtures?.filter(f => f.home_score != null && f.away_score != null).length || 0
 
   return (
@@ -31,7 +37,7 @@ export default async function TournamentPage() {
           <p className="text-gray-500 text-sm mt-1">Live results · updates as matches are played</p>
         </div>
 
-        <TournamentBracketClient fixtures={fixtures || []} />
+        <TournamentBracketClient fixtures={fixtures || []} masterExtras={masterExtras} />
       </div>
     </main>
   )

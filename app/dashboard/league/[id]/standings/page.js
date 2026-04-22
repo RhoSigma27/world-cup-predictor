@@ -129,11 +129,12 @@ export default async function StandingsPage({ params }) {
     `)
     .eq('league_id', id)
 
-  // Get global master extras (single row, no league filter)
+  // Get global master extras (single global row)
   const { data: masterExtras } = await supabase
     .from('master_extras')
     .select('*')
-    .single()
+    .eq('id', '00000000-0000-0000-0000-000000000001')
+    .maybeSingle()
 
   // Determine the effective 3rd-place qualifying groups:
   // If admin has set a manual override, use that; otherwise derive from real scores.
