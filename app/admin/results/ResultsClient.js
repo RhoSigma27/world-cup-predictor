@@ -829,7 +829,6 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
       })
     })
 
-    console.log('[AutoPop] allGroupsDone:', allGroupsDone, 'currentOverride:', currentOverride ? [...currentOverride] : null, 'forceAnnexC:', forceAnnexC)
 
     if (allGroupsDone) {
       const allThirds = calcAllThirds(tables)
@@ -840,18 +839,15 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
           ? allThirds.slice(0, 8).map(t => t.group)
           : null
 
-      console.log('[AutoPop] effectiveTop8:', effectiveTop8)
 
       if (effectiveTop8) {
         const key = [...effectiveTop8].sort().join('')
         const entry = ANNEX_C[key]
-        console.log('[AutoPop] Annex C key:', key, 'entry found:', !!entry)
         if (entry) {
           for (const [matchNum, col] of Object.entries(ANNEX_C_MATCH_TO_COL)) {
             const groupLetter = entry[col]
             const team = tables[groupLetter]?.[2]?.team
             const fixture = fixturesByMatchNum[Number(matchNum)]
-            console.log(`[AutoPop] Match ${matchNum}: col=${col} group=${groupLetter} team=${team} current=${fixture?.away_team} force=${forceAnnexC}`)
             if (fixture && team && (forceAnnexC || fixture.away_team !== team)) {
               updates.push({ id: fixture.id, away_team: team })
             }
@@ -910,7 +906,6 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
     const newFixtures = [...newFixtureData]
     const logEntries = []
 
-    console.log('[AutoPop] Total updates to write:', Object.keys(merged).length, merged)
 
     for (const { id, ...fields } of Object.values(merged)) {
       const { error } = await supabase
@@ -919,7 +914,6 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
         .eq('id', id)
 
       if (!error) {
-        console.log('[AutoPop] Written fixture', id, fields)
         const idx = newFixtures.findIndex(f => f.id === id)
         if (idx !== -1) {
           newFixtures[idx] = { ...newFixtures[idx], ...fields }
@@ -995,12 +989,10 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
 
   const saveOverride = async () => {
     const current = draftOverrideRef.current
-    console.log('[SaveOverride] draftOverride ref:', current ? [...current] : null)
     if (!current || current.size !== 8) {
       showToast('Select exactly 8 groups', 'error'); return
     }
     const value = [...current].sort()
-    console.log('[SaveOverride] saving value:', value)
     const { error } = await supabase
       .from('master_extras')
       .update({ third_place_override: value, updated_at: new Date().toISOString() })
@@ -1144,9 +1136,16 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
           </div>
         )}
 
-        {/* Auto-computed table */}
+        {/* 3rd place table — reflects effective qualifiers */}
         <div>
-          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Auto-Computed 3rd Place Ranking</h3>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+              {overrideGroups ? 'Effective 3rd Place Ranking' : 'Auto-Computed 3rd Place Ranking'}
+            </h3>
+            {overrideGroups && (
+              <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">Override active</span>
+            )}
+          </div>
           <div className="bg-gray-900 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -1161,26 +1160,54 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
                 </tr>
               </thead>
               <tbody>
-                {allThirds.map((row, i) => (
-                  <tr key={row.group} className={`border-b border-gray-800/50 ${i < 8 ? 'bg-green-500/5' : ''}`}>
-                    <td className="px-3 py-2 text-gray-500 text-xs">{i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-white">
-                      <span className="flex items-center gap-1.5">
-                        {flag(row.team) && <img src={flag(row.team)} alt={row.team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
-                        <span className="hidden sm:inline">{row.team}</span>
-                      </span>
-                    </td>
-                    <td className="px-2 py-2 text-center font-bold text-yellow-400 text-xs">{row.group}</td>
-                    <td className="px-2 py-2 text-center text-gray-300 text-xs font-bold">{row.pts}</td>
-                    <td className={`px-2 py-2 text-center text-xs ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
-                      {row.gd > 0 ? '+' : ''}{row.gd}
-                    </td>
-                    <td className="px-2 py-2 text-center text-gray-400 text-xs">{row.gf}</td>
-                    <td className="px-2 py-2 text-center text-xs">
-                      {i < 8 ? <span className="text-green-400 font-bold">✓ Qualifies</span> : <span className="text-gray-600">Eliminated</span>}
-                    </td>
-                  </tr>
-                ))}
+                {(() => {
+                  // When override active: qualifying = override groups (in pts order),
+                  // eliminated = remaining groups (in pts order)
+                  const displayRows = overrideGroups
+                    ? [
+                        ...allThirds.filter(r => overrideGroups.has(r.group)),
+                        ...allThirds.filter(r => !overrideGroups.has(r.group)),
+                      ]
+                    : allThirds
+                  return displayRows.map((row, i) => {
+                    const qualifies = overrideGroups
+                      ? overrideGroups.has(row.group)
+                      : i < 8
+                    const autoQualifies = i < 8 && !overrideGroups
+                    const overrideChanged = overrideGroups && (
+                      (overrideGroups.has(row.group) && !autoTop8.includes(row.group)) ||
+                      (!overrideGroups.has(row.group) && autoTop8.includes(row.group))
+                    )
+                    return (
+                      <tr key={row.group} className={`border-b border-gray-800/50
+                        ${qualifies ? overrideChanged ? 'bg-amber-500/10' : 'bg-green-500/5' : ''}`}>
+                        <td className="px-3 py-2 text-gray-500 text-xs">{i + 1}</td>
+                        <td className="px-3 py-2 font-medium text-white">
+                          <span className="flex items-center gap-1.5">
+                            {flag(row.team) && <img src={flag(row.team)} alt={row.team} className="w-5 h-3 object-cover rounded-sm flex-shrink-0"/>}
+                            <span className="hidden sm:inline">{row.team}</span>
+                          </span>
+                        </td>
+                        <td className="px-2 py-2 text-center font-bold text-yellow-400 text-xs">{row.group}</td>
+                        <td className="px-2 py-2 text-center text-gray-300 text-xs font-bold">{row.pts}</td>
+                        <td className={`px-2 py-2 text-center text-xs ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                          {row.gd > 0 ? '+' : ''}{row.gd}
+                        </td>
+                        <td className="px-2 py-2 text-center text-gray-400 text-xs">{row.gf}</td>
+                        <td className="px-2 py-2 text-center text-xs">
+                          {qualifies
+                            ? <span className={`font-bold ${overrideChanged ? 'text-amber-400' : 'text-green-400'}`}>
+                                {overrideChanged ? '⚠ Override' : '✓ Qualifies'}
+                              </span>
+                            : overrideChanged
+                              ? <span className="text-red-400">✕ Overridden</span>
+                              : <span className="text-gray-600">Eliminated</span>
+                          }
+                        </td>
+                      </tr>
+                    )
+                  })
+                })()}
               </tbody>
             </table>
           </div>
