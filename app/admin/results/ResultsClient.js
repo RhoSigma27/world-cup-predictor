@@ -53,407 +53,501 @@ const ROUND_LABELS = {
 const ANNEX_C_MATCH_TO_COL = { 79:0, 85:1, 81:2, 74:3, 82:4, 77:5, 87:6, 80:7 }
 
 const ANNEX_C = {
-  'EFGHIJKL': ['E','J','I','F','H','G','L','K'],
-  'DFGHIJKL': ['H','G','I','D','J','F','L','K'],
-  'DEGHIJKL': ['E','J','I','D','H','G','L','K'],
-  'DEFHIJKL': ['E','J','I','D','H','F','L','K'],
-  'DEFGIJKL': ['E','G','I','D','J','F','L','K'],
-  'DEFGHJKL': ['E','G','J','D','H','F','L','K'],
-  'DEFGHIKL': ['E','G','I','D','H','F','L','K'],
-  'DEFGHIJL': ['E','G','J','D','H','F','L','I'],
-  'DEFGHIJK': ['E','G','J','D','H','F','I','K'],
-  'CFGHIJKL': ['H','G','I','C','J','F','L','K'],
-  'CEGHIJKL': ['E','J','I','C','H','G','L','K'],
-  'CEFHIJKL': ['E','J','I','C','H','F','L','K'],
-  'CEFGIJKL': ['E','G','I','C','J','F','L','K'],
-  'CEFGHJKL': ['E','G','J','C','H','F','L','K'],
-  'CEFGHIKL': ['E','G','I','C','H','F','L','K'],
-  'CEFGHIJL': ['E','G','J','C','H','F','L','I'],
-  'CEFGHIJK': ['E','G','J','C','H','F','I','K'],
-  'CDGHIJKL': ['H','G','I','C','J','D','L','K'],
-  'CDFHIJKL': ['C','J','I','D','H','F','L','K'],
-  'CDFGIJKL': ['C','G','I','D','J','F','L','K'],
-  'CDFGHJKL': ['C','G','J','D','H','F','L','K'],
-  'CDFGHIKL': ['C','G','I','D','H','F','L','K'],
-  'CDFGHIJL': ['C','G','J','D','H','F','L','I'],
-  'CDFGHIJK': ['C','G','J','D','H','F','I','K'],
-  'CDEHIJKL': ['E','J','I','C','H','D','L','K'],
-  'CDEGIJKL': ['E','G','I','C','J','D','L','K'],
-  'CDEGHJKL': ['E','G','J','C','H','D','L','K'],
-  'CDEGHIKL': ['E','G','I','C','H','D','L','K'],
-  'CDEGHIJL': ['E','G','J','C','H','D','L','I'],
-  'CDEGHIJK': ['E','G','J','C','H','D','I','K'],
-  'CDEFIJKL': ['C','J','E','D','I','F','L','K'],
-  'CDEFHJKL': ['C','J','E','D','H','F','L','K'],
-  'CDEFHIKL': ['C','E','I','D','H','F','L','K'],
-  'CDEFHIJL': ['C','J','E','D','H','F','L','I'],
-  'CDEFHIJK': ['C','J','E','D','H','F','I','K'],
-  'CDEFGJKL': ['C','G','E','D','J','F','L','K'],
-  'CDEFGIKL': ['C','G','E','D','I','F','L','K'],
-  'CDEFGIJL': ['C','G','E','D','J','F','L','I'],
-  'CDEFGIJK': ['C','G','E','D','J','F','I','K'],
-  'CDEFGHKL': ['C','G','E','D','H','F','L','K'],
-  'CDEFGHJL': ['C','G','J','D','H','F','L','E'],
-  'CDEFGHJK': ['C','G','J','D','H','F','E','K'],
-  'CDEFGHIL': ['C','G','E','D','H','F','L','I'],
-  'CDEFGHIK': ['C','G','E','D','H','F','I','K'],
-  'CDEFGHIJ': ['C','G','J','D','H','F','E','I'],
-  'BFGHIJKL': ['H','J','B','F','I','G','L','K'],
-  'BEGHIJKL': ['E','J','I','B','H','G','L','K'],
-  'BEFHIJKL': ['E','J','B','F','I','H','L','K'],
-  'BEFGIJKL': ['E','J','B','F','I','G','L','K'],
-  'BEFGHJKL': ['E','J','B','F','H','G','L','K'],
-  'BEFGHIKL': ['E','G','B','F','I','H','L','K'],
-  'BEFGHIJL': ['E','J','B','F','H','G','L','I'],
-  'BEFGHIJK': ['E','J','B','F','H','G','I','K'],
-  'BDGHIJKL': ['H','J','B','D','I','G','L','K'],
-  'BDFHIJKL': ['H','J','B','D','I','F','L','K'],
-  'BDFGIJKL': ['I','G','B','D','J','F','L','K'],
-  'BDFGHJKL': ['H','G','B','D','J','F','L','K'],
-  'BDFGHIKL': ['H','G','B','D','I','F','L','K'],
-  'BDFGHIJL': ['H','G','B','D','J','F','L','I'],
-  'BDFGHIJK': ['H','G','B','D','J','F','I','K'],
-  'BDEHIJKL': ['E','J','B','D','I','H','L','K'],
-  'BDEGIJKL': ['E','J','B','D','I','G','L','K'],
-  'BDEGHJKL': ['E','J','B','D','H','G','L','K'],
-  'BDEGHIKL': ['E','G','B','D','I','H','L','K'],
-  'BDEGHIJL': ['E','J','B','D','H','G','L','I'],
-  'BDEGHIJK': ['E','J','B','D','H','G','I','K'],
-  'BDEFIJKL': ['E','J','B','D','I','F','L','K'],
-  'BDEFHJKL': ['E','J','B','D','H','F','L','K'],
-  'BDEFHIKL': ['E','I','B','D','H','F','L','K'],
-  'BDEFHIJL': ['E','J','B','D','H','F','L','I'],
-  'BDEFHIJK': ['E','J','B','D','H','F','I','K'],
-  'BDEFGJKL': ['E','G','B','D','J','F','L','K'],
-  'BDEFGIKL': ['E','G','B','D','I','F','L','K'],
-  'BDEFGIJL': ['E','G','B','D','J','F','L','I'],
-  'BDEFGIJK': ['E','G','B','D','J','F','I','K'],
-  'BDEFGHKL': ['E','G','B','D','H','F','L','K'],
-  'BDEFGHJL': ['H','G','B','D','J','F','L','E'],
-  'BDEFGHJK': ['H','G','B','D','J','F','E','K'],
-  'BDEFGHIL': ['E','G','B','D','H','F','L','I'],
-  'BDEFGHIK': ['E','G','B','D','H','F','I','K'],
-  'BDEFGHIJ': ['H','G','B','D','J','F','E','I'],
-  'BCGHIJKL': ['H','J','B','C','I','G','L','K'],
-  'BCFHIJKL': ['H','J','B','C','I','F','L','K'],
-  'BCFGIJKL': ['I','G','B','C','J','F','L','K'],
-  'BCFGHJKL': ['H','G','B','C','J','F','L','K'],
-  'BCFGHIKL': ['H','G','B','C','I','F','L','K'],
-  'BCFGHIJL': ['H','G','B','C','J','F','L','I'],
-  'BCFGHIJK': ['H','G','B','C','J','F','I','K'],
-  'BCEHIJKL': ['E','J','B','C','I','H','L','K'],
-  'BCEGIJKL': ['E','J','B','C','I','G','L','K'],
-  'BCEGHJKL': ['E','J','B','C','H','G','L','K'],
-  'BCEGHIKL': ['E','G','B','C','I','H','L','K'],
-  'BCEGHIJL': ['E','J','B','C','H','G','L','I'],
-  'BCEGHIJK': ['E','J','B','C','H','G','I','K'],
-  'BCEFIJKL': ['E','J','B','C','I','F','L','K'],
-  'BCEFHJKL': ['E','J','B','C','H','F','L','K'],
-  'BCEFHIKL': ['E','I','B','C','H','F','L','K'],
-  'BCEFHIJL': ['E','J','B','C','H','F','L','I'],
-  'BCEFHIJK': ['E','J','B','C','H','F','I','K'],
-  'BCEFGJKL': ['E','G','B','C','J','F','L','K'],
-  'BCEFGIKL': ['E','G','B','C','I','F','L','K'],
-  'BCEFGIJL': ['E','G','B','C','J','F','L','I'],
-  'BCEFGIJK': ['E','G','B','C','J','F','I','K'],
-  'BCEFGHKL': ['E','G','B','C','H','F','L','K'],
-  'BCEFGHJL': ['H','G','B','C','J','F','L','E'],
-  'BCEFGHJK': ['H','G','B','C','J','F','E','K'],
-  'BCEFGHIL': ['E','G','B','C','H','F','L','I'],
-  'BCEFGHIK': ['E','G','B','C','H','F','I','K'],
-  'BCEFGHIJ': ['H','G','B','C','J','F','E','I'],
-  'BCDHIJKL': ['H','J','B','C','I','D','L','K'],
-  'BCDGIJKL': ['I','G','B','C','J','D','L','K'],
-  'BCDGHJKL': ['H','G','B','C','J','D','L','K'],
-  'BCDGHIKL': ['H','G','B','C','I','D','L','K'],
-  'BCDGHIJL': ['H','G','B','C','J','D','L','I'],
-  'BCDGHIJK': ['H','G','B','C','J','D','I','K'],
-  'BCDFIJKL': ['C','J','B','D','I','F','L','K'],
-  'BCDFHJKL': ['C','J','B','D','H','F','L','K'],
-  'BCDFHIKL': ['C','I','B','D','H','F','L','K'],
-  'BCDFHIJL': ['C','J','B','D','H','F','L','I'],
-  'BCDFHIJK': ['C','J','B','D','H','F','I','K'],
-  'BCDFGJKL': ['C','G','B','D','J','F','L','K'],
-  'BCDFGIKL': ['C','G','B','D','I','F','L','K'],
-  'BCDFGIJL': ['C','G','B','D','J','F','L','I'],
-  'BCDFGIJK': ['C','G','B','D','J','F','I','K'],
-  'BCDFGHKL': ['C','G','B','D','H','F','L','K'],
-  'BCDFGHJL': ['C','G','B','D','H','F','L','J'],
-  'BCDFGHJK': ['H','G','B','C','J','F','D','K'],
-  'BCDFGHIL': ['C','G','B','D','H','F','L','I'],
-  'BCDFGHIK': ['C','G','B','D','H','F','I','K'],
-  'BCDFGHIJ': ['H','G','B','C','J','F','D','I'],
-  'BCDEIJKL': ['E','J','B','C','I','D','L','K'],
-  'BCDEHJKL': ['E','J','B','C','H','D','L','K'],
-  'BCDEHIKL': ['E','I','B','C','H','D','L','K'],
-  'BCDEHIJL': ['E','J','B','C','H','D','L','I'],
-  'BCDEHIJK': ['E','J','B','C','H','D','I','K'],
-  'BCDEGJKL': ['E','G','B','C','J','D','L','K'],
-  'BCDEGIKL': ['E','G','B','C','I','D','L','K'],
-  'BCDEGIJL': ['E','G','B','C','J','D','L','I'],
-  'BCDEGIJK': ['E','G','B','C','J','D','I','K'],
-  'BCDEGHKL': ['E','G','B','C','H','D','L','K'],
-  'BCDEGHJ':  ['E','G','B','C','J','D','L','H'],
-  'BCDEGHJL': ['E','G','B','C','J','D','L','H'],
-  'BCDEGHJK': ['E','G','B','C','J','D','H','K'],
-  'BCDEGHIL': ['E','G','B','C','H','D','L','I'],
-  'BCDEGHIK': ['E','G','B','C','H','D','I','K'],
-  'BCDEGHIJ': ['H','G','B','C','J','D','E','I'],
-  'BCDEFIJKL':['C','J','B','D','I','F','L','K'],
-  'BCDEFHJKL':['C','J','B','D','H','F','L','K'],
-  'BCDEFHIKL':['C','I','B','D','H','F','L','K'],
-  'BCDEFHIJL':['C','J','B','D','H','F','L','I'],
-  'BCDEFHIJK':['C','J','B','D','H','F','I','K'],
-  'BCDEFGJKL':['C','G','B','D','J','F','L','K'],
-  'BCDEFGIKL':['C','G','B','D','I','F','L','K'],
-  'BCDEFGIJL':['C','G','B','D','J','F','L','I'],
-  'BCDEFGIJK':['C','G','B','D','J','F','I','K'],
-  'BCDEFGHKL':['C','G','B','D','H','F','L','K'],
-  'BCDEFGHJL':['C','G','J','D','H','F','L','B'],
-  'BCDEFGHJK':['C','G','J','D','H','F','B','K'],
-  'BCDEFGHIL':['C','G','B','D','H','F','L','I'],
-  'BCDEFGHIK':['C','G','B','D','H','F','I','K'],
-  'BCDEFGHIJ':['H','G','B','C','J','F','D','I'],
-  'ABGHIJKL': ['H','J','B','A','I','G','L','K'],
-  'ABFHIJKL': ['H','J','B','A','I','F','L','K'],
-  'ABFGIJKL': ['I','G','B','A','J','F','L','K'],
-  'ABFGHJKL': ['H','G','B','A','J','F','L','K'],
-  'ABFGHIKL': ['H','G','B','A','I','F','L','K'],
-  'ABFGHIJL': ['H','G','B','A','J','F','L','I'],
-  'ABFGHIJK': ['H','G','B','A','J','F','I','K'],
-  'ABEHIJKL': ['E','J','B','A','I','H','L','K'],
-  'ABEGIJKL': ['E','J','B','A','I','G','L','K'],
-  'ABEGHJKL': ['E','J','B','A','H','G','L','K'],
-  'ABEGHIKL': ['E','G','B','A','I','H','L','K'],
-  'ABEGHIJL': ['E','J','B','A','H','G','L','I'],
-  'ABEGHIJK': ['E','J','B','A','H','G','I','K'],
-  'ABEFIJKL': ['E','J','B','A','I','F','L','K'],
-  'ABEFHJKL': ['E','J','B','A','H','F','L','K'],
-  'ABEFHIKL': ['E','I','B','A','H','F','L','K'],
-  'ABEFHIJL': ['E','J','B','A','H','F','L','I'],
-  'ABEFHIJK': ['E','J','B','A','H','F','I','K'],
-  'ABEFGJKL': ['E','G','B','A','J','F','L','K'],
-  'ABEFGIKL': ['E','G','B','A','I','F','L','K'],
-  'ABEFGIJL': ['E','G','B','A','J','F','L','I'],
-  'ABEFGIJK': ['E','G','B','A','J','F','I','K'],
-  'ABEFGHKL': ['E','G','B','A','H','F','L','K'],
-  'ABEFGHJL': ['H','G','B','A','J','F','L','E'],
-  'ABEFGHJK': ['H','G','B','A','J','F','E','K'],
-  'ABEFGHIL': ['E','G','B','A','H','F','L','I'],
-  'ABEFGHIK': ['E','G','B','A','H','F','I','K'],
-  'ABEFGHIJ': ['H','G','B','A','J','F','E','I'],
-  'ABDHIJKL': ['H','J','B','A','I','D','L','K'],
-  'ABDGIJKL': ['I','G','B','A','J','D','L','K'],
-  'ABDGHJKL': ['H','G','B','A','J','D','L','K'],
-  'ABDGHIKL': ['H','G','B','A','I','D','L','K'],
-  'ABDGHIJL': ['H','G','B','A','J','D','L','I'],
-  'ABDGHIJK': ['H','G','B','A','J','D','I','K'],
-  'ABDFIJKL': ['A','J','B','D','I','F','L','K'],
-  'ABDFHJKL': ['A','J','B','D','H','F','L','K'],
-  'ABDFHIKL': ['A','I','B','D','H','F','L','K'],
-  'ABDFHIJL': ['A','J','B','D','H','F','L','I'],
-  'ABDFHIJK': ['A','J','B','D','H','F','I','K'],
-  'ABDFGJKL': ['A','G','B','D','J','F','L','K'],
-  'ABDFGIKL': ['A','G','B','D','I','F','L','K'],
-  'ABDFGIJL': ['A','G','B','D','J','F','L','I'],
-  'ABDFGIJK': ['A','G','B','D','J','F','I','K'],
-  'ABDFGHKL': ['A','G','B','D','H','F','L','K'],
-  'ABDFGHJL': ['H','G','B','A','J','F','L','D'],
-  'ABDFGHJK': ['H','G','B','A','J','F','D','K'],
-  'ABDFGHIL': ['A','G','B','D','H','F','L','I'],
-  'ABDFGHIK': ['A','G','B','D','H','F','I','K'],
-  'ABDFGHIJ': ['H','G','B','A','J','F','D','I'],
-  'ABDEHIJKL':['E','J','B','A','I','D','L','K'],
-  'ABDEHJKL': ['E','J','B','A','H','D','L','K'],
-  'ABDEHIKL': ['E','I','B','A','H','D','L','K'],
-  'ABDEHIJL': ['E','J','B','A','H','D','L','I'],
-  'ABDEHIJK': ['E','J','B','A','H','D','I','K'],
-  'ABDEGJKL': ['E','G','B','A','J','D','L','K'],
-  'ABDEGIKL': ['E','G','B','A','I','D','L','K'],
-  'ABDEGIJL': ['E','G','B','A','J','D','L','I'],
-  'ABDEGIJK': ['E','G','B','A','J','D','I','K'],
-  'ABDEGHKL': ['E','G','B','A','H','D','L','K'],
-  'ABDEGHJ':  ['E','G','B','A','J','D','L','H'],
-  'ABDEGHJL': ['E','G','B','A','J','D','L','H'],
-  'ABDEGHJK': ['E','G','B','A','J','D','H','K'],
-  'ABDEGHIL': ['E','G','B','A','H','D','L','I'],
-  'ABDEGHIK': ['E','G','B','A','H','D','I','K'],
-  'ABDEGHIJ': ['H','G','B','A','J','D','E','I'],
-  'ABDEFIJKL':['A','J','B','D','I','F','L','K'],
-  'ABDEFHJKL':['A','J','B','D','H','F','L','K'],
-  'ABDEFHIKL':['A','I','B','D','H','F','L','K'],
-  'ABDEFHIJL':['A','J','B','D','H','F','L','I'],
-  'ABDEFHIJK':['A','J','B','D','H','F','I','K'],
-  'ABDEFGJKL':['A','G','B','D','J','F','L','K'],
-  'ABDEFGIKL':['A','G','B','D','I','F','L','K'],
-  'ABDEFGIJL':['A','G','B','D','J','F','L','I'],
-  'ABDEFGIJK':['A','G','B','D','J','F','I','K'],
-  'ABDEFGHKL':['A','G','B','D','H','F','L','K'],
-  'ABDEFGHJL':['H','G','B','A','J','F','L','D'],
-  'ABDEFGHJK':['H','G','B','A','J','F','D','K'],
-  'ABDEFGHIL':['A','G','B','D','H','F','L','I'],
-  'ABDEFGHIK':['A','G','B','D','H','F','I','K'],
-  'ABDEFGHIJ':['H','G','B','A','J','F','D','I'],
-  'ABCGHIJKL':['H','J','B','C','A','G','L','K'],
-  'ABCFHIJKL':['H','J','B','C','A','F','L','K'],
-  'ABCFGIJKL':['I','G','B','C','A','F','L','K'],
-  'ABCFGHJKL':['H','G','B','C','A','F','L','K'],
-  'ABCFGHIKL':['H','G','B','C','A','F','L','K'],
-  'ABCFGHIJL':['H','G','B','C','A','F','L','I'],
-  'ABCFGHIJK':['H','G','B','C','A','F','I','K'],
-  'ABCEHIJKL':['E','J','B','C','A','H','L','K'],
-  'ABCEGIJKL':['E','J','B','C','A','G','L','K'],
-  'ABCEGHJKL':['E','J','B','C','A','G','L','K'],
-  'ABCEGHIKL':['E','G','B','C','A','H','L','K'],
-  'ABCEGHIJL':['E','J','B','C','A','G','L','I'],
-  'ABCEGHIJK':['E','J','B','C','A','G','I','K'],
-  'ABCEFIJKL':['E','J','B','C','A','F','L','K'],
-  'ABCEFHJKL':['E','J','B','C','A','F','L','K'],
-  'ABCEFHIKL':['E','I','B','C','A','F','L','K'],
-  'ABCEFHIJL':['E','J','B','C','A','F','L','I'],
-  'ABCEFHIJK':['E','J','B','C','A','F','I','K'],
-  'ABCEFGJKL':['E','G','B','C','A','F','L','K'],
-  'ABCEFGIKL':['E','G','B','C','A','F','L','K'],
-  'ABCEFGIJL':['E','G','B','C','A','F','L','I'],
-  'ABCEFGIJK':['E','G','B','C','A','F','I','K'],
-  'ABCEFGHKL':['E','G','B','C','A','F','L','K'],
-  'ABCEFGHJL':['H','G','B','C','A','F','L','E'],
-  'ABCEFGHJK':['H','G','B','C','A','F','E','K'],
-  'ABCEFGHIL':['E','G','B','C','A','F','L','I'],
-  'ABCEFGHIK':['E','G','B','C','A','F','I','K'],
-  'ABCEFGHIJ':['H','G','B','C','A','F','E','I'],
-  'ABCDHIJKL':['H','J','B','C','A','D','L','K'],
-  'ABCDGIJKL':['I','G','B','C','A','D','L','K'],
-  'ABCDGHJKL':['H','G','B','C','A','D','L','K'],
-  'ABCDGHIKL':['H','G','B','C','A','D','L','K'],
-  'ABCDGHIJL':['H','G','B','C','A','D','L','I'],
-  'ABCDGHIJK':['H','J','B','C','A','D','I','K'],
-  'ABCDFJKL': ['C','J','B','D','A','F','L','K'],
-  'ABCDFIKL': ['C','I','B','D','A','F','L','K'],
-  'ABCDFIJL': ['C','J','B','D','A','F','L','I'],
-  'ABCDFIJK': ['C','J','B','D','A','F','I','K'],
-  'ABCDFHKL': ['H','F','B','C','A','D','L','K'],
-  'ABCDFHJL': ['C','J','B','D','A','F','L','H'],
-  'ABCDFHJK': ['H','J','B','C','A','F','D','K'],
-  'ABCDFHIL': ['H','F','B','C','A','D','L','I'],
-  'ABCDFHIK': ['H','F','B','C','A','D','I','K'],
-  'ABCDFHIJ': ['H','J','B','C','A','F','D','I'],
-  'ABCDFGKL': ['C','G','B','D','A','F','L','K'],
-  'ABCDFGJL': ['C','G','B','D','A','F','L','J'],
-  'ABCDFGJK': ['C','G','B','D','A','F','J','K'],
-  'ABCDFGIL': ['C','G','B','D','A','F','L','I'],
-  'ABCDFGIK': ['C','G','B','D','A','F','I','K'],
-  'ABCDFGIJ': ['C','G','B','D','A','F','I','J'],
-  'ABCDFGHL': ['C','G','B','D','A','F','L','H'],
-  'ABCDFGHK': ['H','G','B','C','A','F','D','K'],
-  'ABCDFGHJ': ['H','G','B','C','A','F','D','J'],
-  'ABCDFGHI': ['H','G','B','C','A','F','D','I'],
-  'ABCDEJKL': ['E','J','B','C','A','D','L','K'],
-  'ABCDEIKL': ['E','I','B','C','A','D','L','K'],
-  'ABCDEIJL': ['E','J','B','C','A','D','L','I'],
-  'ABCDEIJK': ['E','J','B','C','A','D','I','K'],
-  'ABCDEHKL': ['H','E','B','C','A','D','L','K'],
-  'ABCDEHJL': ['H','J','B','C','A','D','L','E'],
-  'ABCDEHJK': ['H','J','B','C','A','D','E','K'],
-  'ABCDEHIL': ['H','E','B','C','A','D','L','I'],
-  'ABCDEHIK': ['H','E','B','C','A','D','I','K'],
-  'ABCDEHIJ': ['H','J','B','C','A','D','E','I'],
-  'ABCDEGKL': ['E','G','B','C','A','D','L','K'],
-  'ABCDEGJL': ['E','G','B','C','A','D','L','J'],
-  'ABCDEGJK': ['E','G','B','C','A','D','J','K'],
-  'ABCDEGIL': ['E','G','B','C','A','D','L','I'],
-  'ABCDEGIK': ['E','G','B','C','A','D','I','K'],
-  'ABCDEGIJ': ['E','G','B','C','A','D','I','J'],
-  'ABCDEGHL': ['H','G','B','C','A','D','L','E'],
-  'ABCDEGHK': ['H','G','B','C','A','D','E','K'],
-  'ABCDEGHJ': ['H','G','B','C','A','D','E','J'],
-  'ABCDEGHI': ['H','G','B','C','A','D','E','I'],
-  'ABCDEFKL': ['C','E','B','D','A','F','L','K'],
-  'ABCDEFJL': ['C','J','B','D','A','F','L','E'],
-  'ABCDEFJK': ['C','J','B','D','A','F','E','K'],
-  'ABCDEFIL': ['C','E','B','D','A','F','L','I'],
-  'ABCDEFIK': ['C','E','B','D','A','F','I','K'],
-  'ABCDEFIJ': ['C','J','B','D','A','F','E','I'],
-  'ABCDEFHL': ['H','F','B','C','A','D','L','E'],
-  'ABCDEFHK': ['H','E','B','C','A','F','D','K'],
-  'ABCDEFHJ': ['H','J','B','C','A','F','D','E'],
-  'ABCDEFHI': ['H','E','B','C','A','F','D','I'],
-  'ABCDEFGL': ['C','G','B','D','A','F','L','E'],
-  'ABCDEFGK': ['C','G','B','D','A','F','E','K'],
-  'ABCDEFGJ': ['C','G','B','D','A','F','E','J'],
-  'ABCDEFGI': ['C','G','B','D','A','F','E','I'],
-  'ABCDEFGH': ['H','G','B','C','A','F','D','E'],
-  'ABCHIJKL': ['I','J','B','C','A','H','L','K'],
-  'ABCGIJKL': ['I','J','B','C','A','G','L','K'],
-  'ABCGHJKL': ['H','J','B','C','A','G','L','K'],
-  'ABCGHIKL': ['I','G','B','C','A','H','L','K'],
-  'ABCGHIJL': ['H','J','B','C','A','G','L','I'],
-  'ABCGHIJK': ['H','J','B','C','A','G','I','K'],
-  'ABCFIJKL': ['I','J','B','C','A','F','L','K'],
-  'ABCFHJKL': ['H','J','B','C','A','F','L','K'],
-  'ABCFHIKL': ['H','I','B','C','A','F','L','K'],
-  'ABCFHIJL': ['H','J','B','C','A','F','L','I'],
-  'ABCFHIJK': ['H','J','B','C','A','F','I','K'],
-  'ABCFGJKL': ['C','J','B','F','A','G','L','K'],
-  'ABCFGIKL': ['I','G','B','C','A','F','L','K'],
-  'ABCFGIJL': ['C','J','B','F','A','G','L','I'],
-  'ABCFGIJK': ['C','J','B','F','A','G','I','K'],
-  'ABCFGHKL': ['H','G','B','C','A','F','L','K'],
-  'ABCFGHJL': ['H','G','B','C','A','F','L','J'],
-  'ABCFGHJK': ['H','G','B','C','A','F','J','K'],
-  'ABCFGHIL': ['H','G','B','C','A','F','L','I'],
-  'ABCFGHIK': ['H','G','B','C','A','F','I','K'],
-  'ABCFGHIJ': ['H','G','B','C','A','F','I','J'],
-  'ABCEIJKL': ['E','J','B','A','I','C','L','K'],
-  'ABCEHJKL': ['E','J','B','C','A','H','L','K'],
-  'ABCEHIKL': ['E','I','B','C','A','H','L','K'],
-  'ABCEHIJL': ['E','J','B','C','A','H','L','I'],
-  'ABCEHIJK': ['E','J','B','C','A','H','I','K'],
-  'ABCEGJKL': ['E','J','B','C','A','G','L','K'],
-  'ABCEGIKL': ['E','G','B','A','I','C','L','K'],
-  'ABCEGIJL': ['E','J','B','C','A','G','L','I'],
-  'ABCEGIJK': ['E','J','B','C','A','G','I','K'],
-  'ABCEGHKL': ['E','G','B','C','A','H','L','K'],
-  'ABCEGHJL': ['H','J','B','C','A','G','L','E'],
-  'ABCEGHJK': ['H','J','B','C','A','G','E','K'],
-  'ABCEGHIL': ['E','G','B','C','A','H','L','I'],
-  'ABCEGHIK': ['E','G','B','C','A','H','I','K'],
-  'ABCEGHIJ': ['H','J','B','C','A','G','E','I'],
-  'ABCEFJKL': ['E','J','B','C','A','F','L','K'],
-  'ABCEFIKL': ['E','I','B','C','A','F','L','K'],
-  'ABCEFIJL': ['E','J','B','C','A','F','L','I'],
-  'ABCEFIJK': ['E','J','B','C','A','F','I','K'],
-  'ABCEFHKL': ['H','E','B','C','A','F','L','K'],
-  'ABCEFHJL': ['H','J','B','C','A','F','L','E'],
-  'ABCEFHJK': ['H','J','B','C','A','F','E','K'],
-  'ABCEFHIL': ['H','E','B','C','A','F','L','I'],
-  'ABCEFHIK': ['H','E','B','C','A','F','I','K'],
-  'ABCEFHIJ': ['H','J','B','C','A','F','E','I'],
-  'ABCEFGKL': ['E','G','B','C','A','F','L','K'],
-  'ABCEFGJL': ['E','G','B','C','A','F','L','J'],
-  'ABCEFGJK': ['E','G','B','C','A','F','J','K'],
-  'ABCEFGIL': ['E','G','B','C','A','F','L','I'],
-  'ABCEFGIK': ['E','G','B','C','A','F','I','K'],
-  'ABCEFGIJ': ['E','G','B','C','A','F','I','J'],
-  'ABCEFGHL': ['H','G','B','C','A','F','L','E'],
-  'ABCEFGHK': ['H','G','B','C','A','F','E','K'],
-  'ABCEFGHJ': ['H','G','B','C','A','F','E','J'],
-  'ABCEFGHI': ['H','G','B','C','A','F','E','I'],
-  'ABCDIJKL': ['I','J','B','C','A','D','L','K'],
-  'ABCDHJKL': ['H','J','B','C','A','D','L','K'],
-  'ABCDHIKL': ['H','I','B','C','A','D','L','K'],
-  'ABCDHIJL': ['H','J','B','C','A','D','L','I'],
-  'ABCDHIJK': ['H','J','B','C','A','D','I','K'],
-  'ABCDGJKL': ['C','J','B','D','A','G','L','K'],
-  'ABCDGIKL': ['I','G','B','C','A','D','L','K'],
-  'ABCDGIJL': ['C','J','B','D','A','G','L','I'],
-  'ABCDGIJK': ['C','J','B','D','A','G','I','K'],
-  'ABCDGHKL': ['H','G','B','C','A','D','L','K'],
-  'ABCDGHJL': ['H','G','B','C','A','D','L','J'],
-  'ABCDGHJK': ['H','G','B','C','A','D','J','K'],
-  'ABCDGHIL': ['H','G','B','C','A','D','L','I'],
-  'ABCDGHIK': ['H','G','B','C','A','D','I','K'],
-  'ABCDGHIJ': ['H','G','B','C','A','D','I','J'],
+  'EFGHIJKL': ['E','J','I','F','H','G','L','K'], // row 1
+  'DFGHIJKL': ['H','G','I','D','J','F','L','K'], // row 2
+  'DEGHIJKL': ['E','J','I','D','H','G','L','K'], // row 3
+  'DEFHIJKL': ['E','J','I','D','H','F','L','K'], // row 4
+  'DEFGIJKL': ['E','G','I','D','J','F','L','K'], // row 5
+  'DEFGHJKL': ['E','G','J','D','H','F','L','K'], // row 6
+  'DEFGHIKL': ['E','G','I','D','H','F','L','K'], // row 7
+  'DEFGHIJL': ['E','G','J','D','H','F','L','I'], // row 8
+  'DEFGHIJK': ['E','G','J','D','H','F','I','K'], // row 9
+  'CFGHIJKL': ['H','G','I','C','J','F','L','K'], // row 10
+  'CEGHIJKL': ['E','J','I','C','H','G','L','K'], // row 11
+  'CEFHIJKL': ['E','J','I','C','H','F','L','K'], // row 12
+  'CEFGIJKL': ['E','G','I','C','J','F','L','K'], // row 13
+  'CEFGHJKL': ['E','G','J','C','H','F','L','K'], // row 14
+  'CEFGHIKL': ['E','G','I','C','H','F','L','K'], // row 15
+  'CEFGHIJL': ['E','G','J','C','H','F','L','I'], // row 16
+  'CEFGHIJK': ['E','G','J','C','H','F','I','K'], // row 17
+  'CDGHIJKL': ['H','G','I','C','J','D','L','K'], // row 18
+  'CDFHIJKL': ['C','J','I','D','H','F','L','K'], // row 19
+  'CDFGIJKL': ['C','G','I','D','J','F','L','K'], // row 20
+  'CDFGHJKL': ['C','G','J','D','H','F','L','K'], // row 21
+  'CDFGHIKL': ['C','G','I','D','H','F','L','K'], // row 22
+  'CDFGHIJL': ['C','G','J','D','H','F','L','I'], // row 23
+  'CDFGHIJK': ['C','G','J','D','H','F','I','K'], // row 24
+  'CDEHIJKL': ['E','J','I','C','H','D','L','K'], // row 25
+  'CDEGIJKL': ['E','G','I','C','J','D','L','K'], // row 26
+  'CDEGHJKL': ['E','G','J','C','H','D','L','K'], // row 27
+  'CDEGHIKL': ['E','G','I','C','H','D','L','K'], // row 28
+  'CDEGHIJL': ['E','G','J','C','H','D','L','I'], // row 29
+  'CDEGHIJK': ['E','G','J','C','H','D','I','K'], // row 30
+  'CDEFIJKL': ['C','J','E','D','I','F','L','K'], // row 31
+  'CDEFHJKL': ['C','J','E','D','H','F','L','K'], // row 32
+  'CDEFHIKL': ['C','E','I','D','H','F','L','K'], // row 33
+  'CDEFHIJL': ['C','J','E','D','H','F','L','I'], // row 34
+  'CDEFHIJK': ['C','J','E','D','H','F','I','K'], // row 35
+  'CDEFGJKL': ['C','G','E','D','J','F','L','K'], // row 36
+  'CDEFGIKL': ['C','G','E','D','I','F','L','K'], // row 37
+  'CDEFGIJL': ['C','G','E','D','J','F','L','I'], // row 38
+  'CDEFGIJK': ['C','G','E','D','J','F','I','K'], // row 39
+  'CDEFGHKL': ['C','G','E','D','H','F','L','K'], // row 40
+  'CDEFGHJL': ['C','G','J','D','H','F','L','E'], // row 41
+  'CDEFGHJK': ['C','G','J','D','H','F','E','K'], // row 42
+  'CDEFGHIL': ['C','G','E','D','H','F','L','I'], // row 43
+  'CDEFGHIK': ['C','G','E','D','H','F','I','K'], // row 44
+  'CDEFGHIJ': ['C','G','J','D','H','F','E','I'], // row 45
+  'BFGHIJKL': ['H','J','B','F','I','G','L','K'], // row 46
+  'BEGHIJKL': ['E','J','I','B','H','G','L','K'], // row 47
+  'BEFHIJKL': ['E','J','B','F','I','H','L','K'], // row 48
+  'BEFGIJKL': ['E','J','B','F','I','G','L','K'], // row 49
+  'BEFGHJKL': ['E','J','B','F','H','G','L','K'], // row 50
+  'BEFGHIKL': ['E','G','B','F','I','H','L','K'], // row 51
+  'BEFGHIJL': ['E','J','B','F','H','G','L','I'], // row 52
+  'BEFGHIJK': ['E','J','B','F','H','G','I','K'], // row 53
+  'BDGHIJKL': ['H','J','B','D','I','G','L','K'], // row 54
+  'BDFHIJKL': ['H','J','B','D','I','F','L','K'], // row 55
+  'BDFGIJKL': ['I','G','B','D','J','F','L','K'], // row 56
+  'BDFGHJKL': ['H','G','B','D','J','F','L','K'], // row 57
+  'BDFGHIKL': ['H','G','B','D','I','F','L','K'], // row 58
+  'BDFGHIJL': ['H','G','B','D','J','F','L','I'], // row 59
+  'BDFGHIJK': ['H','G','B','D','J','F','I','K'], // row 60
+  'BDEHIJKL': ['E','J','B','D','I','H','L','K'], // row 61
+  'BDEGIJKL': ['E','J','B','D','I','G','L','K'], // row 62
+  'BDEGHJKL': ['E','J','B','D','H','G','L','K'], // row 63
+  'BDEGHIKL': ['E','G','B','D','I','H','L','K'], // row 64
+  'BDEGHIJL': ['E','J','B','D','H','G','L','I'], // row 65
+  'BDEGHIJK': ['E','J','B','D','H','G','I','K'], // row 66
+  'BDEFIJKL': ['E','J','B','D','I','F','L','K'], // row 67
+  'BDEFHJKL': ['E','J','B','D','H','F','L','K'], // row 68
+  'BDEFHIKL': ['E','I','B','D','H','F','L','K'], // row 69
+  'BDEFHIJL': ['E','J','B','D','H','F','L','I'], // row 70
+  'BDEFHIJK': ['E','J','B','D','H','F','I','K'], // row 71
+  'BDEFGJKL': ['E','G','B','D','J','F','L','K'], // row 72
+  'BDEFGIKL': ['E','G','B','D','I','F','L','K'], // row 73
+  'BDEFGIJL': ['E','G','B','D','J','F','L','I'], // row 74
+  'BDEFGIJK': ['E','G','B','D','J','F','I','K'], // row 75
+  'BDEFGHKL': ['E','G','B','D','H','F','L','K'], // row 76
+  'BDEFGHJL': ['H','G','B','D','J','F','L','E'], // row 77
+  'BDEFGHJK': ['H','G','B','D','J','F','E','K'], // row 78
+  'BDEFGHIL': ['E','G','B','D','H','F','L','I'], // row 79
+  'BDEFGHIK': ['E','G','B','D','H','F','I','K'], // row 80
+  'BDEFGHIJ': ['H','G','B','D','J','F','E','I'], // row 81
+  'BCGHIJKL': ['H','J','B','C','I','G','L','K'], // row 82
+  'BCFHIJKL': ['H','J','B','C','I','F','L','K'], // row 83
+  'BCFGIJKL': ['I','G','B','C','J','F','L','K'], // row 84
+  'BCFGHJKL': ['H','G','B','C','J','F','L','K'], // row 85
+  'BCFGHIKL': ['H','G','B','C','I','F','L','K'], // row 86
+  'BCFGHIJL': ['H','G','B','C','J','F','L','I'], // row 87
+  'BCFGHIJK': ['H','G','B','C','J','F','I','K'], // row 88
+  'BCEHIJKL': ['E','J','B','C','I','H','L','K'], // row 89
+  'BCEGIJKL': ['E','J','B','C','I','G','L','K'], // row 90
+  'BCEGHJKL': ['E','J','B','C','H','G','L','K'], // row 91
+  'BCEGHIKL': ['E','G','B','C','I','H','L','K'], // row 92
+  'BCEGHIJL': ['E','J','B','C','H','G','L','I'], // row 93
+  'BCEGHIJK': ['E','J','B','C','H','G','I','K'], // row 94
+  'BCEFIJKL': ['E','J','B','C','I','F','L','K'], // row 95
+  'BCEFHJKL': ['E','J','B','C','H','F','L','K'], // row 96
+  'BCEFHIKL': ['E','I','B','C','H','F','L','K'], // row 97
+  'BCEFHIJL': ['E','J','B','C','H','F','L','I'], // row 98
+  'BCEFHIJK': ['E','J','B','C','H','F','I','K'], // row 99
+  'BCEFGJKL': ['E','G','B','C','J','F','L','K'], // row 100
+  'BCEFGIKL': ['E','G','B','C','I','F','L','K'], // row 101
+  'BCEFGIJL': ['E','G','B','C','J','F','L','I'], // row 102
+  'BCEFGIJK': ['E','G','B','C','J','F','I','K'], // row 103
+  'BCEFGHKL': ['E','G','B','C','H','F','L','K'], // row 104
+  'BCEFGHJL': ['H','G','B','C','J','F','L','E'], // row 105
+  'BCEFGHJK': ['H','G','B','C','J','F','E','K'], // row 106
+  'BCEFGHIL': ['E','G','B','C','H','F','L','I'], // row 107
+  'BCEFGHIK': ['E','G','B','C','H','F','I','K'], // row 108
+  'BCEFGHIJ': ['H','G','B','C','J','F','E','I'], // row 109
+  'BCDHIJKL': ['H','J','B','C','I','D','L','K'], // row 110
+  'BCDGIJKL': ['I','G','B','C','J','D','L','K'], // row 111
+  'BCDGHJKL': ['H','G','B','C','J','D','L','K'], // row 112
+  'BCDGHIKL': ['H','G','B','C','I','D','L','K'], // row 113
+  'BCDGHIJL': ['H','G','B','C','J','D','L','I'], // row 114
+  'BCDGHIJK': ['H','G','B','C','J','D','I','K'], // row 115
+  'BCDFIJKL': ['C','J','B','D','I','F','L','K'], // row 116
+  'BCDFHJKL': ['C','J','B','D','H','F','L','K'], // row 117
+  'BCDFHIKL': ['C','I','B','D','H','F','L','K'], // row 118
+  'BCDFHIJL': ['C','J','B','D','H','F','L','I'], // row 119
+  'BCDFHIJK': ['C','J','B','D','H','F','I','K'], // row 120
+  'BCDFGJKL': ['C','G','B','D','J','F','L','K'], // row 121
+  'BCDFGIKL': ['C','G','B','D','I','F','L','K'], // row 122
+  'BCDFGIJL': ['C','G','B','D','J','F','L','I'], // row 123
+  'BCDFGIJK': ['C','G','B','D','J','F','I','K'], // row 124
+  'BCDFGHKL': ['C','G','B','D','H','F','L','K'], // row 125
+  'BCDFGHJL': ['C','G','B','D','H','F','L','J'], // row 126
+  'BCDFGHJK': ['H','G','B','C','J','F','D','K'], // row 127
+  'BCDFGHIL': ['C','G','B','D','H','F','L','I'], // row 128
+  'BCDFGHIK': ['C','G','B','D','H','F','I','K'], // row 129
+  'BCDFGHIJ': ['H','G','B','C','J','F','D','I'], // row 130
+  'BCDEIJKL': ['E','J','B','C','I','D','L','K'], // row 131
+  'BCDEHJKL': ['E','J','B','C','H','D','L','K'], // row 132
+  'BCDEHIKL': ['E','I','B','C','H','D','L','K'], // row 133
+  'BCDEHIJL': ['E','J','B','C','H','D','L','I'], // row 134
+  'BCDEHIJK': ['E','J','B','C','H','D','I','K'], // row 135
+  'BCDEGJKL': ['E','G','B','C','J','D','L','K'], // row 136
+  'BCDEGIKL': ['E','G','B','C','I','D','L','K'], // row 137
+  'BCDEGIJL': ['E','G','B','C','J','D','L','I'], // row 138
+  'BCDEGIJK': ['E','G','B','C','J','D','I','K'], // row 139
+  'BCDEGHKL': ['E','G','B','C','H','D','L','K'], // row 140
+  'BCDEGHJL': ['H','G','B','C','J','D','L','E'], // row 141
+  'BCDEGHJK': ['H','G','B','C','J','D','E','K'], // row 142
+  'BCDEGHIL': ['E','G','B','C','H','D','L','I'], // row 143
+  'BCDEGHIK': ['E','G','B','C','H','D','I','K'], // row 144
+  'BCDEGHIJ': ['H','G','B','C','J','D','E','I'], // row 145
+  'BCDEFJKL': ['C','J','B','D','E','F','L','K'], // row 146
+  'BCDEFIKL': ['C','E','B','D','I','F','L','K'], // row 147
+  'BCDEFIJL': ['C','J','B','D','E','F','L','I'], // row 148
+  'BCDEFIJK': ['C','J','B','D','E','F','I','K'], // row 149
+  'BCDEFHKL': ['C','E','B','D','H','F','L','K'], // row 150
+  'BCDEFHJL': ['C','J','B','D','H','F','L','E'], // row 151
+  'BCDEFHJK': ['C','J','B','D','H','F','E','K'], // row 152
+  'BCDEFHIL': ['C','E','B','D','H','F','L','I'], // row 153
+  'BCDEFHIK': ['C','E','B','D','H','F','I','K'], // row 154
+  'BCDEFHIJ': ['C','J','B','D','H','F','E','I'], // row 155
+  'BCDEFGKL': ['C','G','B','D','E','F','L','K'], // row 156
+  'BCDEFGJL': ['C','G','B','D','J','F','L','E'], // row 157
+  'BCDEFGJK': ['C','G','B','D','J','F','E','K'], // row 158
+  'BCDEFGIL': ['C','G','B','D','E','F','L','I'], // row 159
+  'BCDEFGIK': ['C','G','B','D','E','F','I','K'], // row 160
+  'BCDEFGIJ': ['C','G','B','D','J','F','E','I'], // row 161
+  'BCDEFGHL': ['C','G','B','D','H','F','L','E'], // row 162
+  'BCDEFGHK': ['C','G','B','D','H','F','E','K'], // row 163
+  'BCDEFGHJ': ['H','G','B','C','J','F','D','E'], // row 164
+  'BCDEFGHI': ['C','G','B','D','H','F','E','I'], // row 165
+  'AFGHIJKL': ['H','J','I','F','A','G','L','K'], // row 166
+  'AEGHIJKL': ['E','J','I','A','H','G','L','K'], // row 167
+  'AEFHIJKL': ['E','J','I','F','A','H','L','K'], // row 168
+  'AEFGIJKL': ['E','J','I','F','A','G','L','K'], // row 169
+  'AEFGHJKL': ['E','G','J','F','A','H','L','K'], // row 170
+  'AEFGHIKL': ['E','G','I','F','A','H','L','K'], // row 171
+  'AEFGHIJL': ['E','G','J','F','A','H','L','I'], // row 172
+  'AEFGHIJK': ['E','G','J','F','A','H','I','K'], // row 173
+  'ADGHIJKL': ['H','J','I','D','A','G','L','K'], // row 174
+  'ADFHIJKL': ['H','J','I','D','A','F','L','K'], // row 175
+  'ADFGIJKL': ['I','G','J','D','A','F','L','K'], // row 176
+  'ADFGHJKL': ['H','G','J','D','A','F','L','K'], // row 177
+  'ADFGHIKL': ['H','G','I','D','A','F','L','K'], // row 178
+  'ADFGHIJL': ['H','G','J','D','A','F','L','I'], // row 179
+  'ADFGHIJK': ['H','G','J','D','A','F','I','K'], // row 180
+  'ADEHIJKL': ['E','J','I','D','A','H','L','K'], // row 181
+  'ADEGIJKL': ['E','J','I','D','A','G','L','K'], // row 182
+  'ADEGHJKL': ['E','G','J','D','A','H','L','K'], // row 183
+  'ADEGHIKL': ['E','G','I','D','A','H','L','K'], // row 184
+  'ADEGHIJL': ['E','G','J','D','A','H','L','I'], // row 185
+  'ADEGHIJK': ['E','G','J','D','A','H','I','K'], // row 186
+  'ADEFIJKL': ['E','J','I','D','A','F','L','K'], // row 187
+  'ADEFHJKL': ['H','J','E','D','A','F','L','K'], // row 188
+  'ADEFHIKL': ['H','E','I','D','A','F','L','K'], // row 189
+  'ADEFHIJL': ['H','J','E','D','A','F','L','I'], // row 190
+  'ADEFHIJK': ['H','J','E','D','A','F','I','K'], // row 191
+  'ADEFGJKL': ['E','G','J','D','A','F','L','K'], // row 192
+  'ADEFGIKL': ['E','G','I','D','A','F','L','K'], // row 193
+  'ADEFGIJL': ['E','G','J','D','A','F','L','I'], // row 194
+  'ADEFGIJK': ['E','G','J','D','A','F','I','K'], // row 195
+  'ADEFGHKL': ['H','G','E','D','A','F','L','K'], // row 196
+  'ADEFGHJL': ['H','G','J','D','A','F','L','E'], // row 197
+  'ADEFGHJK': ['H','G','J','D','A','F','E','K'], // row 198
+  'ADEFGHIL': ['H','G','E','D','A','F','L','I'], // row 199
+  'ADEFGHIK': ['H','G','E','D','A','F','I','K'], // row 200
+  'ADEFGHIJ': ['H','G','J','D','A','F','E','I'], // row 201
+  'ACGHIJKL': ['H','J','I','C','A','G','L','K'], // row 202
+  'ACFHIJKL': ['H','J','I','C','A','F','L','K'], // row 203
+  'ACFGIJKL': ['I','G','J','C','A','F','L','K'], // row 204
+  'ACFGHJKL': ['H','G','J','C','A','F','L','K'], // row 205
+  'ACFGHIKL': ['H','G','I','C','A','F','L','K'], // row 206
+  'ACFGHIJL': ['H','G','J','C','A','F','L','I'], // row 207
+  'ACFGHIJK': ['H','G','J','C','A','F','I','K'], // row 208
+  'ACEHIJKL': ['E','J','I','C','A','H','L','K'], // row 209
+  'ACEGIJKL': ['E','J','I','C','A','G','L','K'], // row 210
+  'ACEGHJKL': ['E','G','J','C','A','H','L','K'], // row 211
+  'ACEGHIKL': ['E','G','I','C','A','H','L','K'], // row 212
+  'ACEGHIJL': ['E','G','J','C','A','H','L','I'], // row 213
+  'ACEGHIJK': ['E','G','J','C','A','H','I','K'], // row 214
+  'ACEFIJKL': ['E','J','I','C','A','F','L','K'], // row 215
+  'ACEFHJKL': ['H','J','E','C','A','F','L','K'], // row 216
+  'ACEFHIKL': ['H','E','I','C','A','F','L','K'], // row 217
+  'ACEFHIJL': ['H','J','E','C','A','F','L','I'], // row 218
+  'ACEFHIJK': ['H','J','E','C','A','F','I','K'], // row 219
+  'ACEFGJKL': ['E','G','J','C','A','F','L','K'], // row 220
+  'ACEFGIKL': ['E','G','I','C','A','F','L','K'], // row 221
+  'ACEFGIJL': ['E','G','J','C','A','F','L','I'], // row 222
+  'ACEFGIJK': ['E','G','J','C','A','F','I','K'], // row 223
+  'ACEFGHKL': ['H','G','E','C','A','F','L','K'], // row 224
+  'ACEFGHJL': ['H','G','J','C','A','F','L','E'], // row 225
+  'ACEFGHJK': ['H','G','J','C','A','F','E','K'], // row 226
+  'ACEFGHIL': ['H','G','E','C','A','F','L','I'], // row 227
+  'ACEFGHIK': ['H','G','E','C','A','F','I','K'], // row 228
+  'ACEFGHIJ': ['H','G','J','C','A','F','E','I'], // row 229
+  'ACDHIJKL': ['H','J','I','C','A','D','L','K'], // row 230
+  'ACDGIJKL': ['I','G','J','C','A','D','L','K'], // row 231
+  'ACDGHJKL': ['H','G','J','C','A','D','L','K'], // row 232
+  'ACDGHIKL': ['H','G','I','C','A','D','L','K'], // row 233
+  'ACDGHIJL': ['H','G','J','C','A','D','L','I'], // row 234
+  'ACDGHIJK': ['H','G','J','C','A','D','I','K'], // row 235
+  'ACDFIJKL': ['C','J','I','D','A','F','L','K'], // row 236
+  'ACDFHJKL': ['H','J','F','C','A','D','L','K'], // row 237
+  'ACDFHIKL': ['H','F','I','C','A','D','L','K'], // row 238
+  'ACDFHIJL': ['H','J','F','C','A','D','L','I'], // row 239
+  'ACDFHIJK': ['H','J','F','C','A','D','I','K'], // row 240
+  'ACDFGJKL': ['C','G','J','D','A','F','L','K'], // row 241
+  'ACDFGIKL': ['C','G','I','D','A','F','L','K'], // row 242
+  'ACDFGIJL': ['C','G','J','D','A','F','L','I'], // row 243
+  'ACDFGIJK': ['C','G','J','D','A','F','I','K'], // row 244
+  'ACDFGHKL': ['H','G','F','C','A','D','L','K'], // row 245
+  'ACDFGHJL': ['C','G','J','D','A','F','L','H'], // row 246
+  'ACDFGHJK': ['H','G','J','C','A','F','D','K'], // row 247
+  'ACDFGHIL': ['H','G','F','C','A','D','L','I'], // row 248
+  'ACDFGHIK': ['H','G','F','C','A','D','I','K'], // row 249
+  'ACDFGHIJ': ['H','G','J','C','A','F','D','I'], // row 250
+  'ACDEIJKL': ['E','J','I','C','A','D','L','K'], // row 251
+  'ACDEHJKL': ['H','J','E','C','A','D','L','K'], // row 252
+  'ACDEHIKL': ['H','E','I','C','A','D','L','K'], // row 253
+  'ACDEHIJL': ['H','J','E','C','A','D','L','I'], // row 254
+  'ACDEHIJK': ['H','J','E','C','A','D','I','K'], // row 255
+  'ACDEGJKL': ['E','G','J','C','A','D','L','K'], // row 256
+  'ACDEGIKL': ['E','G','I','C','A','D','L','K'], // row 257
+  'ACDEGIJL': ['E','G','J','C','A','D','L','I'], // row 258
+  'ACDEGIJK': ['E','G','J','C','A','D','I','K'], // row 259
+  'ACDEGHKL': ['H','G','E','C','A','D','L','K'], // row 260
+  'ACDEGHJL': ['H','G','J','C','A','D','L','E'], // row 261
+  'ACDEGHJK': ['H','G','J','C','A','D','E','K'], // row 262
+  'ACDEGHIL': ['H','G','E','C','A','D','L','I'], // row 263
+  'ACDEGHIK': ['H','G','E','C','A','D','I','K'], // row 264
+  'ACDEGHIJ': ['H','G','J','C','A','D','E','I'], // row 265
+  'ACDEFJKL': ['C','J','E','D','A','F','L','K'], // row 266
+  'ACDEFIKL': ['C','E','I','D','A','F','L','K'], // row 267
+  'ACDEFIJL': ['C','J','E','D','A','F','L','I'], // row 268
+  'ACDEFIJK': ['C','J','E','D','A','F','I','K'], // row 269
+  'ACDEFHKL': ['H','E','F','C','A','D','L','K'], // row 270
+  'ACDEFHJL': ['H','J','F','C','A','D','L','E'], // row 271
+  'ACDEFHJK': ['H','J','E','C','A','F','D','K'], // row 272
+  'ACDEFHIL': ['H','E','F','C','A','D','L','I'], // row 273
+  'ACDEFHIK': ['H','E','F','C','A','D','I','K'], // row 274
+  'ACDEFHIJ': ['H','J','E','C','A','F','D','I'], // row 275
+  'ACDEFGKL': ['C','G','E','D','A','F','L','K'], // row 276
+  'ACDEFGJL': ['C','G','J','D','A','F','L','E'], // row 277
+  'ACDEFGJK': ['C','G','J','D','A','F','E','K'], // row 278
+  'ACDEFGIL': ['C','G','E','D','A','F','L','I'], // row 279
+  'ACDEFGIK': ['C','G','E','D','A','F','I','K'], // row 280
+  'ACDEFGIJ': ['C','G','J','D','A','F','E','I'], // row 281
+  'ACDEFGHL': ['H','G','F','C','A','D','L','E'], // row 282
+  'ACDEFGHK': ['H','G','E','C','A','F','D','K'], // row 283
+  'ACDEFGHJ': ['H','G','J','C','A','F','D','E'], // row 284
+  'ACDEFGHI': ['H','G','E','C','A','F','D','I'], // row 285
+  'ABGHIJKL': ['H','J','B','A','I','G','L','K'], // row 286
+  'ABFHIJKL': ['H','J','B','A','I','F','L','K'], // row 287
+  'ABFGIJKL': ['I','J','B','F','A','G','L','K'], // row 288
+  'ABFGHJKL': ['H','J','B','F','A','G','L','K'], // row 289
+  'ABFGHIKL': ['H','G','B','A','I','F','L','K'], // row 290
+  'ABFGHIJL': ['H','J','B','F','A','G','L','I'], // row 291
+  'ABFGHIJK': ['H','J','B','F','A','G','I','K'], // row 292
+  'ABEHIJKL': ['E','J','B','A','I','H','L','K'], // row 293
+  'ABEGIJKL': ['E','J','B','A','I','G','L','K'], // row 294
+  'ABEGHJKL': ['E','J','B','A','H','G','L','K'], // row 295
+  'ABEGHIKL': ['E','G','B','A','I','H','L','K'], // row 296
+  'ABEGHIJL': ['E','J','B','A','H','G','L','I'], // row 297
+  'ABEGHIJK': ['E','J','B','A','H','G','I','K'], // row 298
+  'ABEFIJKL': ['E','J','B','A','I','F','L','K'], // row 299
+  'ABEFHJKL': ['E','J','B','F','A','H','L','K'], // row 300
+  'ABEFHIKL': ['E','I','B','F','A','H','L','K'], // row 301
+  'ABEFHIJL': ['E','J','B','F','A','H','L','I'], // row 302
+  'ABEFHIJK': ['E','J','B','F','A','H','I','K'], // row 303
+  'ABEFGJKL': ['E','J','B','F','A','G','L','K'], // row 304
+  'ABEFGIKL': ['E','G','B','A','I','F','L','K'], // row 305
+  'ABEFGIJL': ['E','J','B','F','A','G','L','I'], // row 306
+  'ABEFGIJK': ['E','J','B','F','A','G','I','K'], // row 307
+  'ABEFGHKL': ['E','G','B','F','A','H','L','K'], // row 308
+  'ABEFGHJL': ['H','J','B','F','A','G','L','E'], // row 309
+  'ABEFGHJK': ['H','J','B','F','A','G','E','K'], // row 310
+  'ABEFGHIL': ['E','G','B','F','A','H','L','I'], // row 311
+  'ABEFGHIK': ['E','G','B','F','A','H','I','K'], // row 312
+  'ABEFGHIJ': ['H','J','B','F','A','G','E','I'], // row 313
+  'ABDHIJKL': ['I','J','B','D','A','H','L','K'], // row 314
+  'ABDGIJKL': ['I','J','B','D','A','G','L','K'], // row 315
+  'ABDGHJKL': ['H','J','B','D','A','G','L','K'], // row 316
+  'ABDGHIKL': ['I','G','B','D','A','H','L','K'], // row 317
+  'ABDGHIJL': ['H','J','B','D','A','G','L','I'], // row 318
+  'ABDGHIJK': ['H','J','B','D','A','G','I','K'], // row 319
+  'ABDFIJKL': ['I','J','B','D','A','F','L','K'], // row 320
+  'ABDFHJKL': ['H','J','B','D','A','F','L','K'], // row 321
+  'ABDFHIKL': ['H','I','B','D','A','F','L','K'], // row 322
+  'ABDFHIJL': ['H','J','B','D','A','F','L','I'], // row 323
+  'ABDFHIJK': ['H','J','B','D','A','F','I','K'], // row 324
+  'ABDFGJKL': ['F','J','B','D','A','G','L','K'], // row 325
+  'ABDFGIKL': ['I','G','B','D','A','F','L','K'], // row 326
+  'ABDFGIJL': ['F','J','B','D','A','G','L','I'], // row 327
+  'ABDFGIJK': ['F','J','B','D','A','G','I','K'], // row 328
+  'ABDFGHKL': ['H','G','B','D','A','F','L','K'], // row 329
+  'ABDFGHJL': ['H','G','B','D','A','F','L','J'], // row 330
+  'ABDFGHJK': ['H','G','B','D','A','F','J','K'], // row 331
+  'ABDFGHIL': ['H','G','B','D','A','F','L','I'], // row 332
+  'ABDFGHIK': ['H','G','B','D','A','F','I','K'], // row 333
+  'ABDFGHIJ': ['H','G','B','D','A','F','I','J'], // row 334
+  'ABDEIJKL': ['E','J','B','A','I','D','L','K'], // row 335
+  'ABDEHJKL': ['E','J','B','D','A','H','L','K'], // row 336
+  'ABDEHIKL': ['E','I','B','D','A','H','L','K'], // row 337
+  'ABDEHIJL': ['E','J','B','D','A','H','L','I'], // row 338
+  'ABDEHIJK': ['E','J','B','D','A','H','I','K'], // row 339
+  'ABDEGJKL': ['E','J','B','D','A','G','L','K'], // row 340
+  'ABDEGIKL': ['E','G','B','A','I','D','L','K'], // row 341
+  'ABDEGIJL': ['E','J','B','D','A','G','L','I'], // row 342
+  'ABDEGIJK': ['E','J','B','D','A','G','I','K'], // row 343
+  'ABDEGHKL': ['E','G','B','D','A','H','L','K'], // row 344
+  'ABDEGHJL': ['H','J','B','D','A','G','L','E'], // row 345
+  'ABDEGHJK': ['H','J','B','D','A','G','E','K'], // row 346
+  'ABDEGHIL': ['E','G','B','D','A','H','L','I'], // row 347
+  'ABDEGHIK': ['E','G','B','D','A','H','I','K'], // row 348
+  'ABDEGHIJ': ['H','J','B','D','A','G','E','I'], // row 349
+  'ABDEFJKL': ['E','J','B','D','A','F','L','K'], // row 350
+  'ABDEFIKL': ['E','I','B','D','A','F','L','K'], // row 351
+  'ABDEFIJL': ['E','J','B','D','A','F','L','I'], // row 352
+  'ABDEFIJK': ['E','J','B','D','A','F','I','K'], // row 353
+  'ABDEFHKL': ['H','E','B','D','A','F','L','K'], // row 354
+  'ABDEFHJL': ['H','J','B','D','A','F','L','E'], // row 355
+  'ABDEFHJK': ['H','J','B','D','A','F','E','K'], // row 356
+  'ABDEFHIL': ['H','E','B','D','A','F','L','I'], // row 357
+  'ABDEFHIK': ['H','E','B','D','A','F','I','K'], // row 358
+  'ABDEFHIJ': ['H','J','B','D','A','F','E','I'], // row 359
+  'ABDEFGKL': ['E','G','B','D','A','F','L','K'], // row 360
+  'ABDEFGJL': ['E','G','B','D','A','F','L','J'], // row 361
+  'ABDEFGJK': ['E','G','B','D','A','F','J','K'], // row 362
+  'ABDEFGIL': ['E','G','B','D','A','F','L','I'], // row 363
+  'ABDEFGIK': ['E','G','B','D','A','F','I','K'], // row 364
+  'ABDEFGIJ': ['E','G','B','D','A','F','I','J'], // row 365
+  'ABDEFGHL': ['H','G','B','D','A','F','L','E'], // row 366
+  'ABDEFGHK': ['H','G','B','D','A','F','E','K'], // row 367
+  'ABDEFGHJ': ['H','G','B','D','A','F','E','J'], // row 368
+  'ABDEFGHI': ['H','G','B','D','A','F','E','I'], // row 369
+  'ABCHIJKL': ['I','J','B','C','A','H','L','K'], // row 370
+  'ABCGIJKL': ['I','J','B','C','A','G','L','K'], // row 371
+  'ABCGHJKL': ['H','J','B','C','A','G','L','K'], // row 372
+  'ABCGHIKL': ['I','G','B','C','A','H','L','K'], // row 373
+  'ABCGHIJL': ['H','J','B','C','A','G','L','I'], // row 374
+  'ABCGHIJK': ['H','J','B','C','A','G','I','K'], // row 375
+  'ABCFIJKL': ['I','J','B','C','A','F','L','K'], // row 376
+  'ABCFHJKL': ['H','J','B','C','A','F','L','K'], // row 377
+  'ABCFHIKL': ['H','I','B','C','A','F','L','K'], // row 378
+  'ABCFHIJL': ['H','J','B','C','A','F','L','I'], // row 379
+  'ABCFHIJK': ['H','J','B','C','A','F','I','K'], // row 380
+  'ABCFGJKL': ['C','J','B','F','A','G','L','K'], // row 381
+  'ABCFGIKL': ['I','G','B','C','A','F','L','K'], // row 382
+  'ABCFGIJL': ['C','J','B','F','A','G','L','I'], // row 383
+  'ABCFGIJK': ['C','J','B','F','A','G','I','K'], // row 384
+  'ABCFGHKL': ['H','G','B','C','A','F','L','K'], // row 385
+  'ABCFGHJL': ['H','G','B','C','A','F','L','J'], // row 386
+  'ABCFGHJK': ['H','G','B','C','A','F','J','K'], // row 387
+  'ABCFGHIL': ['H','G','B','C','A','F','L','I'], // row 388
+  'ABCFGHIK': ['H','G','B','C','A','F','I','K'], // row 389
+  'ABCFGHIJ': ['H','G','B','C','A','F','I','J'], // row 390
+  'ABCEIJKL': ['E','J','B','A','I','C','L','K'], // row 391
+  'ABCEHJKL': ['E','J','B','C','A','H','L','K'], // row 392
+  'ABCEHIKL': ['E','I','B','C','A','H','L','K'], // row 393
+  'ABCEHIJL': ['E','J','B','C','A','H','L','I'], // row 394
+  'ABCEHIJK': ['E','J','B','C','A','H','I','K'], // row 395
+  'ABCEGJKL': ['E','J','B','C','A','G','L','K'], // row 396
+  'ABCEGIKL': ['E','G','B','A','I','C','L','K'], // row 397
+  'ABCEGIJL': ['E','J','B','C','A','G','L','I'], // row 398
+  'ABCEGIJK': ['E','J','B','C','A','G','I','K'], // row 399
+  'ABCEGHKL': ['E','G','B','C','A','H','L','K'], // row 400
+  'ABCEGHJL': ['H','J','B','C','A','G','L','E'], // row 401
+  'ABCEGHJK': ['H','J','B','C','A','G','E','K'], // row 402
+  'ABCEGHIL': ['E','G','B','C','A','H','L','I'], // row 403
+  'ABCEGHIK': ['E','G','B','C','A','H','I','K'], // row 404
+  'ABCEGHIJ': ['H','J','B','C','A','G','E','I'], // row 405
+  'ABCEFJKL': ['E','J','B','C','A','F','L','K'], // row 406
+  'ABCEFIKL': ['E','I','B','C','A','F','L','K'], // row 407
+  'ABCEFIJL': ['E','J','B','C','A','F','L','I'], // row 408
+  'ABCEFIJK': ['E','J','B','C','A','F','I','K'], // row 409
+  'ABCEFHKL': ['H','E','B','C','A','F','L','K'], // row 410
+  'ABCEFHJL': ['H','J','B','C','A','F','L','E'], // row 411
+  'ABCEFHJK': ['H','J','B','C','A','F','E','K'], // row 412
+  'ABCEFHIL': ['H','E','B','C','A','F','L','I'], // row 413
+  'ABCEFHIK': ['H','E','B','C','A','F','I','K'], // row 414
+  'ABCEFHIJ': ['H','J','B','C','A','F','E','I'], // row 415
+  'ABCEFGKL': ['E','G','B','C','A','F','L','K'], // row 416
+  'ABCEFGJL': ['E','G','B','C','A','F','L','J'], // row 417
+  'ABCEFGJK': ['E','G','B','C','A','F','J','K'], // row 418
+  'ABCEFGIL': ['E','G','B','C','A','F','L','I'], // row 419
+  'ABCEFGIK': ['E','G','B','C','A','F','I','K'], // row 420
+  'ABCEFGIJ': ['E','G','B','C','A','F','I','J'], // row 421
+  'ABCEFGHL': ['H','G','B','C','A','F','L','E'], // row 422
+  'ABCEFGHK': ['H','G','B','C','A','F','E','K'], // row 423
+  'ABCEFGHJ': ['H','G','B','C','A','F','E','J'], // row 424
+  'ABCEFGHI': ['H','G','B','C','A','F','E','I'], // row 425
+  'ABCDIJKL': ['I','J','B','C','A','D','L','K'], // row 426
+  'ABCDHJKL': ['H','J','B','C','A','D','L','K'], // row 427
+  'ABCDHIKL': ['H','I','B','C','A','D','L','K'], // row 428
+  'ABCDHIJL': ['H','J','B','C','A','D','L','I'], // row 429
+  'ABCDHIJK': ['H','J','B','C','A','D','I','K'], // row 430
+  'ABCDGJKL': ['C','J','B','D','A','G','L','K'], // row 431
+  'ABCDGIKL': ['I','G','B','C','A','D','L','K'], // row 432
+  'ABCDGIJL': ['C','J','B','D','A','G','L','I'], // row 433
+  'ABCDGIJK': ['C','J','B','D','A','G','I','K'], // row 434
+  'ABCDGHKL': ['H','G','B','C','A','D','L','K'], // row 435
+  'ABCDGHJL': ['H','G','B','C','A','D','L','J'], // row 436
+  'ABCDGHJK': ['H','G','B','C','A','D','J','K'], // row 437
+  'ABCDGHIL': ['H','G','B','C','A','D','L','I'], // row 438
+  'ABCDGHIK': ['H','G','B','C','A','D','I','K'], // row 439
+  'ABCDGHIJ': ['H','G','B','C','A','D','I','J'], // row 440
+  'ABCDFJKL': ['C','J','B','D','A','F','L','K'], // row 441
+  'ABCDFIKL': ['C','I','B','D','A','F','L','K'], // row 442
+  'ABCDFIJL': ['C','J','B','D','A','F','L','I'], // row 443
+  'ABCDFIJK': ['C','J','B','D','A','F','I','K'], // row 444
+  'ABCDFHKL': ['H','F','B','C','A','D','L','K'], // row 445
+  'ABCDFHJL': ['C','J','B','D','A','F','L','H'], // row 446
+  'ABCDFHJK': ['H','J','B','C','A','F','D','K'], // row 447
+  'ABCDFHIL': ['H','F','B','C','A','D','L','I'], // row 448
+  'ABCDFHIK': ['H','F','B','C','A','D','I','K'], // row 449
+  'ABCDFHIJ': ['H','J','B','C','A','F','D','I'], // row 450
+  'ABCDFGKL': ['C','G','B','D','A','F','L','K'], // row 451
+  'ABCDFGJL': ['C','G','B','D','A','F','L','J'], // row 452
+  'ABCDFGJK': ['C','G','B','D','A','F','J','K'], // row 453
+  'ABCDFGIL': ['C','G','B','D','A','F','L','I'], // row 454
+  'ABCDFGIK': ['C','G','B','D','A','F','I','K'], // row 455
+  'ABCDFGIJ': ['C','G','B','D','A','F','I','J'], // row 456
+  'ABCDFGHL': ['C','G','B','D','A','F','L','H'], // row 457
+  'ABCDFGHK': ['H','G','B','C','A','F','D','K'], // row 458
+  'ABCDFGHJ': ['H','G','B','C','A','F','D','J'], // row 459
+  'ABCDFGHI': ['H','G','B','C','A','F','D','I'], // row 460
+  'ABCDEJKL': ['E','J','B','C','A','D','L','K'], // row 461
+  'ABCDEIKL': ['E','I','B','C','A','D','L','K'], // row 462
+  'ABCDEIJL': ['E','J','B','C','A','D','L','I'], // row 463
+  'ABCDEIJK': ['E','J','B','C','A','D','I','K'], // row 464
+  'ABCDEHKL': ['H','E','B','C','A','D','L','K'], // row 465
+  'ABCDEHJL': ['H','J','B','C','A','D','L','E'], // row 466
+  'ABCDEHJK': ['H','J','B','C','A','D','E','K'], // row 467
+  'ABCDEHIL': ['H','E','B','C','A','D','L','I'], // row 468
+  'ABCDEHIK': ['H','E','B','C','A','D','I','K'], // row 469
+  'ABCDEHIJ': ['H','J','B','C','A','D','E','I'], // row 470
+  'ABCDEGKL': ['E','G','B','C','A','D','L','K'], // row 471
+  'ABCDEGJL': ['E','G','B','C','A','D','L','J'], // row 472
+  'ABCDEGJK': ['E','G','B','C','A','D','J','K'], // row 473
+  'ABCDEGIL': ['E','G','B','C','A','D','L','I'], // row 474
+  'ABCDEGIK': ['E','G','B','C','A','D','I','K'], // row 475
+  'ABCDEGIJ': ['E','G','B','C','A','D','I','J'], // row 476
+  'ABCDEGHL': ['H','G','B','C','A','D','L','E'], // row 477
+  'ABCDEGHK': ['H','G','B','C','A','D','E','K'], // row 478
+  'ABCDEGHJ': ['H','G','B','C','A','D','E','J'], // row 479
+  'ABCDEGHI': ['H','G','B','C','A','D','E','I'], // row 480
+  'ABCDEFKL': ['C','E','B','D','A','F','L','K'], // row 481
+  'ABCDEFJL': ['C','J','B','D','A','F','L','E'], // row 482
+  'ABCDEFJK': ['C','J','B','D','A','F','E','K'], // row 483
+  'ABCDEFIL': ['C','E','B','D','A','F','L','I'], // row 484
+  'ABCDEFIK': ['C','E','B','D','A','F','I','K'], // row 485
+  'ABCDEFIJ': ['C','J','B','D','A','F','E','I'], // row 486
+  'ABCDEFHL': ['H','F','B','C','A','D','L','E'], // row 487
+  'ABCDEFHK': ['H','E','B','C','A','F','D','K'], // row 488
+  'ABCDEFHJ': ['H','J','B','C','A','F','D','E'], // row 489
+  'ABCDEFHI': ['H','E','B','C','A','F','D','I'], // row 490
+  'ABCDEFGL': ['C','G','B','D','A','F','L','E'], // row 491
+  'ABCDEFGK': ['C','G','B','D','A','F','E','K'], // row 492
+  'ABCDEFGJ': ['C','G','B','D','A','F','E','J'], // row 493
+  'ABCDEFGI': ['C','G','B','D','A','F','E','I'], // row 494
+  'ABCDEFGH': ['H','G','B','C','A','F','D','E'], // row 495
 }
 
 // ─── group table calculation ──────────────────────────────────────────────────
