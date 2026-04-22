@@ -735,6 +735,8 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
       })
     })
 
+    console.log('[AutoPop] allGroupsDone:', allGroupsDone, 'currentOverride:', currentOverride ? [...currentOverride] : null, 'forceAnnexC:', forceAnnexC)
+
     if (allGroupsDone) {
       const allThirds = calcAllThirds(tables)
       const unambiguous = thirdsAreUnambiguous(allThirds)
@@ -744,14 +746,18 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
           ? allThirds.slice(0, 8).map(t => t.group)
           : null
 
+      console.log('[AutoPop] effectiveTop8:', effectiveTop8)
+
       if (effectiveTop8) {
         const key = [...effectiveTop8].sort().join('')
         const entry = ANNEX_C[key]
+        console.log('[AutoPop] Annex C key:', key, 'entry found:', !!entry)
         if (entry) {
           for (const [matchNum, col] of Object.entries(ANNEX_C_MATCH_TO_COL)) {
             const groupLetter = entry[col]
             const team = tables[groupLetter]?.[2]?.team
             const fixture = fixturesByMatchNum[Number(matchNum)]
+            console.log(`[AutoPop] Match ${matchNum}: col=${col} group=${groupLetter} team=${team} current=${fixture?.away_team} force=${forceAnnexC}`)
             if (fixture && team && (forceAnnexC || fixture.away_team !== team)) {
               updates.push({ id: fixture.id, away_team: team })
             }
@@ -810,6 +816,8 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
     const newFixtures = [...newFixtureData]
     const logEntries = []
 
+    console.log('[AutoPop] Total updates to write:', Object.keys(merged).length, merged)
+
     for (const { id, ...fields } of Object.values(merged)) {
       const { error } = await supabase
         .from('fixtures')
@@ -817,6 +825,7 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
         .eq('id', id)
 
       if (!error) {
+        console.log('[AutoPop] Written fixture', id, fields)
         const idx = newFixtures.findIndex(f => f.id === id)
         if (idx !== -1) {
           newFixtures[idx] = { ...newFixtures[idx], ...fields }
