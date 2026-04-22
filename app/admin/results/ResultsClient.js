@@ -608,15 +608,20 @@ function parseGroupSlot(slotCode) {
 // Get winner of a completed KO fixture
 function getKoWinner(fixture, results) {
   const r = results[fixture.id]
-  if (!r || r.home == null || r.away == null || r.home === r.away) return null
-  return r.home > r.away ? fixture.home_team : fixture.away_team
+  if (!r || r.home == null || r.away == null) return null
+  if (r.home !== r.away) return r.home > r.away ? fixture.home_team : fixture.away_team
+  // Draw — check penalty winner
+  return r.penWinner || null
 }
 
 // Get loser of a completed KO fixture  
 function getKoLoser(fixture, results) {
   const r = results[fixture.id]
-  if (!r || r.home == null || r.away == null || r.home === r.away) return null
-  return r.home < r.away ? fixture.home_team : fixture.away_team
+  if (!r || r.home == null || r.away == null) return null
+  if (r.home !== r.away) return r.home < r.away ? fixture.home_team : fixture.away_team
+  // Draw — loser is the other team from the penalty winner
+  if (!r.penWinner) return null
+  return r.penWinner === fixture.home_team ? fixture.away_team : fixture.home_team
 }
 
 // ─── small components ─────────────────────────────────────────────────────────
@@ -745,7 +750,7 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
     const map = {}
     for (const f of fixtures) {
       if (f.home_score != null || f.away_score != null) {
-        map[f.id] = { home: f.home_score, away: f.away_score }
+        map[f.id] = { home: f.home_score, away: f.away_score, penWinner: f.penalty_winner ?? null }
       }
     }
     return map
@@ -938,6 +943,8 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
       .from('fixtures')
       .update({
         home_score: home, away_score: away,
+        // Clear penalty winner when score changes (may no longer be a draw)
+        penalty_winner: home !== away ? null : (results[fixtureId]?.penWinner ?? null),
         status: home != null && away != null ? 'complete' : 'scheduled',
       })
       .eq('id', fixtureId)
@@ -946,11 +953,30 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
     showToast('✓ Saved')
   }
 
+  const savePenaltyWinner = async (fixtureId, team) => {
+    const { error } = await supabase
+      .from('fixtures')
+      .update({ penalty_winner: team })
+      .eq('id', fixtureId)
+    if (!error) {
+      setResults(prev => ({
+        ...prev,
+        [fixtureId]: { ...prev[fixtureId], penWinner: team }
+      }))
+      // Re-run KO propagation with updated results
+      const updatedResults = { ...results, [fixtureId]: { ...results[fixtureId], penWinner: team } }
+      autoPopulateKO(updatedResults, fixtureData, overrideGroups)
+      showToast('✓ Penalty winner saved')
+    } else {
+      showToast('Save failed', 'error')
+    }
+  }
+
   const clearResult = async (fixtureId) => {
     setSaving(true)
     const { error } = await supabase
       .from('fixtures')
-      .update({ home_score: null, away_score: null, status: 'scheduled' })
+      .update({ home_score: null, away_score: null, penalty_winner: null, status: 'scheduled' })
       .eq('id', fixtureId)
     if (!error) {
       setResults(prev => { const next = { ...prev }; delete next[fixtureId]; return next })
@@ -1364,7 +1390,90 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
               return (
                 <div key={round}>
                   <h3 className="text-sm font-bold text-yellow-400 uppercase tracking-wider mb-3">{ROUND_LABELS[round]}</h3>
-                  {renderTable(roundFixtures)}
+                  <div className="bg-gray-900 rounded-xl overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-800 bg-yellow-500/5">
+                          <th className="px-3 py-2 text-left text-xs text-gray-500 w-8">#</th>
+                          <th className="px-2 py-2 text-right text-xs text-gray-500">Home</th>
+                          <th className="px-1 py-2 text-center text-xs text-gray-500 w-8">H</th>
+                          <th className="px-1 py-2 text-center text-xs text-gray-500 w-4">–</th>
+                          <th className="px-1 py-2 text-center text-xs text-gray-500 w-8">A</th>
+                          <th className="px-2 py-2 text-left text-xs text-gray-500">Away</th>
+                          <th className="px-2 py-2 text-center text-xs text-gray-500">Pens</th>
+                          <th className="px-2 py-2 text-right text-xs text-gray-500 hidden md:table-cell">Date</th>
+                          <th className="w-6"/>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {roundFixtures.map(f => {
+                          const r = results[f.id] || {}
+                          const hasResult = r.home != null && r.away != null
+                          const isDraw = hasResult && r.home === r.away
+                          const t1 = f.home_team || f.slot1 || '?'
+                          const t2 = f.away_team || f.slot2 || '?'
+                          const t1Known = !!f.home_team && f.home_team !== 'TBD'
+                          const t2Known = !!f.away_team && f.away_team !== 'TBD'
+                          return (
+                            <tr key={f.id} className={`border-b border-gray-800/50 ${hasResult ? r.penWinner || !isDraw ? 'bg-green-500/5' : 'bg-amber-500/5' : 'hover:bg-gray-800/30'}`}>
+                              <td className="px-3 py-2 text-gray-600 text-xs">{f.match_number}</td>
+                              <td className="px-2 py-2 text-right">
+                                <span className={`font-medium flex items-center justify-end gap-1.5 ${r.penWinner === t1 ? 'text-yellow-400' : ''}`}>
+                                  <span className={`hidden sm:inline text-sm ${t1Known ? '' : 'text-gray-600 italic'}`}>{t1}</span>
+                                  {t1Known && flag(t1) && <img src={flag(t1)} alt={t1} className="w-5 h-3 object-cover rounded-sm"/>}
+                                </span>
+                              </td>
+                              <td className="px-1 py-2 text-center">
+                                <ScoreInput value={r.home} onChange={v => updateResult(f.id, 'home', v)}/>
+                              </td>
+                              <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
+                              <td className="px-1 py-2 text-center">
+                                <ScoreInput value={r.away} onChange={v => updateResult(f.id, 'away', v)}/>
+                              </td>
+                              <td className="px-2 py-2">
+                                <span className={`font-medium flex items-center gap-1.5 ${r.penWinner === t2 ? 'text-yellow-400' : ''}`}>
+                                  {t2Known && flag(t2) && <img src={flag(t2)} alt={t2} className="w-5 h-3 object-cover rounded-sm"/>}
+                                  <span className={`hidden sm:inline text-sm ${t2Known ? '' : 'text-gray-600 italic'}`}>{t2}</span>
+                                </span>
+                              </td>
+                              <td className="px-2 py-2 text-center">
+                                {isDraw && t1Known && t2Known && (
+                                  <div className="flex gap-1 justify-center">
+                                    <button
+                                      onClick={() => savePenaltyWinner(f.id, r.penWinner === t1 ? null : t1)}
+                                      className={`text-xs px-1.5 py-0.5 rounded font-bold transition-colors
+                                        ${r.penWinner === t1 ? 'bg-yellow-500 text-gray-950' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}>
+                                      {t1.split(' ')[0]}
+                                    </button>
+                                    <button
+                                      onClick={() => savePenaltyWinner(f.id, r.penWinner === t2 ? null : t2)}
+                                      className={`text-xs px-1.5 py-0.5 rounded font-bold transition-colors
+                                        ${r.penWinner === t2 ? 'bg-yellow-500 text-gray-950' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}>
+                                      {t2.split(' ')[0]}
+                                    </button>
+                                  </div>
+                                )}
+                                {isDraw && (!t1Known || !t2Known) && (
+                                  <span className="text-xs text-gray-600">Draw</span>
+                                )}
+                                {!isDraw && hasResult && r.penWinner && (
+                                  <span className="text-xs text-gray-600 italic">—</span>
+                                )}
+                              </td>
+                              <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
+                                {f.kickoff_utc ? new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                              </td>
+                              <td className="px-2 py-2 text-center">
+                                {hasResult && (
+                                  <button onClick={() => clearResult(f.id)} className="text-xs text-red-400 hover:text-red-300 transition-colors">✕</button>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )
             })}

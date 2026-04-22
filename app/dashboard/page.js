@@ -97,6 +97,17 @@ export default async function DashboardPage() {
               Enter an invite code to join a friend's league
             </p>
           </Link>
+
+          <Link
+            href="/dashboard/tournament"
+            className="bg-gray-900 hover:bg-gray-800 border border-gray-700 rounded-2xl p-6 transition-colors md:col-span-2"
+          >
+            <div className="text-3xl mb-3">📊</div>
+            <h2 className="text-xl font-bold mb-1">Tournament Bracket</h2>
+            <p className="text-gray-400 text-sm">
+              Live results, group tables and the knockout bracket
+            </p>
+          </Link>
         </div>
 
         {/* My Leagues */}

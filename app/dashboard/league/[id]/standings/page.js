@@ -33,7 +33,16 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, effec
     const pred = predictions.find(p => p.fixture_id === f.id)
     if (!pred || pred.predicted_home == null || pred.predicted_away == null) continue
 
-    const masterResult = getResult(f.home_score, f.away_score)
+    // For KO matches with a penalty winner, treat as +1 for scoring purposes
+    // e.g. 1-1 with home winning pens → treat as 2-1 for result/score comparison
+    let effectiveHome = f.home_score
+    let effectiveAway = f.away_score
+    if (f.penalty_winner && f.home_score === f.away_score) {
+      if (f.penalty_winner === f.home_team) effectiveHome += 1
+      else effectiveAway += 1
+    }
+
+    const masterResult = getResult(effectiveHome, effectiveAway)
     const predResult = getResult(pred.predicted_home, pred.predicted_away)
 
     if (masterResult !== predResult) continue
@@ -50,7 +59,7 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, effec
 
     const [base, bonus] = roundPoints[f.round] || [0, 0]
     let pts = base
-    if (pred.predicted_home === f.home_score && pred.predicted_away === f.away_score) {
+    if (pred.predicted_home === effectiveHome && pred.predicted_away === effectiveAway) {
       pts += bonus
     }
 
@@ -230,7 +239,18 @@ export default async function StandingsPage({ params }) {
       }
       const masterResult = getResult(f.home_score, f.away_score)
       const predResult = getResult(pred.predicted_home, pred.predicted_away)
-      if (masterResult !== predResult) {
+
+      // Apply penalty winner adjustment for KO draws
+      let effectiveHome = f.home_score
+      let effectiveAway = f.away_score
+      if (f.penalty_winner && f.home_score === f.away_score) {
+        if (f.penalty_winner === f.home_team) effectiveHome += 1
+        else effectiveAway += 1
+      }
+      const effectiveMasterResult = getResult(effectiveHome, effectiveAway)
+      const effectivePredResult = getResult(pred.predicted_home, pred.predicted_away)
+
+      if (effectiveMasterResult !== effectivePredResult) {
         point[s.displayName] = 0
         return
       }
@@ -240,7 +260,7 @@ export default async function StandingsPage({ params }) {
       }
       const [base, bonus] = roundPoints[f.round] || [0, 0]
       let pts = base
-      if (pred.predicted_home === f.home_score && pred.predicted_away === f.away_score) pts += bonus
+      if (pred.predicted_home === effectiveHome && pred.predicted_away === effectiveAway) pts += bonus
       const chartRoundKey = f.round === '3RD' ? 'FINAL' : f.round
       const chartStarPick = s.starPicks?.[chartRoundKey] ?? null
       if (chartStarPick && (f.home_team === chartStarPick || f.away_team === chartStarPick)) pts *= 2
