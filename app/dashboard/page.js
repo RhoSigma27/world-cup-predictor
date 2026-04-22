@@ -48,7 +48,13 @@ export default async function DashboardPage() {
               ⚡ Admin
             </Link>
           )}
-          <span className="text-gray-400 text-sm">👤 {profile?.display_name}</span>
+          <Link
+            href="/dashboard/profile"
+            className="text-gray-400 hover:text-white text-sm transition-colors flex items-center gap-1.5"
+            title="Edit profile"
+          >
+            👤 {profile?.display_name}
+          </Link>
           <form action="/auth/signout" method="post">
             <button className="text-sm text-gray-500 hover:text-white transition-colors">
               Sign out
