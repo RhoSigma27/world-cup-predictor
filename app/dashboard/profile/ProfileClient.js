@@ -19,7 +19,7 @@ export default function ProfileClient({ userId, email, currentDisplayName }) {
     const supabase = createClient()
     const { error } = await supabase
       .from('profiles')
-      .update({ display_name: trimmed, updated_at: new Date().toISOString() })
+      .update({ display_name: trimmed })
       .eq('id', userId)
 
     if (error) {
