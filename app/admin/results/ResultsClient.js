@@ -685,7 +685,7 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
 
   // ── KO auto-population ────────────────────────────────────────────────────────
 
-  const autoPopulateKO = useCallback(async (newResults, newFixtureData, currentOverride) => {
+  const autoPopulateKO = useCallback(async (newResults, newFixtureData, currentOverride, forceAnnexC = false) => {
     const updates = [] // { id, home_team?, away_team? }
 
     const tables = calcGroupTables(newResults, newFixtureData)
@@ -745,14 +745,14 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
           : null
 
       if (effectiveTop8) {
-        const key = effectiveTop8.sort().join('')
+        const key = [...effectiveTop8].sort().join('')
         const entry = ANNEX_C[key]
         if (entry) {
           for (const [matchNum, col] of Object.entries(ANNEX_C_MATCH_TO_COL)) {
             const groupLetter = entry[col]
             const team = tables[groupLetter]?.[2]?.team
             const fixture = fixturesByMatchNum[Number(matchNum)]
-            if (fixture && team && fixture.away_team !== team) {
+            if (fixture && team && (forceAnnexC || fixture.away_team !== team)) {
               updates.push({ id: fixture.id, away_team: team })
             }
           }
@@ -901,8 +901,8 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
       const newOverride = new Set(value)
       setOverrideGroups(newOverride)
       showToast('Override saved ✓')
-      // Re-run auto-population with the new override
-      await autoPopulateKO(results, fixtureData, newOverride)
+      // Re-run auto-population with force flag so Annex C slots always update
+      await autoPopulateKO(results, fixtureData, newOverride, true)
     } else {
       showToast('Save failed — ' + error.message, 'error')
     }
@@ -917,7 +917,7 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
       setOverrideGroups(null)
       setDraftOverride(null)
       showToast('Override cleared — using auto-computed ranking')
-      await autoPopulateKO(results, fixtureData, null)
+      await autoPopulateKO(results, fixtureData, null, true)
     } else {
       showToast('Clear failed — ' + error.message, 'error')
     }
