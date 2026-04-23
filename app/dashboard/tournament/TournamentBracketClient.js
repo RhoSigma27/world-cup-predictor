@@ -125,11 +125,6 @@ function GroupCard({ group, fixtures }) {
   )
 }
 
-const ROUND_LABELS = {
-  R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter Finals',
-  SF: 'Semi Finals', '3RD': 'Bronze Final', FINAL: 'The Final',
-}
-
 export default function TournamentBracketClient({ fixtures, masterExtras }) {
   const [view, setView] = useState('bracket') // 'bracket' | 'groups'
 
