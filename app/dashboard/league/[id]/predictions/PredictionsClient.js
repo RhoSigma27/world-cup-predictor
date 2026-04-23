@@ -212,7 +212,7 @@ function buildBracketContext(groupPredictions, fixtures, tables) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function FlagImg({ team, className = 'w-5 h-3' }) {
-  const src = flag(team)
+  const src = flagUrl(team)
   if (!src) return null
   return <img src={src} alt={team} className={`${className} object-cover rounded-sm flex-shrink-0`} />
 }

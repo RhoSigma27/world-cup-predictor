@@ -100,7 +100,7 @@ The tournament bracket in the app updates automatically once all group results a
         q: 'What happens in a knockout match that ends in a draw?',
         a: `In the knockout stage, you cannot predict a draw — the predictions page will not allow equal scores for knockout matches.
 
-If a knockout match ends level after 90 minutes and extra time, it goes to a penalty shootout. For scoring purposes, the penalty winner effectively gets +1 added to their score. So a match that finishes 2–2 after extra time with Germany winning on penalties is treated as a **2–3 Germany win** for comparison against your prediction.
+If a knockout match ends level after 90 minutes and extra time, it goes to a penalty shootout. For scoring purposes, the penalty winner effectively gets +1 added to their score. So, for example, a match that finishes France 2–2 Germany after extra time with Germany winning on penalties is treated as a **France 2–3 Germany win** for comparison against your prediction.
 
 This means to score exact score bonus points in that scenario, you would need to have predicted **France 2–3 Germany** (not 2–2, and not any other scoreline).
 
