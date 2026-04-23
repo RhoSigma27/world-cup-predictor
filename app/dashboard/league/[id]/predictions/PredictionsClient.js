@@ -404,7 +404,6 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
   }
 
   const rounds = ['R32', 'R16', 'QF', 'SF', 'FINAL']
-  const roundLabels = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter Finals', SF: 'Semi Finals', FINAL: 'Final' }
   const bronze = koFixtures.find(f => f.round === '3RD')
 
   // For each round, get fixtures in match_number order
@@ -441,7 +440,7 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
               <div key={round} className="flex flex-col flex-shrink-0">
                 {/* Round label */}
                 <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 text-center w-44">
-                  {roundLabels[round]}
+                  {ROUND_LABELS[round]}
                 </div>
                 {/* Match cards — each sits in a slot of slotH, centred vertically */}
                 <div className="flex flex-col">
@@ -690,7 +689,7 @@ export default function PredictionsClient({
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,league_id' })
     if (error) showToast('Save failed', 'error')
-    else showToast(`⭐ Star pick saved for ${roundLabels[round] || round}`)
+    else showToast(`⭐ Star pick saved for ${ROUND_LABELS[round] || round}`)
   }
 
   // ── Derived bracket state (recomputed on every prediction change) ──────────
@@ -767,10 +766,6 @@ export default function PredictionsClient({
     return teamsForRound(round).includes(team)
   }
 
-  const roundLabels = {
-    R32:'Round of 32', R16:'Round of 16', QF:'Quarter Finals',
-    SF:'Semi Finals', '3RD':'Bronze Final', FINAL:'The Final'
-  }
   const roundOrder = ['R32','R16','QF','SF','3RD','FINAL']
 
   return (
@@ -926,7 +921,7 @@ export default function PredictionsClient({
                 <div key={round} className="mt-5">
                   <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-800">
                     <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">
-                      {roundLabels[round]}
+                      {ROUND_LABELS[round]}
                     </span>
                     {round !== '3RD' && (
                       <StarPickStrip

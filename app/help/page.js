@@ -63,9 +63,9 @@ For knockout stage predictions, you can enter them any time before the relevant 
       },
       {
         q: 'Where do I enter my Star Pick?',
-        a: `Go to your **Predictions** page (tap the "Make Predictions" button on your league homepage). 
+        a: `Go to your **Predictions** page (tap the "Make Predictions" button on your league homepage).
 
-At the top of each round section — Group Stage, Round of 32, Round of 16 etc. — you will see a star picker. Tap the team you want to nominate as your Star Pick for that round. Your choice is saved automatically.`
+Your Star Pick is shown at the top of each round section — Group Stage, Round of 32, Round of 16, Quarter-Finals, Semi-Finals, and the Final. Tap **"Star pick"** next to the round you want to set, choose your team from the list, and it saves automatically.`
       },
       {
         q: 'Do I need to predict every match?',
@@ -98,11 +98,13 @@ The tournament bracket in the app updates automatically once all group results a
       },
       {
         q: 'What happens in a knockout match that ends in a draw?',
-        a: `In knockout matches, if the score is level after 90 minutes, the match goes to extra time and then potentially a penalty shootout.
+        a: `In the knockout stage, you cannot predict a draw — the predictions page will not allow equal scores for knockout matches.
 
-For scoring purposes, a draw after 90 minutes is treated as a win for whichever team wins on penalties. So if you predicted a draw (same score for both teams), you won't score points unless your score is exactly right and the team you have winning on penalties matches the actual result.
+If a knockout match ends level after 90 minutes and extra time, it goes to a penalty shootout. For scoring purposes, the penalty winner effectively gets +1 added to their score. So a match that finishes 2–2 after extra time with Germany winning on penalties is treated as a **2–3 Germany win** for comparison against your prediction.
 
-The app displays penalty shootout winners with a **(p)** indicator in the bracket.`
+This means to score exact score bonus points in that scenario, you would need to have predicted **France 2–3 Germany** (not 2–2, and not any other scoreline).
+
+The app displays penalty shootout results with a **(p)** indicator in the bracket.`
       },
     ]
   },
@@ -115,11 +117,15 @@ The app displays penalty shootout winners with a **(p)** indicator in the bracke
       },
       {
         q: 'Can I be in more than one league?',
-        a: `Yes! You can join as many leagues as you like. Your predictions are shared across all leagues — you only need to enter them once, and your score will appear in every league you're a member of.`
+        a: `Yes! You can join as many leagues as you like. Your predictions are shared across all leagues — you only need to enter them once, and your score will appear in every league you're a member of.
+
+This means you can't have different predictions for different leagues, but it keeps things simple — no need to fill in hundreds of predictions multiple times.`
       },
       {
         q: 'Who can see my predictions?',
-        a: `Other members of your league can see your predicted scores once you have entered them. However, your **Star Pick** is always private — no one else can see which team you have nominated for any round.`
+        a: `Your predicted scorelines are private — no other player can see them. The standings page only shows each player's total points, not the actual scores they predicted.
+
+Your **Star Pick** is also always private — no one else can see which team you have nominated for any round.`
       },
     ]
   },
