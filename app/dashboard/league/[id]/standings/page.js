@@ -343,9 +343,6 @@ export default async function StandingsPage({ params }) {
                             {isCurrentUser && <span className="ml-1 text-xs text-yellow-400">(you)</span>}
                             {s.isAdmin && <span className="ml-1 text-xs text-gray-500">⭐</span>}
                           </p>
-                          {s.starPicks?.group && (
-                            <p className="text-xs text-gray-500">⭐ {s.starPicks.group} <span className="text-gray-700">(group)</span></p>
-                          )}
                         </div>
                       </div>
                     </td>

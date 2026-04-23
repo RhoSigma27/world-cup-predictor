@@ -972,15 +972,45 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
     }
   }
 
-  const clearResult = async (fixtureId) => {
+  const clearResult = async (fixtureId, fixture) => {
     setSaving(true)
+    const isKO = fixture?.round !== 'group'
+    const hasSlotCodes = fixture?.slot1 || fixture?.slot2
+
+    // For KO fixtures, also clear auto-populated team names so the bracket
+    // doesn't show stale teams after scores are removed
+    const updateFields = {
+      home_score: null,
+      away_score: null,
+      penalty_winner: null,
+      status: 'scheduled',
+      ...(isKO && hasSlotCodes ? { home_team: null, away_team: null } : {}),
+    }
+
     const { error } = await supabase
       .from('fixtures')
-      .update({ home_score: null, away_score: null, penalty_winner: null, status: 'scheduled' })
+      .update(updateFields)
       .eq('id', fixtureId)
+
     if (!error) {
-      setResults(prev => { const next = { ...prev }; delete next[fixtureId]; return next })
+      const newResults = { ...results }
+      delete newResults[fixtureId]
+      setResults(newResults)
+
+      // Update local fixture data to clear teams too
+      if (isKO && hasSlotCodes) {
+        setFixtureData(prev => prev.map(f =>
+          f.id === fixtureId ? { ...f, home_team: null, away_team: null, home_score: null, away_score: null, penalty_winner: null } : f
+        ))
+      }
+
       showToast('Result cleared')
+
+      // Re-run auto-population — will re-populate any slots that can still be resolved
+      const updatedFixtures = fixtureData.map(f =>
+        f.id === fixtureId ? { ...f, home_team: null, away_team: null, home_score: null, away_score: null, penalty_winner: null } : f
+      )
+      await autoPopulateKO(newResults, updatedFixtures, overrideGroups)
     } else {
       showToast('Clear failed', 'error')
     }
@@ -1125,7 +1155,7 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
                 </td>
                 <td className="px-2 py-2 text-center">
                   {hasResult && (
-                    <button onClick={() => clearResult(f.id)} className="text-xs text-red-400 hover:text-red-300 transition-colors">✕</button>
+                    <button onClick={() => clearResult(f.id, f)} className="text-xs text-red-400 hover:text-red-300 transition-colors">✕</button>
                   )}
                 </td>
               </tr>
@@ -1465,7 +1495,7 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
                               </td>
                               <td className="px-2 py-2 text-center">
                                 {hasResult && (
-                                  <button onClick={() => clearResult(f.id)} className="text-xs text-red-400 hover:text-red-300 transition-colors">✕</button>
+                                  <button onClick={() => clearResult(f.id, f)} className="text-xs text-red-400 hover:text-red-300 transition-colors">✕</button>
                                 )}
                               </td>
                             </tr>
