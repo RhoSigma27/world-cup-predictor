@@ -1,29 +1,13 @@
 'use client'
 
+import {
+  GROUPS, GROUP_TEAMS, COUNTRY_CODES, ANNEX_C,
+  ROUND_LABELS, shortName, flagUrl,
+} from '@/lib/worldcup'
 import { useState } from 'react'
 
-const COUNTRY_CODES = {
-  'Mexico':'mx','South Africa':'za','South Korea':'kr','Czechia':'cz',
-  'Canada':'ca','Bosnia-Herzegovina':'ba','Qatar':'qa','Switzerland':'ch',
-  'Brazil':'br','Morocco':'ma','Haiti':'ht','Scotland':'gb-sct',
-  'USA':'us','Paraguay':'py','Australia':'au','Türkiye':'tr',
-  'Germany':'de','Curaçao':'cw','Ivory Coast':'ci','Ecuador':'ec',
-  'Netherlands':'nl','Japan':'jp','Tunisia':'tn','Sweden':'se',
-  'Belgium':'be','Iran':'ir','Egypt':'eg','New Zealand':'nz',
-  'Spain':'es','Uruguay':'uy','Saudi Arabia':'sa','Cape Verde':'cv',
-  'France':'fr','Senegal':'sn','Norway':'no','Iraq':'iq',
-  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
-  'Portugal':'pt','Colombia':'co','Uzbekistan':'uz','DR Congo':'cd',
-  'England':'gb-eng','Croatia':'hr','Panama':'pa','Ghana':'gh',
-}
-
-const flag = t => {
-  const code = COUNTRY_CODES[t]
-  return code ? `https://flagcdn.com/24x18/${code}.png` : null
-}
-
 function FlagImg({ team }) {
-  const src = flag(team)
+  const src = flagUrl(team)
   if (!src) return null
   return <img src={src} alt={team} className="w-4 h-3 object-cover rounded-sm flex-shrink-0" />
 }
@@ -141,7 +125,6 @@ function GroupCard({ group, fixtures }) {
   )
 }
 
-const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
 const ROUND_LABELS = {
   R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter Finals',
   SF: 'Semi Finals', '3RD': 'Bronze Final', FINAL: 'The Final',
