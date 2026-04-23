@@ -8,14 +8,6 @@ import { useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
-// ─── constants ────────────────────────────────────────────────────────────────
-
-
-const ROUND_LABELS = {
-  R32:'Round of 32', R16:'Round of 16', QF:'Quarter Finals',
-  SF:'Semi Finals', '3RD':'Bronze Final', FINAL:'The Final',
-}
-
 // ─── Annex C ─────────────────────────────────────────────────────────────────
 // col order: [1A_opp, 1B_opp, 1D_opp, 1E_opp, 1G_opp, 1I_opp, 1K_opp, 1L_opp]
 // match number → Annex C column index
