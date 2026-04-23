@@ -4,17 +4,17 @@ import { useState } from 'react'
 
 const COUNTRY_CODES = {
   'Mexico':'mx','South Africa':'za','South Korea':'kr','Czechia':'cz',
-  'Canada':'ca','Italy':'it','Qatar':'qa','Switzerland':'ch',
-  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'Canada':'ca','Bosnia-Herzegovina':'ba','Qatar':'qa','Switzerland':'ch',
+  'Brazil':'br','Morocco':'ma','Haiti':'ht','Scotland':'gb-sct',
   'USA':'us','Paraguay':'py','Australia':'au','Türkiye':'tr',
-  'Germany':'de','Portugal':'pt','Colombia':'co','Uzbekistan':'uz',
-  'Argentina':'ar','Belgium':'be','Slovenia':'si','Egypt':'eg',
-  'Netherlands':'nl','Chile':'cl','Iran':'ir','Curaçao':'cw',
-  'Spain':'es','Japan':'jp','Venezuela':'ve','Algeria':'dz',
+  'Germany':'de','Curaçao':'cw','Ivory Coast':'ci','Ecuador':'ec',
+  'Netherlands':'nl','Japan':'jp','Tunisia':'tn','Sweden':'se',
+  'Belgium':'be','Iran':'ir','Egypt':'eg','New Zealand':'nz',
+  'Spain':'es','Uruguay':'uy','Saudi Arabia':'sa','Cape Verde':'cv',
   'France':'fr','Senegal':'sn','Norway':'no','Iraq':'iq',
-  'Uruguay':'uy',"Côte d'Ivoire":'ci','Poland':'pl','Cabo Verde':'cv',
-  'Serbia':'rs','New Zealand':'nz','Denmark':'dk','Kenya':'ke',
-  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Portugal':'pt','Colombia':'co','Uzbekistan':'uz','DR Congo':'cd',
+  'England':'gb-eng','Croatia':'hr','Panama':'pa','Ghana':'gh',
 }
 
 const flag = t => {

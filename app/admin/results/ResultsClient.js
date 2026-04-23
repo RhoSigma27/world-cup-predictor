@@ -8,17 +8,17 @@ import Link from 'next/link'
 
 const COUNTRY_CODES = {
   'Mexico':'mx','South Africa':'za','South Korea':'kr','Czechia':'cz',
-  'Canada':'ca','Italy':'it','Qatar':'qa','Switzerland':'ch',
-  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'Canada':'ca','Bosnia-Herzegovina':'ba','Qatar':'qa','Switzerland':'ch',
+  'Brazil':'br','Morocco':'ma','Haiti':'ht','Scotland':'gb-sct',
   'USA':'us','Paraguay':'py','Australia':'au','Türkiye':'tr',
-  'Germany':'de','Portugal':'pt','Colombia':'co','Uzbekistan':'uz',
-  'Argentina':'ar','Belgium':'be','Slovenia':'si','Egypt':'eg',
-  'Netherlands':'nl','Chile':'cl','Iran':'ir','Curaçao':'cw',
-  'Spain':'es','Japan':'jp','Venezuela':'ve','Algeria':'dz',
+  'Germany':'de','Curaçao':'cw','Ivory Coast':'ci','Ecuador':'ec',
+  'Netherlands':'nl','Japan':'jp','Tunisia':'tn','Sweden':'se',
+  'Belgium':'be','Iran':'ir','Egypt':'eg','New Zealand':'nz',
+  'Spain':'es','Uruguay':'uy','Saudi Arabia':'sa','Cape Verde':'cv',
   'France':'fr','Senegal':'sn','Norway':'no','Iraq':'iq',
-  'Uruguay':'uy',"Côte d'Ivoire":'ci','Poland':'pl','Cabo Verde':'cv',
-  'Serbia':'rs','New Zealand':'nz','Denmark':'dk','Kenya':'ke',
-  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Portugal':'pt','Colombia':'co','Uzbekistan':'uz','DR Congo':'cd',
+  'England':'gb-eng','Croatia':'hr','Panama':'pa','Ghana':'gh',
 }
 const flag = t => {
   const code = COUNTRY_CODES[t]
@@ -28,18 +28,18 @@ const flag = t => {
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
 
 const GROUP_TEAMS = {
-  A:['Mexico','South Africa','South Korea','Czechia'],
-  B:['Canada','Italy','Qatar','Switzerland'],
-  C:['Brazil','Morocco','Scotland','Haiti'],
-  D:['USA','Paraguay','Australia','Türkiye'],
-  E:['Germany','Portugal','Colombia','Uzbekistan'],
-  F:['Argentina','Belgium','Slovenia','Egypt'],
-  G:['Netherlands','Chile','Iran','Curaçao'],
-  H:['Spain','Japan','Venezuela','Algeria'],
-  I:['France','Senegal','Norway','Iraq'],
-  J:['Uruguay',"Côte d'Ivoire",'Poland','Cabo Verde'],
-  K:['Serbia','New Zealand','Denmark','Kenya'],
-  L:['England','Croatia','Ghana','Panama'],
+  A: ['Mexico', 'South Africa', 'South Korea', 'Czechia'],
+  B: ['Canada', 'Bosnia-Herzegovina', 'Qatar', 'Switzerland'],
+  C: ['Brazil', 'Morocco', 'Haiti', 'Scotland'],
+  D: ['USA', 'Paraguay', 'Australia', 'Türkiye'],
+  E: ['Germany', 'Curaçao', 'Ivory Coast', 'Ecuador'],
+  F: ['Netherlands', 'Japan', 'Tunisia', 'Sweden'],
+  G: ['Belgium', 'Iran', 'Egypt', 'New Zealand'],
+  H: ['Spain', 'Uruguay', 'Saudi Arabia', 'Cape Verde'],
+  I: ['France', 'Senegal', 'Norway', 'Iraq'],
+  J: ['Argentina', 'Algeria', 'Austria', 'Jordan'],
+  K: ['Portugal', 'Colombia', 'Uzbekistan', 'DR Congo'],
+  L: ['England', 'Croatia', 'Panama', 'Ghana'],
 }
 
 const ROUND_LABELS = {
