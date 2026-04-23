@@ -100,21 +100,8 @@ function calcAllThirds(tables) {
     .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  FIFA ANNEX C — ALL 495 COMBINATIONS
-//
-//  Column order: [1A_opp, 1B_opp, 1D_opp, 1E_opp, 1G_opp, 1I_opp, 1K_opp, 1L_opp]
-//  Key = sorted group letters of the 8 qualifying 3rd-place teams
-//  Source: FIFA World Cup 2026 Competition Regulations, Annex C
-//
-//  How to use:
-//  1. Rank all 12 third-place teams by FIFA rules, take the top 8
-//  2. Extract their group letters → sort → join → look up key in ANNEX_C
-//  3. The value array gives which group's 3rd-place team faces each winner:
-//     value[0] faces 1A (M79), value[1] faces 1B (M85), value[2] faces 1D (M81),
-//     value[3] faces 1E (M74), value[4] faces 1G (M82), value[5] faces 1I (M77),
-//     value[6] faces 1K (M87), value[7] faces 1L (M80)
-// ─────────────────────────────────────────────────────────────────────────────
+// ANNEX_C is imported from @/lib/worldcup
+
 
 // Match number → which Annex C column (which winner) that 3rd-place slot feeds
 const ANNEX_C_MATCH_TO_COL = { 79:0, 85:1, 81:2, 74:3, 82:4, 77:5, 87:6, 80:7 }
@@ -225,7 +212,7 @@ function buildBracketContext(groupPredictions, fixtures, tables) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function FlagImg({ team, className = 'w-5 h-3' }) {
-  const src = flagUrl(team)
+  const src = flag(team)
   if (!src) return null
   return <img src={src} alt={team} className={`${className} object-cover rounded-sm flex-shrink-0`} />
 }
@@ -489,6 +476,82 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
           <span className="flex items-center gap-1"><span className="text-gray-600 italic">TBD</span> = team not yet determined from your predictions</span>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  STAR PICK STRIP — inline header component for each round
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StarPickStrip({ round, pick, roundLocked, valid, noTeamsYet, onOpen, onClear, inline = false }) {
+  if (inline) {
+    // Compact version for KO round headers
+    return (
+      <div className="flex items-center gap-2">
+        {pick && !roundLocked && (
+          <>
+            <FlagImg team={pick} />
+            <span className="text-xs text-yellow-400 font-medium">⭐ {pick}</span>
+            {!valid && <span className="text-xs text-amber-400">⚠</span>}
+            <button onClick={onClear} className="text-xs text-gray-600 hover:text-red-400 transition-colors">✕</button>
+          </>
+        )}
+        {pick && roundLocked && (
+          <>
+            <FlagImg team={pick} />
+            <span className="text-xs text-yellow-400">⭐ {pick}</span>
+            <span className="text-xs text-gray-600">🔒</span>
+          </>
+        )}
+        {!pick && !roundLocked && (
+          <button
+            onClick={onOpen}
+            disabled={noTeamsYet}
+            className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ⭐ Star pick
+          </button>
+        )}
+        {!pick && roundLocked && (
+          <span className="text-xs text-gray-600">No star pick 🔒</span>
+        )}
+        {!roundLocked && pick && (
+          <button onClick={onOpen} className="text-xs text-gray-500 hover:text-yellow-400 transition-colors">change</button>
+        )}
+      </div>
+    )
+  }
+
+  // Full-width version for group stage
+  return (
+    <div className={`flex items-center justify-between px-4 py-2.5 border-b border-gray-800
+      ${roundLocked ? 'bg-gray-800/30' : 'bg-yellow-500/5'}`}>
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">⭐ Group Stage Star Pick</span>
+        {pick && (
+          <>
+            <FlagImg team={pick} />
+            <span className="text-xs text-yellow-400 font-medium">{pick}</span>
+            {!valid && <span className="text-xs text-amber-400">⚠ team not in group</span>}
+          </>
+        )}
+        {!pick && !roundLocked && <span className="text-xs text-gray-500">None selected</span>}
+        {roundLocked && <span className="text-xs text-gray-600">🔒 Locked</span>}
+      </div>
+      {!roundLocked && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onOpen}
+            className="text-xs px-2.5 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors"
+          >
+            {pick ? 'Change' : 'Pick team'}
+          </button>
+          {pick && (
+            <button onClick={onClear} className="text-xs text-gray-600 hover:text-red-400 transition-colors">✕</button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -786,6 +849,15 @@ export default function PredictionsClient({
 
           {/* Group match table */}
           <div className="bg-gray-900 rounded-xl overflow-hidden">
+            {/* Group stage star pick */}
+            <StarPickStrip
+              round="group"
+              pick={starPicks.group}
+              roundLocked={isRoundLocked('group')}
+              valid={isStarPickValid('group', starPicks.group)}
+              onOpen={() => setStarPickRound('group')}
+              onClear={() => saveStarPick('group', null)}
+            />
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 bg-yellow-500/5">
@@ -845,10 +917,32 @@ export default function PredictionsClient({
 
             {roundOrder.map(round => {
               const roundFixtures = koFixtures.filter(f => f.round === round)
+              const starRound = round === '3RD' ? 'FINAL' : round // bronze uses FINAL pick
+              const pick = starPicks[starRound]
+              const roundLocked = isRoundLocked(starRound)
+              const availableTeams = teamsForRound(starRound)
+              const noTeamsYet = availableTeams.length === 0
               return (
                 <div key={round} className="mt-5">
-                  <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 pb-2 border-b border-gray-800">
-                    {roundLabels[round]}
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-800">
+                    <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">
+                      {roundLabels[round]}
+                    </span>
+                    {round !== '3RD' && (
+                      <StarPickStrip
+                        round={starRound}
+                        pick={pick}
+                        roundLocked={roundLocked}
+                        valid={isStarPickValid(starRound, pick)}
+                        noTeamsYet={noTeamsYet}
+                        onOpen={() => setStarPickRound(starRound)}
+                        onClear={() => saveStarPick(starRound, null)}
+                        inline
+                      />
+                    )}
+                    {round === '3RD' && (
+                      <span className="text-xs text-gray-600">Uses Final star pick</span>
+                    )}
                   </div>
                   <div className="bg-gray-900 rounded-xl overflow-hidden">
                     <table className="w-full text-sm">
@@ -896,64 +990,6 @@ export default function PredictionsClient({
                 </div>
               )
             })}
-          </div>
-
-          {/* Star Picks — per round */}
-          <div className="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-bold text-sm">⭐ Star Team — per round</h3>
-            </div>
-            <p className="text-gray-500 text-xs mb-4">Pick a team per round — their points are doubled. Locks when the first match of each round kicks off.</p>
-            <div className="space-y-2">
-              {[
-                { round: 'group', label: 'Group Stage' },
-                { round: 'R32',   label: 'Round of 32' },
-                { round: 'R16',   label: 'Round of 16' },
-                { round: 'QF',    label: 'Quarter Finals' },
-                { round: 'SF',    label: 'Semi Finals' },
-                { round: 'FINAL', label: 'The Final' },
-              ].map(({ round, label }) => {
-                const pick = starPicks[round]
-                const roundLocked = isRoundLocked(round)
-                const valid = isStarPickValid(round, pick)
-                const availableTeams = teamsForRound(round)
-                const noTeamsYet = round !== 'group' && availableTeams.length === 0
-                return (
-                  <div key={round} className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border
-                    ${roundLocked ? 'border-gray-800 bg-gray-800/30 opacity-60' : 'border-gray-700 bg-gray-800/40'}`}>
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-gray-300">{label}</p>
-                      {roundLocked && <p className="text-xs text-gray-600">Locked</p>}
-                      {!roundLocked && noTeamsYet && <p className="text-xs text-gray-600">Fill in predictions to unlock teams</p>}
-                      {!valid && pick && <p className="text-xs text-amber-400">⚠ {pick} not in your predicted {label}</p>}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {pick && (
-                        <div className="flex items-center gap-1.5">
-                          <FlagImg team={pick} />
-                          <span className="text-xs text-yellow-400 font-medium">{pick}</span>
-                        </div>
-                      )}
-                      {!roundLocked && (
-                        <button
-                          onClick={() => setStarPickRound(round)}
-                          disabled={noTeamsYet}
-                          className="text-xs px-2.5 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
-                          {pick ? 'Change' : 'Pick'}
-                        </button>
-                      )}
-                      {!roundLocked && pick && (
-                        <button
-                          onClick={() => saveStarPick(round, null)}
-                          className="text-xs text-gray-600 hover:text-red-400 transition-colors">
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
           </div>
 
           {/* Extras */}
