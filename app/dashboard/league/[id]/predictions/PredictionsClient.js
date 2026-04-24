@@ -5,6 +5,7 @@ import {
   ROUND_LABELS, shortName, flagUrl,
 } from '@/lib/worldcup'
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
@@ -624,8 +625,39 @@ function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  STAR PICK STRIP — inline header component for each round
+//  ODDS POPOVER — portal-based so it escapes all scroll/clip boundaries
 // ─────────────────────────────────────────────────────────────────────────────
+
+function OddsPopover({ rect, odds, homeTeam, awayTeam, onClose }) {
+  useEffect(() => {
+    const handler = () => onClose()
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  if (!rect) return null
+
+  const popoverH = 320
+  const spaceBelow = window.innerHeight - rect.bottom
+  const top = spaceBelow > popoverH ? rect.bottom + 6 : rect.top - popoverH - 6
+  const right = window.innerWidth - rect.right
+
+  return createPortal(
+    <div
+      style={{ position: 'fixed', top, right, zIndex: 9999 }}
+      onMouseDown={e => e.stopPropagation()}
+    >
+      <OddsPie
+        homePct={Math.round(odds.home_prob)}
+        drawPct={Math.round(odds.draw_prob)}
+        awayPct={Math.round(odds.away_prob)}
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
+      />
+    </div>,
+    document.body
+  )
+}
 
 function StarPickStrip({ round, pick, roundLocked, valid, noTeamsYet, onOpen, onClear, inline = false }) {
   if (inline) {
@@ -713,7 +745,7 @@ export default function PredictionsClient({
   const [toast, setToast] = useState(null)
   const [showMobileTables, setShowMobileTables] = useState(false)
   const [showBracketModal, setShowBracketModal] = useState(false)
-  const [oddsOpen, setOddsOpen] = useState(null) // fixture_id of open odds popover
+  const [oddsOpen, setOddsOpen] = useState(null) // { fixtureId, rect, odds, homeTeam, awayTeam }
   const [starPickRound, setStarPickRound] = useState(null) // which round's picker is open
   const saveTimers = useRef({})
   const supabaseRef = useRef(null)
@@ -914,7 +946,7 @@ export default function PredictionsClient({
   const roundOrder = ['R32','R16','QF','SF','3RD','FINAL']
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white" onClick={() => setOddsOpen(null)}>
+    <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
       <nav className="border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 bg-gray-950 z-40">
         <Link href={`/dashboard/league/${leagueId}`} className="text-gray-400 hover:text-white text-sm">
@@ -1013,7 +1045,7 @@ export default function PredictionsClient({
                 {filteredFixtures.map(f => {
                   const pred = groupPredictions[f.id] || {}
                   const odds = fixtureOdds[f.id]
-                  const oddsIsOpen = oddsOpen === f.id
+                  const oddsIsOpen = oddsOpen?.fixtureId === f.id
                   return (
                     <tr key={f.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                       <td className="px-2 py-2 text-right">
@@ -1032,35 +1064,27 @@ export default function PredictionsClient({
                       <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
                         {new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </td>
-                      <td className="px-2 py-2 text-center relative">
+                      <td className="px-2 py-2 text-center">
                         {odds && (
-                          <>
-                            <button
-                              onClick={e => { e.stopPropagation(); setOddsOpen(oddsIsOpen ? null : f.id) }}
-                              className={`inline-flex items-center gap-1 text-xs px-1.5 py-1 rounded border transition-colors
-                                ${oddsIsOpen
-                                  ? 'border-gray-500 text-gray-300 bg-gray-800'
-                                  : 'border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'}`}
-                            >
-                              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                                <rect x="0" y="5" width="3" height="7" rx="1" fill="currentColor"/>
-                                <rect x="4" y="3" width="3" height="9" rx="1" fill="currentColor"/>
-                                <rect x="8" y="0.5" width="3" height="11.5" rx="1" fill="currentColor"/>
-                              </svg>
-                              %
-                            </button>
-                            {oddsIsOpen && (
-                              <div className="absolute right-0 bottom-8 z-50" onClick={e => e.stopPropagation()}>
-                                <OddsPie
-                                  homePct={Math.round(odds.home_prob)}
-                                  drawPct={Math.round(odds.draw_prob)}
-                                  awayPct={Math.round(odds.away_prob)}
-                                  homeTeam={f.home_team}
-                                  awayTeam={f.away_team}
-                                />
-                              </div>
-                            )}
-                          </>
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              if (oddsIsOpen) { setOddsOpen(null); return }
+                              const rect = e.currentTarget.getBoundingClientRect()
+                              setOddsOpen({ fixtureId: f.id, rect, odds, homeTeam: f.home_team, awayTeam: f.away_team })
+                            }}
+                            className={`inline-flex items-center gap-1 text-xs px-1.5 py-1 rounded border transition-colors
+                              ${oddsIsOpen
+                                ? 'border-gray-500 text-gray-300 bg-gray-800'
+                                : 'border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'}`}
+                          >
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                              <rect x="0" y="5" width="3" height="7" rx="1" fill="currentColor"/>
+                              <rect x="4" y="3" width="3" height="9" rx="1" fill="currentColor"/>
+                              <rect x="8" y="0.5" width="3" height="11.5" rx="1" fill="currentColor"/>
+                            </svg>
+                            %
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -1273,6 +1297,17 @@ export default function PredictionsClient({
           tables={tables}
           annexMap={annexMap}
           fixturesByMatchNum={fixturesByMatchNum}
+        />
+      )}
+
+      {/* Odds popover — portal rendered over everything */}
+      {oddsOpen && (
+        <OddsPopover
+          rect={oddsOpen.rect}
+          odds={oddsOpen.odds}
+          homeTeam={oddsOpen.homeTeam}
+          awayTeam={oddsOpen.awayTeam}
+          onClose={() => setOddsOpen(null)}
         />
       )}
 
