@@ -1050,7 +1050,7 @@ export default function PredictionsClient({
                               %
                             </button>
                             {oddsIsOpen && (
-                              <div className="absolute right-0 top-8 z-50" onClick={e => e.stopPropagation()}>
+                              <div className="absolute right-0 bottom-8 z-50" onClick={e => e.stopPropagation()}>
                                 <OddsPie
                                   homePct={Math.round(odds.home_prob)}
                                   drawPct={Math.round(odds.draw_prob)}

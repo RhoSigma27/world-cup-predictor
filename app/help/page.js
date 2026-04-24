@@ -68,7 +68,13 @@ For knockout stage predictions, you can enter them any time before the relevant 
 Your Star Pick is shown at the top of each round section — Group Stage, Round of 32, Round of 16, Quarter-Finals, Semi-Finals, and the Final. Tap **"Star pick"** next to the round you want to set, choose your team from the list, and it saves automatically.`
       },
       {
-        q: 'Do I need to predict every match?',
+        q: 'What is the chart icon next to some matches?',
+        a: `The chart icon shows the current implied probability for each outcome — home win, draw, and away win — derived from bookmaker betting odds.
+
+These probabilities are displayed as a football-shaped pie chart. They are updated daily and may not be available for all matches, particularly those a long time in the future.
+
+**Do not feel tied to these when making your predictions!** They reflect the market's view, not necessarily what will happen. Picking against the odds is often where the biggest points are won.`
+      },
         a: `No — you can predict as many or as few matches as you like. You simply won't earn points for matches you haven't predicted. That said, the more you predict, the more chances you have to score points!`
       },
     ]
@@ -100,7 +106,7 @@ The tournament bracket in the app updates automatically once all group results a
         q: 'What happens in a knockout match that ends in a draw?',
         a: `In the knockout stage, you cannot predict a draw — the predictions page will not allow equal scores for knockout matches.
 
-If a knockout match ends level after 90 minutes and extra time, it goes to a penalty shootout. For scoring purposes, the penalty winner effectively gets +1 added to their score. So, for example, a match that finishes France 2–2 Germany after extra time with Germany winning on penalties is treated as a **France 2–3 Germany win** for comparison against your prediction.
+If a knockout match ends level after 90 minutes and extra time, it goes to a penalty shootout. For scoring purposes, the penalty winner effectively gets +1 added to their score. So, for example, a match that finishes France 2–2 Germany after extra time with Germany winning on penalties is treated as a **2–3 win** to Germany for comparison against your prediction.
 
 This means to score exact score bonus points in that scenario, you would need to have predicted **France 2–3 Germany** (not 2–2, and not any other scoreline).
 
