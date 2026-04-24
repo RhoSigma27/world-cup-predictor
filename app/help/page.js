@@ -75,6 +75,8 @@ These probabilities are displayed as a football-shaped pie chart. They are updat
 
 Do not feel tied to these when making your predictions! They reflect the market's view, not necessarily what will happen. Picking against the odds is often where the biggest points are won.`
       },
+      {
+        q: 'Do I need to predict every match?',
         a: `No — you can predict as many or as few matches as you like. You simply won't earn points for matches you haven't predicted. That said, the more you predict, the more chances you have to score points!`
       },
     ]
