@@ -1036,7 +1036,7 @@ export default function PredictionsClient({
                         {odds && (
                           <>
                             <button
-                              onClick={() => setOddsOpen(oddsIsOpen ? null : f.id)}
+                              onClick={e => { e.stopPropagation(); setOddsOpen(oddsIsOpen ? null : f.id) }}
                               className={`inline-flex items-center gap-1 text-xs px-1.5 py-1 rounded border transition-colors
                                 ${oddsIsOpen
                                   ? 'border-gray-500 text-gray-300 bg-gray-800'
