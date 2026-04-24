@@ -54,6 +54,20 @@ export default async function PredictionsPage({ params }) {
     .eq('id', user.id)
     .single()
 
+  // Get fixture odds — build a map of fixture_id → odds
+  const { data: oddsRows } = await supabase
+    .from('fixture_odds')
+    .select('fixture_id, home_prob, draw_prob, away_prob')
+
+  const fixtureOdds = {}
+  for (const row of oddsRows || []) {
+    fixtureOdds[row.fixture_id] = {
+      home_prob: row.home_prob,
+      draw_prob: row.draw_prob,
+      away_prob: row.away_prob,
+    }
+  }
+
   return (
     <PredictionsClient
       league={league}
@@ -63,6 +77,7 @@ export default async function PredictionsPage({ params }) {
       userId={user.id}
       profile={profile}
       leagueId={id}
+      fixtureOdds={fixtureOdds}
     />
   )
 }

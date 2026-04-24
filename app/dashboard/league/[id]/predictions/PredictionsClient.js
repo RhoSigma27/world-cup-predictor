@@ -4,7 +4,7 @@ import {
   GROUPS, GROUP_TEAMS, COUNTRY_CODES, ANNEX_C,
   ROUND_LABELS, shortName, flagUrl,
 } from '@/lib/worldcup'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
@@ -480,6 +480,150 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  ODDS PIE — football-textured pie chart showing implied probabilities
+// ─────────────────────────────────────────────────────────────────────────────
+
+function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const W = 178, H = 178, cx = 89, cy = 89, R = 86
+
+    const probs = [homePct / 100, drawPct / 100, awayPct / 100]
+    const light = ['#4a90d9', '#aaaaaa', '#e05555']
+    const dark  = ['#0a3d7a', '#3a3a3a', '#7a0f0f']
+
+    // Draw football texture offscreen
+    const off = document.createElement('canvas')
+    off.width = W; off.height = H
+    const o = off.getContext('2d')
+
+    // White base
+    o.fillStyle = '#fff'
+    o.beginPath(); o.arc(cx, cy, R, 0, Math.PI * 2); o.fill()
+
+    // Classic pentagon patches
+    function pentagon(c, x, y, r, rot) {
+      c.beginPath()
+      for (let i = 0; i < 5; i++) {
+        const a = rot + i * Math.PI * 2 / 5
+        i === 0 ? c.moveTo(x + r * Math.cos(a), y + r * Math.sin(a))
+                : c.lineTo(x + r * Math.cos(a), y + r * Math.sin(a))
+      }
+      c.closePath()
+    }
+
+    o.fillStyle = '#111'
+    pentagon(o, cx, cy, 18, -Math.PI / 2); o.fill()
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5
+      pentagon(o, cx + 40 * Math.cos(a), cy + 40 * Math.sin(a), 15, a + Math.PI / 5)
+      o.fill()
+    }
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + (i + 0.5) * Math.PI * 2 / 5
+      pentagon(o, cx + 70 * Math.cos(a), cy + 70 * Math.sin(a), 12, a)
+      o.fill()
+    }
+
+    const fd = o.getImageData(0, 0, W, H).data
+
+    // Segment angle boundaries
+    const angles = []
+    let cum = -Math.PI / 2
+    for (const p of probs) { angles.push(cum); cum += p * Math.PI * 2 }
+    angles.push(cum)
+
+    // Paint pixels
+    const out = ctx.createImageData(W, H)
+    const od = out.data
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const dx = x - cx, dy = y - cy
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const i = (y * W + x) * 4
+        if (dist > R) { od[i + 3] = 0; continue }
+
+        let angle = Math.atan2(dy, dx)
+        let seg = probs.length - 1
+        for (let s = 0; s < probs.length; s++) {
+          let a = angle
+          while (a < angles[s] - 0.001) a += Math.PI * 2
+          if (a >= angles[s] && a < angles[s + 1]) { seg = s; break }
+        }
+
+        const brightness = (fd[i] + fd[i + 1] + fd[i + 2]) / 3
+        const t = brightness / 255
+        const lc = light[seg], dc = dark[seg]
+        const lr = parseInt(lc.slice(1, 3), 16), lg = parseInt(lc.slice(3, 5), 16), lb = parseInt(lc.slice(5, 7), 16)
+        const dr = parseInt(dc.slice(1, 3), 16), dg = parseInt(dc.slice(3, 5), 16), db = parseInt(dc.slice(5, 7), 16)
+        od[i]     = Math.round(dr + (lr - dr) * t)
+        od[i + 1] = Math.round(dg + (lg - dg) * t)
+        od[i + 2] = Math.round(db + (lb - db) * t)
+        od[i + 3] = 255
+      }
+    }
+    ctx.putImageData(out, 0, 0)
+
+    // Dividers
+    ctx.save()
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip()
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2.5
+    for (let s = 0; s < probs.length; s++) {
+      ctx.beginPath(); ctx.moveTo(cx, cy)
+      ctx.lineTo(cx + R * Math.cos(angles[s]), cy + R * Math.sin(angles[s]))
+      ctx.stroke()
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, R - 1, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke()
+
+    // Labels
+    ctx.font = 'bold 13px sans-serif'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    const labels = [`${homePct}%`, `${drawPct}%`, `${awayPct}%`]
+    for (let s = 0; s < probs.length; s++) {
+      const mid = angles[s] + probs[s] * Math.PI
+      const lx = cx + R * 0.6 * Math.cos(mid)
+      const ly = cy + R * 0.6 * Math.sin(mid)
+      ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 4
+      ctx.fillStyle = 'white'; ctx.fillText(labels[s], lx, ly)
+    }
+    ctx.restore()
+  }, [homePct, drawPct, awayPct])
+
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 w-52 shadow-xl">
+      <div className="text-xs text-gray-400 text-center mb-3 font-medium truncate">
+        {homeTeam} vs {awayTeam}
+      </div>
+      <canvas ref={canvasRef} width="178" height="178"
+        className="block mx-auto rounded-full" />
+      <div className="mt-3 space-y-1.5">
+        {[
+          { label: `${homeTeam} win`, pct: homePct, color: '#1a5fa8' },
+          { label: 'Draw',           pct: drawPct,  color: '#777' },
+          { label: `${awayTeam} win`, pct: awayPct, color: '#b71c1c' },
+        ].map(({ label, pct, color }) => (
+          <div key={label} className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 text-gray-400 min-w-0">
+              <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color }} />
+              <span className="truncate">{label}</span>
+            </div>
+            <span className="font-medium text-white ml-2">{pct}%</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 pt-2 border-t border-gray-800 text-center text-xs text-gray-600">
+        Market implied probability
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  STAR PICK STRIP — inline header component for each round
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -561,7 +705,7 @@ function StarPickStrip({ round, pick, roundLocked, valid, noTeamsYet, onOpen, on
 
 export default function PredictionsClient({
   league, fixtures, existingPredictions,
-  extrasPrediction, userId, profile, leagueId
+  extrasPrediction, userId, profile, leagueId, fixtureOdds = {}
 }) {
   const locked = isLocked()
   const [activeGroup, setActiveGroup] = useState('A')
@@ -569,6 +713,7 @@ export default function PredictionsClient({
   const [toast, setToast] = useState(null)
   const [showMobileTables, setShowMobileTables] = useState(false)
   const [showBracketModal, setShowBracketModal] = useState(false)
+  const [oddsOpen, setOddsOpen] = useState(null) // fixture_id of open odds popover
   const [starPickRound, setStarPickRound] = useState(null) // which round's picker is open
   const saveTimers = useRef({})
   const supabaseRef = useRef(null)
@@ -769,7 +914,7 @@ export default function PredictionsClient({
   const roundOrder = ['R32','R16','QF','SF','3RD','FINAL']
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-950 text-white" onClick={() => setOddsOpen(null)}>
       {/* Header */}
       <nav className="border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 bg-gray-950 z-40">
         <Link href={`/dashboard/league/${leagueId}`} className="text-gray-400 hover:text-white text-sm">
@@ -867,6 +1012,8 @@ export default function PredictionsClient({
               <tbody>
                 {filteredFixtures.map(f => {
                   const pred = groupPredictions[f.id] || {}
+                  const odds = fixtureOdds[f.id]
+                  const oddsIsOpen = oddsOpen === f.id
                   return (
                     <tr key={f.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                       <td className="px-2 py-2 text-right">
@@ -884,6 +1031,37 @@ export default function PredictionsClient({
                       </td>
                       <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
                         {new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      </td>
+                      <td className="px-2 py-2 text-center relative">
+                        {odds && (
+                          <>
+                            <button
+                              onClick={() => setOddsOpen(oddsIsOpen ? null : f.id)}
+                              className={`inline-flex items-center gap-1 text-xs px-1.5 py-1 rounded border transition-colors
+                                ${oddsIsOpen
+                                  ? 'border-gray-500 text-gray-300 bg-gray-800'
+                                  : 'border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'}`}
+                            >
+                              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                                <rect x="0" y="5" width="3" height="7" rx="1" fill="currentColor"/>
+                                <rect x="4" y="3" width="3" height="9" rx="1" fill="currentColor"/>
+                                <rect x="8" y="0.5" width="3" height="11.5" rx="1" fill="currentColor"/>
+                              </svg>
+                              %
+                            </button>
+                            {oddsIsOpen && (
+                              <div className="absolute right-0 top-8 z-50" onClick={e => e.stopPropagation()}>
+                                <OddsPie
+                                  homePct={Math.round(odds.home_prob)}
+                                  drawPct={Math.round(odds.draw_prob)}
+                                  awayPct={Math.round(odds.away_prob)}
+                                  homeTeam={f.home_team}
+                                  awayTeam={f.away_team}
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
                       </td>
                     </tr>
                   )
