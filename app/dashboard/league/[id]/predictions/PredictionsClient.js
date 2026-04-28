@@ -1014,8 +1014,11 @@ export default function PredictionsClient({
             })}
             <button onClick={() => setActiveGroup('ALL')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors
-                ${activeGroup === 'ALL' ? 'bg-yellow-500 text-gray-950' : 'bg-gray-800 text-gray-400'}`}>
-              All
+                ${activeGroup === 'ALL' ? 'bg-yellow-500 text-gray-950'
+                  : GROUPS.every(g => groupFixtures.filter(f => f.match_group === g).every(f => { const p = groupPredictions[f.id]; return p?.home != null && p?.away != null }))
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : 'bg-gray-800 text-gray-400'}`}>
+              {GROUPS.every(g => groupFixtures.filter(f => f.match_group === g).every(f => { const p = groupPredictions[f.id]; return p?.home != null && p?.away != null })) ? 'All ✓' : 'All'}
             </button>
           </div>
 
