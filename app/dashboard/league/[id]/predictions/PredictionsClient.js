@@ -204,8 +204,10 @@ function resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions
 function resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures = [], depth = 0) {
   if (!slotCode || depth > 10) return 'TBD'
 
-  // 3rd-place slot — use annexMap keyed by this fixture's match number
+  // 3rd-place slot — only resolve once all 72 group matches are predicted
   if (/^3[A-L]{2,}$/.test(slotCode)) {
+    const allGroupsDone = GROUPS.every(g => isGroupComplete(g, groupPredictions, fixtures))
+    if (!allGroupsDone) return 'TBD'
     return annexMap[matchNum] ?? 'TBD'
   }
 
