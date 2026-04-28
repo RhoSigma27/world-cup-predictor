@@ -13,7 +13,6 @@ function SignInForm() {
   const [error, setError] = useState(null)
   const searchParams = useSearchParams()
   const invite = searchParams.get('invite')
-  const next = invite ? `/join/${invite}` : '/dashboard'
 
   const handleSignIn = async (e) => {
     e.preventDefault()
@@ -25,7 +24,7 @@ function SignInForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
         data: {
           display_name: displayName,
         }
