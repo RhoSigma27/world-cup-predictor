@@ -4,7 +4,7 @@ import {
   GROUPS, GROUP_TEAMS, COUNTRY_CODES, ANNEX_C,
   ROUND_LABELS, shortName, flagUrl,
 } from '@/lib/worldcup'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, Fragment } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
@@ -1150,40 +1150,51 @@ export default function PredictionsClient({
                           const t2 = resolve(f.slot2 || f.away_team, f.match_number)
                           const hasDraw = pred.home != null && pred.away != null && pred.home === pred.away
                           return (
-                            <tr key={f.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                              <td className="px-2 py-2 text-right">
-                                {t1 === 'TBD'
-                                  ? <span className="text-gray-600 text-xs italic">TBD</span>
-                                  : <TeamCell team={t1} align="right" />}
-                              </td>
-                              <td className="px-1 py-2 text-center">
-                                <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={locked}/>
-                              </td>
-                              <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
-                              <td className="px-1 py-2 text-center">
-                                <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={locked}/>
-                              </td>
-                              <td className="px-2 py-2">
-                                {t2 === 'TBD'
-                                  ? <span className="text-gray-600 text-xs italic">TBD</span>
-                                  : <TeamCell team={t2} align="left" />}
-                              </td>
-                              <td className="px-2 py-2 text-right hidden md:table-cell">
-                                {hasDraw && (
-                                  <span className="text-xs text-amber-400">Draw? Give winner +1 (pens)</span>
-                                )}
-                                {!hasDraw && (
+                            <Fragment key={f.id}>
+                              <tr className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                                <td className="px-2 py-2 text-right">
+                                  {t1 === 'TBD'
+                                    ? <span className="text-gray-600 text-xs italic">TBD</span>
+                                    : <TeamCell team={t1} align="right" />}
+                                </td>
+                                <td className="px-1 py-2 text-center">
+                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={locked}/>
+                                </td>
+                                <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
+                                <td className="px-1 py-2 text-center">
+                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={locked}/>
+                                </td>
+                                <td className="px-2 py-2">
+                                  {t2 === 'TBD'
+                                    ? <span className="text-gray-600 text-xs italic">TBD</span>
+                                    : <TeamCell team={t2} align="left" />}
+                                </td>
+                                <td className="px-2 py-2 text-right hidden md:table-cell">
                                   <span className="text-xs text-gray-600 whitespace-nowrap">
                                     {new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                   </span>
-                                )}
-                              </td>
-                            </tr>
+                                </td>
+                              </tr>
+                              {hasDraw && (
+                                <tr className="border-b border-yellow-500/30 bg-yellow-500/10">
+                                  <td colSpan={6} className="px-3 py-1.5 text-xs text-yellow-400 text-center">
+                                    ⚠️ Knockout matches can't end in a draw — give the team you think wins on penalties +1 goal
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
                           )
                         })}
                       </tbody>
                     </table>
                   </div>
+                  {!pick && !roundLocked && !noTeamsYet && round !== '3RD' && (
+                    <div className="mt-2 flex items-center justify-center gap-2 text-xs text-yellow-500/70 py-1">
+                      <span>⭐</span>
+                      <span>Don't forget to set your Star Pick for this round</span>
+                      <button onClick={() => setStarPickRound(starRound)} className="underline hover:text-yellow-400">Pick now</button>
+                    </div>
+                  )}
                 </div>
               )
             })}

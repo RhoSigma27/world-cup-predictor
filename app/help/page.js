@@ -30,19 +30,19 @@ For knockout matches that go to penalties, a correct result prediction means you
         q: 'What is a Star Pick and how does it work?',
         a: `For each round of the tournament you can nominate one team as your Star Pick. If that team plays in a match during that round and you score points for that match, your points are doubled.
 
-You set a different Star Pick for each round — group stage, Round of 32, Round of 16, Quarter-Finals, Semi-Finals, and the Final.
+You set a different Star Pick for each round — Group Stage, Round of 32, Round of 16, Quarter-Finals, Semi-Finals, and the Final. The Bronze Final uses the same Star Pick as the Final.
 
 Your Star Pick is private — other players cannot see which team you have chosen. Choose wisely!
 
-To set your Star Pick, go to your **Predictions** page and scroll to the relevant round section. You'll see a star picker above the fixtures for that round.`
+To set your Star Pick, go to your Predictions page and tap "Star pick" at the top of each round section.`
       },
       {
         q: 'What are the Extras predictions?',
         a: `On the Predictions page you'll find two bonus predictions at the bottom:
 
-• **Total goals** — your prediction for the total number of goals scored across all 104 matches of the tournament. You earn up to 50 pts, losing 2 pts for every goal you are off by.
+• **Total goals** — your prediction for the total number of goals scored across all 104 matches of the tournament. You earn up to 50 pts. Points scale down the further off you are, but your score will never go below zero — the minimum you can earn is 0 pts.
 
-• **Total red cards** — your prediction for total red cards shown in the tournament. You earn up to 50 pts, losing 5 pts for every red card you are off by.
+• **Total red cards** — your prediction for total red cards shown in the tournament. Same scoring — up to 50 pts, minimum 0 pts.
 
 In both cases, the closer you are, the more you earn. An exact prediction earns the full 50 pts.`
       },
@@ -125,9 +125,7 @@ The app displays penalty shootout results with a **(p)** indicator in the bracke
       },
       {
         q: 'Can I be in more than one league?',
-        a: `Yes! You can join as many leagues as you like. Your predictions are shared across all leagues — you only need to enter them once, and your score will appear in every league you're a member of.
-
-This means you can't have different predictions for different leagues, but it keeps things simple — no need to fill in hundreds of predictions multiple times.`
+        a: `Yes! You can join as many leagues as you like. Your predictions are entered separately for each league — if you are in multiple leagues you will need to enter your predictions in each one. This means you could theoretically make different predictions in different leagues.`
       },
       {
         q: 'Who can see my predictions?',
