@@ -101,6 +101,16 @@ function calcAllThirds(tables) {
     .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
 }
 
+// ─── CHANGE 1: isGroupComplete helper ────────────────────────────────────────
+// Returns true only when all 6 group matches for a group are fully predicted
+function isGroupComplete(groupLetter, groupPredictions, fixtures) {
+  const groupFs = fixtures.filter(f => f.round === 'group' && f.match_group === groupLetter)
+  return groupFs.length === 6 && groupFs.every(f => {
+    const p = groupPredictions[f.id]
+    return p?.home != null && p?.away != null
+  })
+}
+
 // ANNEX_C is imported from @/lib/worldcup
 
 
@@ -137,13 +147,16 @@ function resolveAnnexC(top8groups, tables) {
 //    "L101"      → loser of match 101 (recursively resolved)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, depth = 0) {
+// ─── CHANGE 2 & 3: add fixtures param, check isGroupComplete ─────────────────
+function resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures = [], depth = 0) {
   if (!slotCode || depth > 10) return 'TBD'
 
-  // Group winner / runner-up
+  // Group winner / runner-up — only resolve if all 6 group matches are predicted
   if (/^[12][A-L]$/.test(slotCode)) {
+    const groupLetter = slotCode[1]
     const pos = slotCode[0] === '1' ? 0 : 1
-    return tables[slotCode[1]]?.[pos]?.team ?? 'TBD'
+    if (!isGroupComplete(groupLetter, groupPredictions, fixtures)) return 'TBD'
+    return tables[groupLetter]?.[pos]?.team ?? 'TBD'
   }
 
   // 3rd-place slot (e.g. "3ABCDF") — resolved via Annex C annexMap
@@ -163,8 +176,9 @@ function resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions
     if (!fixture) return 'TBD'
     const pred = koPredictions[fixture.id]
     if (!pred || pred.home == null || pred.away == null) return 'TBD'
-    const t1 = resolveFixtureTeam(fixture.slot1, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, depth + 1)
-    const t2 = resolveFixtureTeam(fixture.slot2, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, depth + 1)
+    // ─── CHANGE 4: pass fixtures through recursive calls ──────────────────────
+    const t1 = resolveFixtureTeam(fixture.slot1, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth + 1)
+    const t2 = resolveFixtureTeam(fixture.slot2, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth + 1)
     return pred.home > pred.away ? t1 : pred.away > pred.home ? t2 : 'TBD'
   }
 
@@ -175,8 +189,9 @@ function resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions
     if (!fixture) return 'TBD'
     const pred = koPredictions[fixture.id]
     if (!pred || pred.home == null || pred.away == null) return 'TBD'
-    const t1 = resolveFixtureTeam(fixture.slot1, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, depth + 1)
-    const t2 = resolveFixtureTeam(fixture.slot2, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, depth + 1)
+    // ─── CHANGE 4 (continued): pass fixtures through recursive calls ──────────
+    const t1 = resolveFixtureTeam(fixture.slot1, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth + 1)
+    const t2 = resolveFixtureTeam(fixture.slot2, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth + 1)
     return pred.away > pred.home ? t1 : pred.home > pred.away ? t2 : 'TBD'
   }
 
@@ -185,7 +200,8 @@ function resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions
 
 // Resolve a slot code in the context of a specific fixture's match number
 // This handles the 3rd-place slot codes by using the annexMap
-function resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, depth = 0) {
+// ─── CHANGE 5: add fixtures param, pass to resolveTeam ───────────────────────
+function resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures = [], depth = 0) {
   if (!slotCode || depth > 10) return 'TBD'
 
   // 3rd-place slot — use annexMap keyed by this fixture's match number
@@ -193,7 +209,7 @@ function resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictio
     return annexMap[matchNum] ?? 'TBD'
   }
 
-  return resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, depth)
+  return resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth)
 }
 
 /**
@@ -900,9 +916,10 @@ export default function PredictionsClient({
   // Annex C — build from current top-8 thirds
   const { annexMap } = buildBracketContext(groupPredictions, fixtures, tables)
 
+  // ─── CHANGE 6: pass fixtures to resolve helper ────────────────────────────
   // Resolve a team for a given slot code + the fixture's match number context
   const resolve = (slotCode, matchNum) =>
-    resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum)
+    resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures)
 
   // ── Per-round star pick helpers ──────────────────────────────────────────────
 
@@ -1149,8 +1166,8 @@ export default function PredictionsClient({
                       <tbody>
                         {roundFixtures.map(f => {
                           const pred = koPredictions[f.id] || {}
-                          const t1 = resolve(f.slot1 || f.home_team, f.match_number)
-                          const t2 = resolve(f.slot2 || f.away_team, f.match_number)
+                          const t1 = resolve(f.slot1, f.match_number)
+                          const t2 = resolve(f.slot2, f.match_number)
                           const hasDraw = pred.home != null && pred.away != null && pred.home === pred.away
                           return (
                             <Fragment key={f.id}>
