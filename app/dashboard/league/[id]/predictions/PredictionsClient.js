@@ -1161,11 +1161,11 @@ export default function PredictionsClient({
                                     : <TeamCell team={t1} align="right" />}
                                 </td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={locked}/>
+                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={locked || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={locked}/>
+                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={locked || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-2 py-2">
                                   {t2 === 'TBD'
