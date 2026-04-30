@@ -18,55 +18,49 @@ export default async function AdminLeaguesPage() {
 
   const adminSupabase = createAdminClient()
 
-  // Get all leagues with their admin profile
+  // Get all leagues
   const { data: leagues } = await adminSupabase
     .from('leagues')
-    .select(`
-      id,
-      league_name,
-      invite_code,
-      created_at,
-      admin_id,
-      profiles (
-        display_name,
-        email
-      )
-    `)
+    .select('id, league_name, invite_code, created_at, admin_id')
     .order('created_at', { ascending: false })
 
-  // Get member counts per league
-  const { data: memberCounts } = await adminSupabase
-    .from('league_members')
-    .select('league_id')
-
-  const countMap = {}
-  for (const row of memberCounts || []) {
-    countMap[row.league_id] = (countMap[row.league_id] || 0) + 1
-  }
-
-  // Get all members with profiles for the expand view
+  // Get all members
   const { data: allMembers } = await adminSupabase
     .from('league_members')
-    .select(`
-      league_id,
-      user_id,
-      joined_at,
-      profiles (
-        display_name,
-        email
-      )
-    `)
+    .select('league_id, user_id, joined_at')
     .order('joined_at', { ascending: true })
 
-  // Group members by league
+  // Collect all unique user IDs (admins + members)
+  const adminIds = (leagues || []).map(l => l.admin_id)
+  const memberIds = (allMembers || []).map(m => m.user_id)
+  const allUserIds = [...new Set([...adminIds, ...memberIds])]
+
+  // Fetch all profiles in one query
+  const { data: profiles } = await adminSupabase
+    .from('profiles')
+    .select('id, display_name, email')
+    .in('id', allUserIds)
+
+  const profileMap = {}
+  for (const p of profiles || []) {
+    profileMap[p.id] = p
+  }
+
+  // Member counts and grouping
+  const countMap = {}
   const membersByLeague = {}
   for (const m of allMembers || []) {
+    countMap[m.league_id] = (countMap[m.league_id] || 0) + 1
     if (!membersByLeague[m.league_id]) membersByLeague[m.league_id] = []
-    membersByLeague[m.league_id].push(m)
+    membersByLeague[m.league_id].push({
+      ...m,
+      profiles: profileMap[m.user_id] || null,
+    })
   }
 
   const leaguesData = (leagues || []).map(l => ({
     ...l,
+    profiles: profileMap[l.admin_id] || null,
     memberCount: countMap[l.id] || 0,
     members: membersByLeague[l.id] || [],
   }))
