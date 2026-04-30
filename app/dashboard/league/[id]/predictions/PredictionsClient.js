@@ -1238,6 +1238,23 @@ export default function PredictionsClient({
                 <input type="number" min="0" value={extras.goals ?? ''} disabled={locked} placeholder="e.g. 142"
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
                   onChange={e => setExtras(prev => ({ ...prev, goals: e.target.value === '' ? null : parseInt(e.target.value) }))}/>
+                {(() => {
+                  const sum = [
+                    ...Object.values(groupPredictions),
+                    ...Object.values(koPredictions),
+                  ].reduce((acc, p) => acc + (p.home ?? 0) + (p.away ?? 0), 0)
+                  const filled = [
+                    ...Object.values(groupPredictions),
+                    ...Object.values(koPredictions),
+                  ].filter(p => p.home != null && p.away != null).length
+                  if (filled === 0) return null
+                  return (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Your predicted match goals so far: <span className="text-yellow-400 font-medium">{sum}</span>
+                      {filled < 104 && <span className="text-gray-600"> ({filled}/104 matches filled)</span>}
+                    </p>
+                  )
+                })()}
               </div>
             </div>
             {!locked && (
