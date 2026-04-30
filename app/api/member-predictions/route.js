@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 // Returns predictions + ko_predictions for a target user in a league.
 // Caller must be a member of the same league and predictions must be locked.
 
-const LOCK_DATE = new Date('2025-01-01T00:00:00Z')
+const LOCK_DATE = new Date('2026-06-11T19:00:00Z')
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
