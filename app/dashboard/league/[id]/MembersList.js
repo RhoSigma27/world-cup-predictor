@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 
 const MemberBracketModal = dynamic(() => import('./MemberBracketModal'), { ssr: false })
 
-const LOCK_DATE = new Date('2026-06-11T19:00:00Z')
+const LOCK_DATE = new Date('2025-01-01T00:00:00Z')
 
 export default function MembersList({ members, adminId, currentUserId, fixtures, leagueId }) {
   const [viewingMember, setViewingMember] = useState(null) // { userId, displayName }
