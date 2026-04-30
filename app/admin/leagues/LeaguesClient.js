@@ -6,8 +6,9 @@ import Link from 'next/link'
 export default function LeaguesClient({ leagues: initialLeagues }) {
   const [leagues, setLeagues] = useState(initialLeagues)
   const [expanded, setExpanded] = useState({})
-  const [confirmDelete, setConfirmDelete] = useState(null) // league id
+  const [confirmDelete, setConfirmDelete] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [togglingBan, setTogglingBan] = useState(null)
   const [toast, setToast] = useState(null)
 
   const showToast = (msg, type = 'success') => {
@@ -39,6 +40,35 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
     } finally {
       setDeleting(null)
       setConfirmDelete(null)
+    }
+  }
+
+  const handleToggleBan = async (userId, currentlyBanned) => {
+    setTogglingBan(userId)
+    try {
+      const res = await fetch('/api/admin/toggle-ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, banned: !currentlyBanned }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast(data.error || 'Failed to update user', 'error')
+      } else {
+        setLeagues(prev => prev.map(l => ({
+          ...l,
+          members: l.members.map(m =>
+            m.user_id === userId
+              ? { ...m, profiles: { ...m.profiles, is_banned: !currentlyBanned } }
+              : m
+          )
+        })))
+        showToast(currentlyBanned ? 'User reinstated' : 'User banned')
+      }
+    } catch {
+      showToast('Something went wrong', 'error')
+    } finally {
+      setTogglingBan(null)
     }
   }
 
@@ -77,7 +107,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
         <div className="space-y-3">
           {leagues.map(league => (
             <div key={league.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-              {/* League header row */}
               <div className="p-5 flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -98,7 +127,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                 </div>
 
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  {/* Member count badge */}
                   <button
                     onClick={() => toggleExpand(league.id)}
                     className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors text-sm"
@@ -108,7 +136,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                     <span className="text-gray-600 text-xs ml-1">{expanded[league.id] ? '▲' : '▼'}</span>
                   </button>
 
-                  {/* Delete button */}
                   {confirmDelete === league.id ? (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-red-400">Sure?</span>
@@ -137,32 +164,50 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                 </div>
               </div>
 
-              {/* Expanded members list */}
               {expanded[league.id] && (
                 <div className="border-t border-gray-800 px-5 py-3">
                   {league.members.length === 0 ? (
                     <p className="text-xs text-gray-600 italic">No members yet</p>
                   ) : (
                     <div className="space-y-0">
-                      {league.members.map(m => (
-                        <div key={m.user_id} className="flex items-center justify-between py-2 border-b border-gray-800/50 last:border-0">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
-                              {m.profiles?.display_name?.[0]?.toUpperCase()}
+                      {league.members.map(m => {
+                        const isBanned = m.profiles?.is_banned
+                        return (
+                          <div key={m.user_id} className={`flex items-center justify-between py-2 border-b border-gray-800/50 last:border-0 ${isBanned ? 'opacity-50' : ''}`}>
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
+                                {m.profiles?.display_name?.[0]?.toUpperCase()}
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-white">{m.profiles?.display_name}</span>
+                                {m.user_id === league.admin_id && (
+                                  <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>
+                                )}
+                                {isBanned && (
+                                  <span className="ml-2 text-xs text-red-400">🚫 Banned</span>
+                                )}
+                                <span className="ml-2 text-xs text-gray-600">{m.profiles?.email}</span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-sm font-medium text-white">{m.profiles?.display_name}</span>
-                              {m.user_id === league.admin_id && (
-                                <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>
-                              )}
-                              <span className="ml-2 text-xs text-gray-600">{m.profiles?.email}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-gray-600">
+                                Joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                              </span>
+                              <button
+                                onClick={() => handleToggleBan(m.user_id, isBanned)}
+                                disabled={togglingBan === m.user_id}
+                                className={`text-xs px-2.5 py-1 rounded-lg border transition-colors disabled:opacity-50
+                                  ${isBanned
+                                    ? 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30'
+                                    : 'bg-gray-800 hover:bg-red-500/20 text-gray-500 hover:text-red-400 border-gray-700 hover:border-red-500/30'
+                                  }`}
+                              >
+                                {togglingBan === m.user_id ? '…' : isBanned ? 'Reinstate' : 'Ban'}
+                              </button>
                             </div>
                           </div>
-                          <span className="text-xs text-gray-600">
-                            Joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                          </span>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -179,7 +224,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
         )}
       </div>
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium z-50
           ${toast.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
@@ -187,7 +231,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
         </div>
       )}
 
-      {/* Dim background when confirm delete is open */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setConfirmDelete(null)} />
       )}

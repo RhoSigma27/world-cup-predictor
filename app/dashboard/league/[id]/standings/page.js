@@ -117,14 +117,15 @@ export default async function StandingsPage({ params }) {
     .select('*')
     .order('match_number', { ascending: true })
 
-  // Get all league members with profiles
+  // Get all league members with profiles (excluding banned users)
   const { data: members } = await adminSupabase
     .from('league_members')
     .select(`
       user_id,
       joined_at,
       profiles (
-        display_name
+        display_name,
+        is_banned
       )
     `)
     .eq('league_id', id)
@@ -185,8 +186,8 @@ export default async function StandingsPage({ params }) {
     .select('*')
     .eq('league_id', id)
 
-  // Calculate scores for each member
-  const standings = members?.map(member => {
+  // Calculate scores for each member (excluding banned users)
+  const standings = members?.filter(m => !m.profiles?.is_banned).map(member => {
     const userPreds = allPredictions?.filter(p => p.user_id === member.user_id) || []
     const userExtras = allExtras?.find(e => e.user_id === member.user_id) || null
 

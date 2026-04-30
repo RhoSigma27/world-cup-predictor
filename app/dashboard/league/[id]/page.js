@@ -25,18 +25,21 @@ export default async function LeaguePage({ params, searchParams }) {
 
   if (error || !league) redirect('/dashboard')
 
-  // Get members
-  const { data: members } = await adminSupabase
+  // Get members (excluding banned users)
+  const { data: membersRaw } = await adminSupabase
     .from('league_members')
     .select(`
       user_id,
       joined_at,
       profiles (
         display_name,
-        email
+        email,
+        is_banned
       )
     `)
     .eq('league_id', id)
+
+  const members = (membersRaw || []).filter(m => !m.profiles?.is_banned)
 
   const isAdmin = league.admin_id === user.id
   const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/join/${league.invite_code}`

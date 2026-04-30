@@ -46,6 +46,28 @@ export async function middleware(request) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Check if user is banned — allow /banned and /tournament pages only
+  if (user) {
+    const pathname = request.nextUrl.pathname
+    const isAllowed =
+      pathname.startsWith('/banned') ||
+      pathname.startsWith('/tournament') ||
+      pathname.startsWith('/auth') ||
+      pathname.startsWith('/api')
+
+    if (!isAllowed) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_banned')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.is_banned) {
+        return NextResponse.redirect(new URL('/banned', request.url))
+      }
+    }
+  }
+
   return supabaseResponse
 }
 
