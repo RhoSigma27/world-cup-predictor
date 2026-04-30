@@ -74,6 +74,22 @@ export default async function LeaguePage({ params, searchParams }) {
           </div>
         )}
 
+        {/* Pinned notice */}
+        {league.notice && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-5 mb-6">
+            <div className="flex items-start gap-2">
+              <span className="text-yellow-400 flex-shrink-0">📌</span>
+              <div className="text-sm text-gray-300 whitespace-pre-wrap break-words">
+                {league.notice.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                  /^https?:\/\//.test(part)
+                    ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-yellow-400 underline hover:text-yellow-300">{part}</a>
+                    : part
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Invite section */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="font-bold text-lg mb-4">🔗 Invite Friends</h2>
@@ -122,6 +138,16 @@ export default async function LeaguePage({ params, searchParams }) {
         >
           🏅 League Standings
         </Link>
+
+        {/* League admin link — only for admin */}
+        {isAdmin && (
+          <Link
+            href={`/dashboard/league/${id}/admin`}
+            className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-yellow-400 font-bold rounded-xl text-center transition-colors mb-3 border border-yellow-500/20"
+          >
+            ⚙️ League Admin
+          </Link>
+        )}
 
         {/* Predictions button — inline on desktop only */}
         <Link
