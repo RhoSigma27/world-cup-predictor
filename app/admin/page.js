@@ -48,6 +48,21 @@ export default async function AdminPage() {
               <span className="text-gray-400">→</span>
             </div>
           </Link>
+
+          <Link
+            href="/admin/leagues"
+            className="block bg-gray-900 border border-gray-800 hover:border-yellow-500 rounded-2xl p-5 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-lg">🏆 All Leagues</h2>
+                <p className="text-gray-500 text-sm">
+                  View every league, its members, and admins — delete if needed
+                </p>
+              </div>
+              <span className="text-gray-400">→</span>
+            </div>
+          </Link>
         </div>
       </div>
     </main>
