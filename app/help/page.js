@@ -133,9 +133,10 @@ The app displays penalty shootout results with a **(p)** indicator in the bracke
       },
       {
         q: 'Who can see my predictions?',
-        a: `Your predicted scorelines are private — no other player can see them. The standings page only shows each player's total points, not the actual scores they predicted.
+        a: `Your predicted scorelines are private until the tournament begins. Once predictions are locked on **11 June 2026**, other members of your league can view your predicted knockout bracket by tapping your name on the league page.
 
-Your **Star Pick** is also always private — no one else can see which team you have nominated for any round.`
+        The standings page only shows each player's total points, not the actual scores they predicted.
+        Your **Star Pick** is private — no one else can see which team you have nominated for any round, even after lock.`
       },
     ]
   },
