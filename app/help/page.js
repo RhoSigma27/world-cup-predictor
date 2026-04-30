@@ -11,8 +11,8 @@ const FAQS = [
         q: 'How does scoring work?',
         a: `For every match you predict, you earn points based on how accurate your prediction is:
 
-• **Correct result** (win/draw/loss): base points for that round
-• **Correct score** (exact scoreline): base points + bonus points
+- **Correct result** (win/draw/loss): base points for that round
+- **Correct score** (exact scoreline): base points + bonus points
 
 Points scale up in the knockout rounds:
 
@@ -40,9 +40,9 @@ To set your Star Pick, go to your Predictions page and tap "Star pick" at the to
         q: 'What are the Extras predictions?',
         a: `On the Predictions page you'll find two bonus predictions at the bottom:
 
-• **Total goals** — your prediction for the total number of goals scored across all 104 matches of the tournament. You earn up to 50 pts. Points scale down the further off you are, but your score will never go below zero — the minimum you can earn is 0 pts.
+- **Total goals** — your prediction for the total number of goals scored across all 104 matches of the tournament. You earn up to 50 pts. Points scale down the further off you are, but your score will never go below zero — the minimum you can earn is 0 pts.
 
-• **Total red cards** — your prediction for total red cards shown in the tournament. Same scoring — up to 50 pts, minimum 0 pts.
+- **Total red cards** — your prediction for total red cards shown in the tournament. Same scoring — up to 50 pts, minimum 0 pts.
 
 In both cases, the closer you are, the more you earn. An exact prediction earns the full 50 pts.`
       },
@@ -60,6 +60,10 @@ For knockout stage predictions, you can enter them any time before the relevant 
       {
         q: 'Can I change my predictions after submitting?',
         a: `Yes — predictions are saved automatically as you enter them and you can change them at any time before the relevant match kicks off. Once a match has started, predictions for that match are locked.`
+      },
+      {
+        q: 'Can I change my knockout stage predictions?',
+        a: `Yes — you can overwrite your knockout predictions at any time before the relevant match kicks off. Simply go to your Predictions page, navigate to the knockout round, and enter new scores. Your latest entry is always saved automatically.`
       },
       {
         q: 'Where do I enter my Star Pick?',
@@ -140,30 +144,6 @@ Your **Star Pick** is also always private — no one else can see which team you
 function FAQItem({ q, a }) {
   const [open, setOpen] = useState(false)
 
-  // Render simple markdown-like formatting
-  const renderAnswer = (text) => {
-    return text.split('\n').map((line, i) => {
-      if (line.startsWith('| ')) {
-        // Skip table rows in simple rendering — just show as preformatted
-        return null
-      }
-      if (line.startsWith('• ')) {
-        return (
-          <li key={i} className="flex gap-2 items-start">
-            <span className="text-yellow-400 mt-0.5 flex-shrink-0">•</span>
-            <span dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>') }} />
-          </li>
-        )
-      }
-      if (line.trim() === '') return <div key={i} className="h-2" />
-      return (
-        <p key={i} className="leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>') }} />
-      )
-    }).filter(Boolean)
-  }
-
-  // Build scoring table separately
   const hasTable = a.includes('| Round |')
   const tableRows = [
     ['Group / R32', '10 pts', '+5 pts'],

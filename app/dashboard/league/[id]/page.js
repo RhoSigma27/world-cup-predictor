@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import CopyButton from './CopyButton'
 import ScoringGuide from './ScoringGuide'
+import MembersList from './MembersList'
 
 export default async function LeaguePage({ params, searchParams }) {
   const supabase = await createServerSupabaseClient()
@@ -39,6 +40,12 @@ export default async function LeaguePage({ params, searchParams }) {
 
   const isAdmin = league.admin_id === user.id
   const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/join/${league.invite_code}`
+
+  // Fetch fixtures so MembersList can build bracket context client-side
+  const { data: fixtures } = await adminSupabase
+    .from('fixtures')
+    .select('*')
+    .order('match_number', { ascending: true })
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -93,23 +100,13 @@ export default async function LeaguePage({ params, searchParams }) {
           <h2 className="font-bold text-lg mb-3">
             👥 Members ({members?.length || 0})
           </h2>
-          <div className="space-y-0">
-            {members?.map(({ user_id, profiles: profile }) => (
-              <div key={user_id} className="flex items-center py-2 border-b border-gray-800/60 last:border-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
-                    {profile?.display_name?.[0]?.toUpperCase()}
-                  </div>
-                  <p className="font-medium text-sm">
-                    {profile?.display_name}
-                    {user_id === league.admin_id && (
-                      <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <MembersList
+            members={members}
+            adminId={league.admin_id}
+            currentUserId={user.id}
+            fixtures={fixtures || []}
+            leagueId={id}
+          />
         </div>
 
         {/* Scoring guide */}
