@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import LeagueLogo from '@/components/LeagueLogo'   // ← NEW
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient()
@@ -26,14 +27,15 @@ export default async function DashboardPage() {
         league_name,
         invite_code,
         admin_id,
-        slug
+        slug,
+        logo_url
       )
     `)
     .eq('user_id', user.id)
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
+      {/* Header — UNCHANGED */}
       <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-2xl">⚽</span>
@@ -64,7 +66,7 @@ export default async function DashboardPage() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 py-10">
-        {/* Welcome */}
+        {/* Welcome — UNCHANGED */}
         <div className="mb-10">
           <h1 className="text-3xl font-bold mb-1">
             Welcome back, {profile?.display_name} 👋
@@ -74,7 +76,7 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {/* Action cards */}
+        {/* Action cards — UNCHANGED */}
         <div className="grid md:grid-cols-2 gap-4 mb-10">
           <Link
             href="/dashboard/create-league"
@@ -129,15 +131,23 @@ export default async function DashboardPage() {
                   href={`/dashboard/league/${league.id}`}
                   className="block bg-gray-900 border border-gray-800 hover:border-yellow-500 rounded-2xl p-5 transition-colors"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-lg">{league.league_name}</h3>
-                      <p className="text-gray-500 text-sm">
-                        {league.admin_id === user.id ? '⭐ Admin' : 'Member'} · 
-                        Joined {new Date(joined_at).toLocaleDateString('en-GB')}
-                      </p>
+                  <div className="flex items-center justify-between gap-4">
+                    {/* ── NEW: logo + name side by side ── */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <LeagueLogo
+                        name={league.league_name}
+                        logoUrl={league.logo_url}
+                        size="sm"
+                      />
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-lg truncate">{league.league_name}</h3>
+                        <p className="text-gray-500 text-sm">
+                          {league.admin_id === user.id ? '⭐ Admin' : 'Member'} · 
+                          Joined {new Date(joined_at).toLocaleDateString('en-GB')}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-gray-400">→</div>
+                    <div className="text-gray-400 flex-shrink-0">→</div>
                   </div>
                 </Link>
               ))}

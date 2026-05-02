@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 
 function Section({ title, children }) {
@@ -11,6 +11,119 @@ function Section({ title, children }) {
     </div>
   )
 }
+
+// ── NEW: Logo uploader ────────────────────────────────────────────────────────
+
+function LogoUpload({ leagueId, initialLogoUrl }) {
+  const [preview, setPreview] = useState(initialLogoUrl || null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+  const [successMsg, setSuccessMsg] = useState(null)
+  const inputRef = useRef(null)
+
+  const handleFile = async (file) => {
+    if (!file) return
+    setError(null)
+    setSuccessMsg(null)
+
+    if (file.size > 512000) {
+      setError('File too large — maximum 500 KB')
+      return
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      setError('Use JPEG, PNG, WebP or GIF')
+      return
+    }
+
+    // Instant preview
+    const reader = new FileReader()
+    reader.onload = (e) => setPreview(e.target.result)
+    reader.readAsDataURL(file)
+
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('leagueId', leagueId)
+      fd.append('file', file)
+      const res = await fetch('/api/league-admin/upload-logo', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Upload failed')
+        setPreview(initialLogoUrl || null)
+      } else {
+        setSuccessMsg('Logo updated ✓')
+        setTimeout(() => setSuccessMsg(null), 3000)
+      }
+    } catch {
+      setError('Upload failed — please try again')
+      setPreview(initialLogoUrl || null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFile(file)
+  }
+
+  return (
+    <div className="flex items-start gap-5">
+      {/* Current logo / placeholder */}
+      <div className="flex-shrink-0">
+        {preview ? (
+          <img
+            src={preview}
+            alt="League logo"
+            className="w-20 h-20 rounded-full object-cover border-2 border-gray-700"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center text-2xl text-gray-600">
+            🏆
+          </div>
+        )}
+      </div>
+
+      {/* Upload area */}
+      <div className="flex-1">
+        <div
+          onDrop={handleDrop}
+          onDragOver={e => e.preventDefault()}
+          onClick={() => inputRef.current?.click()}
+          className="border-2 border-dashed border-gray-700 hover:border-yellow-500/50 rounded-xl p-4 cursor-pointer transition-colors text-center group"
+        >
+          {uploading ? (
+            <div className="flex items-center justify-center gap-2 text-yellow-400">
+              <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Uploading…</span>
+            </div>
+          ) : (
+            <>
+              <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">📁</div>
+              <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
+                Click to upload or drag & drop
+              </p>
+              <p className="text-xs text-gray-600 mt-0.5">JPEG, PNG, WebP, GIF · max 500 KB</p>
+            </>
+          )}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={e => handleFile(e.target.files?.[0])}
+        />
+        {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+        {successMsg && <p className="text-green-400 text-xs mt-2">{successMsg}</p>}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function LeagueAdminClient({ league: initialLeague, members: initialMembers, currentUserId }) {
   const [league, setLeague] = useState(initialLeague)
@@ -141,7 +254,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
       <div className="max-w-2xl mx-auto px-6 py-10">
 
-        {/* Rename league */}
+        {/* Rename league — UNCHANGED */}
         <Section title="✏️ League Name">
           <div className="flex gap-3">
             <input
@@ -161,7 +274,15 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </div>
         </Section>
 
-        {/* Pinned notice */}
+        {/* ── NEW: League logo ── */}
+        <Section title="🖼️ League Logo">
+          <p className="text-gray-500 text-sm mb-4">
+            Shown on the league page, dashboard, and standings. JPEG, PNG, WebP or GIF · max 500 KB.
+          </p>
+          <LogoUpload leagueId={league.id} initialLogoUrl={league.logo_url || null} />
+        </Section>
+
+        {/* Pinned notice — UNCHANGED */}
         <Section title="📌 Pinned Notice">
           <p className="text-gray-500 text-sm mb-3">
             Shown to all members at the top of the league page. Great for prizes, events, or links.
@@ -199,7 +320,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </div>
         </Section>
 
-        {/* Members */}
+        {/* Members — UNCHANGED */}
         <Section title="👥 Members">
           <div className="space-y-0">
             {members.map(m => {
@@ -331,7 +452,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </div>
         </Section>
 
-        {/* Danger zone */}
+        {/* Danger zone — UNCHANGED */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
           <h2 className="font-bold text-lg text-red-400 mb-1">⚠️ Danger Zone</h2>
           <p className="text-gray-500 text-sm mb-4">
@@ -344,7 +465,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
       </div>
 
-      {/* Toast */}
+      {/* Toast — UNCHANGED */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium z-50
           ${toast.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>

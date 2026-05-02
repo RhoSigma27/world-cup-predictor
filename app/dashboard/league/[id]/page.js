@@ -5,6 +5,7 @@ import Link from 'next/link'
 import CopyButton from './CopyButton'
 import ScoringGuide from './ScoringGuide'
 import MembersList from './MembersList'
+import LeagueLogo from '@/components/LeagueLogo'   // ← NEW
 
 export default async function LeaguePage({ params, searchParams }) {
   const supabase = await createServerSupabaseClient()
@@ -16,7 +17,7 @@ export default async function LeaguePage({ params, searchParams }) {
 
   const adminSupabase = createAdminClient()
 
-  // Get league details
+  // Get league details — select('*') already includes logo_url after migration
   const { data: league, error } = await supabase
     .from('leagues')
     .select('*')
@@ -25,7 +26,7 @@ export default async function LeaguePage({ params, searchParams }) {
 
   if (error || !league) redirect('/dashboard')
 
-  // Get members (excluding banned users)
+  // Get members (excluding banned users) — UNCHANGED
   const { data: membersRaw } = await adminSupabase
     .from('league_members')
     .select(`
@@ -44,7 +45,7 @@ export default async function LeaguePage({ params, searchParams }) {
   const isAdmin = league.admin_id === user.id
   const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/join/${league.invite_code}`
 
-  // Fetch fixtures so MembersList can build bracket context client-side
+  // Fetch fixtures — UNCHANGED
   const { data: fixtures } = await adminSupabase
     .from('fixtures')
     .select('*')
@@ -56,7 +57,15 @@ export default async function LeaguePage({ params, searchParams }) {
         <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
           ← Dashboard
         </Link>
-        <span className="font-bold text-yellow-400">{league.league_name}</span>
+        {/* ── NEW: logo + league name in header ── */}
+        <div className="flex items-center gap-3">
+          <LeagueLogo
+            name={league.league_name}
+            logoUrl={league.logo_url}
+            size="sm"
+          />
+          <span className="font-bold text-yellow-400">{league.league_name}</span>
+        </div>
         {isAdmin && (
           <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
             Admin
@@ -64,8 +73,8 @@ export default async function LeaguePage({ params, searchParams }) {
         )}
       </nav>
 
+      {/* Everything below — UNCHANGED */}
       <div className="max-w-3xl mx-auto px-6 py-10">
-        {/* New league celebration */}
         {isNew && (
           <div className="bg-green-900/30 border border-green-700 rounded-2xl p-6 mb-8 text-center">
             <div className="text-4xl mb-2">🎉</div>
@@ -74,7 +83,6 @@ export default async function LeaguePage({ params, searchParams }) {
           </div>
         )}
 
-        {/* Pinned notice */}
         {league.notice && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-5 mb-6">
             <div className="flex items-start gap-2">
@@ -90,7 +98,6 @@ export default async function LeaguePage({ params, searchParams }) {
           </div>
         )}
 
-        {/* Invite section */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="font-bold text-lg mb-4">🔗 Invite Friends</h2>
           <div className="space-y-3">
@@ -114,7 +121,6 @@ export default async function LeaguePage({ params, searchParams }) {
           </div>
         </div>
 
-        {/* Members */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="font-bold text-lg mb-3">
             👥 Members ({members?.length || 0})
@@ -128,10 +134,8 @@ export default async function LeaguePage({ params, searchParams }) {
           />
         </div>
 
-        {/* Scoring guide */}
         <ScoringGuide />
 
-        {/* Standings */}
         <Link
           href={`/dashboard/league/${id}/standings`}
           className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-center transition-colors mb-3"
@@ -139,7 +143,6 @@ export default async function LeaguePage({ params, searchParams }) {
           🏅 League Standings
         </Link>
 
-        {/* League admin link — only for admin */}
         {isAdmin && (
           <Link
             href={`/dashboard/league/${id}/admin`}
@@ -149,7 +152,6 @@ export default async function LeaguePage({ params, searchParams }) {
           </Link>
         )}
 
-        {/* Predictions button — inline on desktop only */}
         <Link
           href={`/dashboard/league/${id}/predictions`}
           className="hidden sm:block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg text-center transition-colors"
@@ -157,11 +159,9 @@ export default async function LeaguePage({ params, searchParams }) {
           📝 Enter My Predictions →
         </Link>
 
-        {/* Spacer so content clears the mobile sticky bar */}
         <div className="h-24 sm:hidden" />
       </div>
 
-      {/* Predictions button — sticky footer on mobile */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-950/95 backdrop-blur border-t border-gray-800 sm:hidden z-40">
         <Link
           href={`/dashboard/league/${id}/predictions`}

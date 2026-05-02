@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import PointsChart from './PointsChart'
+import LeagueLogo from '@/components/LeagueLogo'   // ← NEW
 
 // ─── Scoring Engine ───────────────────────────────────────────
 function getResult(s1, s2) {
@@ -284,9 +285,13 @@ export default async function StandingsPage({ params }) {
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 bg-gray-950 z-40">
-        <Link href={`/dashboard/league/${id}`} className="text-gray-400 hover:text-white text-sm">
-          ← {league.league_name}
-        </Link>
+        {/* ── CHANGED: wrapped in div and added LeagueLogo ── */}
+        <div className="flex items-center gap-3">
+          <Link href={`/dashboard/league/${id}`} className="text-gray-400 hover:text-white text-sm">
+            ← {league.league_name}
+          </Link>
+          <LeagueLogo name={league.league_name} logoUrl={league.logo_url} size="sm" />
+        </div>
         <span className="text-xs text-gray-500">{resultsEntered}/104 results in</span>
         {masterExtras?.third_place_override && (
           <span className="text-xs text-amber-400 ml-2" title="Admin has manually set 3rd place qualifiers">⚠ 3rd override</span>
