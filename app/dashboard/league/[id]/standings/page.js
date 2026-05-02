@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import PointsChart from './PointsChart'
-import LeagueLogo from '@/components/LeagueLogo'   // ← NEW
+import LeagueLogo from '@/app/components/LeagueLogo'   // ← NEW
 
 // ─── Scoring Engine ───────────────────────────────────────────
 function getResult(s1, s2) {

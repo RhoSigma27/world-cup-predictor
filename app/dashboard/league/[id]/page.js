@@ -5,7 +5,7 @@ import Link from 'next/link'
 import CopyButton from './CopyButton'
 import ScoringGuide from './ScoringGuide'
 import MembersList from './MembersList'
-import LeagueLogo from '@/components/LeagueLogo'   // ← NEW
+import LeagueLogo from '@/app/components/LeagueLogo'   // ← NEW
 
 export default async function LeaguePage({ params, searchParams }) {
   const supabase = await createServerSupabaseClient()

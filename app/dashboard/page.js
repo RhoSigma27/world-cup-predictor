@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import LeagueLogo from '@/components/LeagueLogo'   // ← NEW
+import LeagueLogo from '@/app/components/LeagueLogo'   // ← NEW
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient()
