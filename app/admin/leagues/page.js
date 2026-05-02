@@ -18,10 +18,10 @@ export default async function AdminLeaguesPage() {
 
   const adminSupabase = createAdminClient()
 
-  // Get all leagues
+  // Get all leagues — ADD logo_url here
   const { data: leagues } = await adminSupabase
     .from('leagues')
-    .select('id, league_name, invite_code, created_at, admin_id')
+    .select('id, league_name, invite_code, created_at, admin_id, logo_url')
     .order('created_at', { ascending: false })
 
   // Get all members
@@ -58,11 +58,44 @@ export default async function AdminLeaguesPage() {
     })
   }
 
+  // ── NEW: prediction counts per user per league ────────────────────────────
+  // Fetch fixture round map so we can split group vs KO
+  const { data: fixtures } = await adminSupabase
+    .from('fixtures')
+    .select('id, round')
+
+  const fixtureRoundMap = {}
+  for (const f of fixtures || []) {
+    fixtureRoundMap[f.id] = f.round
+  }
+
+  // Fetch all predictions where both scores are filled
+  const { data: predictions } = await adminSupabase
+    .from('predictions')
+    .select('user_id, league_id, fixture_id, predicted_home, predicted_away')
+    .not('predicted_home', 'is', null)
+    .not('predicted_away', 'is', null)
+
+  // Build map: `${userId}_${leagueId}` → { group, ko }
+  const predMap = {}
+  for (const p of predictions || []) {
+    const key = `${p.user_id}_${p.league_id}`
+    if (!predMap[key]) predMap[key] = { group: 0, ko: 0 }
+    if (fixtureRoundMap[p.fixture_id] === 'group') predMap[key].group++
+    else predMap[key].ko++
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const leaguesData = (leagues || []).map(l => ({
     ...l,
     profiles: profileMap[l.admin_id] || null,
     memberCount: countMap[l.id] || 0,
-    members: membersByLeague[l.id] || [],
+    // Attach pred counts to each member
+    members: (membersByLeague[l.id] || []).map(m => ({
+      ...m,
+      predGroup: predMap[`${m.user_id}_${l.id}`]?.group ?? 0,
+      predKo:    predMap[`${m.user_id}_${l.id}`]?.ko    ?? 0,
+    })),
   }))
 
   return (

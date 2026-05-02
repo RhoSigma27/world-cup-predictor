@@ -10,9 +10,9 @@ export async function GET(request) {
     const supabase = await createServerSupabaseClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}${next}`)
+      return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
-  return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/auth/error`)
+  return NextResponse.redirect(`${origin}/auth/error`)
 }
