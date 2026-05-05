@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import PointsChart from './PointsChart'
-import LeagueLogo from '@/app/components/LeagueLogo'   // ← NEW
+import LeagueLogo from '@/app/components/LeagueLogo'
 
 // ─── Scoring Engine ───────────────────────────────────────────
 function getResult(s1, s2) {
@@ -285,7 +285,6 @@ export default async function StandingsPage({ params }) {
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 bg-gray-950 z-40">
-        {/* ── CHANGED: wrapped in div and added LeagueLogo ── */}
         <div className="flex items-center gap-3">
           <Link href={`/dashboard/league/${id}`} className="text-gray-400 hover:text-white text-sm">
             ← {league.league_name}
@@ -312,18 +311,14 @@ export default async function StandingsPage({ params }) {
           </div>
         )}
 
-        {/* Standings table */}
+        {/* Standings table — CHANGED: 3 columns only (rank, player, total) */}
         <div className="bg-gray-900 rounded-2xl overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-800 bg-yellow-500/5">
                 <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wider w-10">#</th>
                 <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Player</th>
-                <th className="px-3 py-3 text-center text-xs text-gray-500 uppercase tracking-wider hidden sm:table-cell">Predictions</th>
-                <th className="px-3 py-3 text-center text-xs text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-3 py-3 text-center text-xs text-gray-500 uppercase tracking-wider hidden md:table-cell">Group</th>
-                <th className="px-3 py-3 text-center text-xs text-gray-500 uppercase tracking-wider hidden md:table-cell">KO</th>
-                <th className="px-3 py-3 text-center text-xs text-gray-500 uppercase tracking-wider hidden md:table-cell">Extras</th>
+                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider">Points</th>
               </tr>
             </thead>
             <tbody>
@@ -343,27 +338,16 @@ export default async function StandingsPage({ params }) {
                         <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-sm flex-shrink-0">
                           {s.displayName?.[0]?.toUpperCase()}
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">
-                            {s.displayName}
-                            {isCurrentUser && <span className="ml-1 text-xs text-yellow-400">(you)</span>}
-                            {s.isAdmin && <span className="ml-1 text-xs text-gray-500">⭐</span>}
-                          </p>
-                        </div>
+                        <p className="font-medium text-sm">
+                          {s.displayName}
+                          {isCurrentUser && <span className="ml-1 text-xs text-yellow-400">(you)</span>}
+                          {s.isAdmin && <span className="ml-1 text-xs text-gray-500">⭐</span>}
+                        </p>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-center hidden sm:table-cell">
-                      <div className="text-xs text-gray-500">{s.filled}/104</div>
-                      <div className="w-16 h-1 bg-gray-800 rounded-full mx-auto mt-1 overflow-hidden">
-                        <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${(s.filled/104)*100}%` }}/>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-center">
+                    <td className="px-4 py-3 text-right">
                       <span className="text-xl font-bold text-yellow-400">{s.total}</span>
                     </td>
-                    <td className="px-3 py-3 text-center text-sm text-gray-400 hidden md:table-cell">{s.groupPts}</td>
-                    <td className="px-3 py-3 text-center text-sm text-gray-400 hidden md:table-cell">{s.koPts}</td>
-                    <td className="px-3 py-3 text-center text-sm text-gray-400 hidden md:table-cell">{s.extrasPts}</td>
                   </tr>
                 )
               })}

@@ -254,7 +254,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
       <div className="max-w-2xl mx-auto px-6 py-10">
 
-        {/* Rename league — UNCHANGED */}
+        {/* Rename league */}
         <Section title="✏️ League Name">
           <div className="flex gap-3">
             <input
@@ -274,7 +274,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </div>
         </Section>
 
-        {/* ── NEW: League logo ── */}
+        {/* ── League logo ── */}
         <Section title="🖼️ League Logo">
           <p className="text-gray-500 text-sm mb-4">
             Shown on the league page, dashboard, and standings. JPEG, PNG, WebP or GIF · max 500 KB.
@@ -282,7 +282,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           <LogoUpload leagueId={league.id} initialLogoUrl={league.logo_url || null} />
         </Section>
 
-        {/* Pinned notice — UNCHANGED */}
+        {/* Pinned notice */}
         <Section title="📌 Pinned Notice">
           <p className="text-gray-500 text-sm mb-3">
             Shown to all members at the top of the league page. Great for prizes, events, or links.
@@ -320,7 +320,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </div>
         </Section>
 
-        {/* Members — UNCHANGED */}
+        {/* Members */}
         <Section title="👥 Members">
           <div className="space-y-0">
             {members.map(m => {
@@ -332,7 +332,8 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
               return (
                 <div key={m.user_id} className="py-3 border-b border-gray-800/60 last:border-0">
-                  <div className="flex items-center justify-between gap-3">
+                  {/* ── CHANGED: flex-col on mobile, flex-row on sm+ ── */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-7 h-7 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
                         {m.profiles?.display_name?.[0]?.toUpperCase()}
@@ -349,7 +350,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
                     {/* Action buttons */}
                     {!isCurrentUser && !isConfirmRemove && !isConfirmAdmin && (
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-9 sm:ml-0">
                         <button
                           onClick={() => {
                             setRenamingMember(isRenaming ? null : m.user_id)
@@ -380,7 +381,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
                     {/* Confirm remove */}
                     {isConfirmRemove && (
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-9 sm:ml-0">
                         <span className="text-xs text-red-400">Remove {m.profiles?.display_name}?</span>
                         <button
                           onClick={() => handleRemoveMember(m.user_id)}
@@ -400,7 +401,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
                     {/* Confirm change admin */}
                     {isConfirmAdmin && (
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-9 sm:ml-0">
                         <span className="text-xs text-yellow-400">Make {m.profiles?.display_name} admin?</span>
                         <button
                           onClick={() => handleChangeAdmin(m.user_id)}
@@ -452,7 +453,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </div>
         </Section>
 
-        {/* Danger zone — UNCHANGED */}
+        {/* Danger zone */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
           <h2 className="font-bold text-lg text-red-400 mb-1">⚠️ Danger Zone</h2>
           <p className="text-gray-500 text-sm mb-4">
@@ -465,7 +466,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
       </div>
 
-      {/* Toast — UNCHANGED */}
+      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium z-50
           ${toast.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
