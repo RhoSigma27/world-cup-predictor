@@ -12,7 +12,7 @@ function Section({ title, children }) {
   )
 }
 
-// ── NEW: Logo uploader ────────────────────────────────────────────────────────
+// ── Logo uploader ────────────────────────────────────────────────────────────
 
 function LogoUpload({ leagueId, initialLogoUrl }) {
   const [preview, setPreview] = useState(initialLogoUrl || null)
@@ -139,6 +139,13 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
   const [confirmChangeAdmin, setConfirmChangeAdmin] = useState(null)
   const [saving, setSaving] = useState(null)
 
+  // ── NEW: Email standings state ─────────────────────────────────────────────
+  const [emailMessage, setEmailMessage] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailResult, setEmailResult] = useState(null) // { sent, recipientCount, sendsRemaining }
+  const [confirmSendEmail, setConfirmSendEmail] = useState(false)
+  // ─────────────────────────────────────────────────────────────────────────
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
@@ -239,8 +246,34 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
     }
   }
 
+  // ── NEW: Send standings email ──────────────────────────────────────────────
+  const handleSendEmail = async () => {
+    setSendingEmail(true)
+    setConfirmSendEmail(false)
+    const { ok, data } = await api('/api/league-admin/send-standings-email', {
+      leagueId: league.id,
+      message: emailMessage.trim(),
+    })
+    if (ok) {
+      setEmailResult({ sent: true, recipientCount: data.recipientCount, sendsRemaining: data.sendsRemaining })
+      setEmailMessage('')
+      showToast(`Email sent to ${data.recipientCount} member${data.recipientCount !== 1 ? 's' : ''} ✓`)
+    } else {
+      showToast(data.error || 'Failed to send email', 'error')
+    }
+    setSendingEmail(false)
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const noticeLines = notice.split('\n').length
   const noticeChanged = notice.trim() !== (league.notice || '').trim()
+
+  // Last sent display helper
+  const lastSentDisplay = league.last_email_sent_at
+    ? new Date(league.last_email_sent_at).toLocaleString('en-GB', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+      })
+    : null
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -274,7 +307,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </div>
         </Section>
 
-        {/* ── League logo ── */}
+        {/* League logo */}
         <Section title="🖼️ League Logo">
           <p className="text-gray-500 text-sm mb-4">
             Shown on the league page, dashboard, and standings. JPEG, PNG, WebP or GIF · max 500 KB.
@@ -332,7 +365,6 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
 
               return (
                 <div key={m.user_id} className="py-3 border-b border-gray-800/60 last:border-0">
-                  {/* ── CHANGED: flex-col on mobile, flex-row on sm+ ── */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-7 h-7 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
@@ -344,7 +376,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
                           {isLeagueAdmin && <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>}
                           {isCurrentUser && <span className="ml-2 text-xs text-gray-500">(you)</span>}
                         </p>
-                        <p className="text-xs text-gray-600 truncate">{m.profiles?.email}</p>
+                        {/* ── CHANGED: email removed for privacy ── */}
                       </div>
                     </div>
 
@@ -452,6 +484,76 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
             })}
           </div>
         </Section>
+
+        {/* ── NEW: Email standings update ────────────────────────────────────── */}
+        <Section title="📧 Email Standings Update">
+          <p className="text-gray-500 text-sm mb-4">
+            Send the current top 5 standings to all league members. Max 2 emails per day.
+          </p>
+
+          {/* Last sent info */}
+          {lastSentDisplay && (
+            <p className="text-xs text-gray-600 mb-3">
+              Last sent: <span className="text-gray-400">{lastSentDisplay}</span>
+            </p>
+          )}
+
+          {/* Success result */}
+          {emailResult?.sent && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3 mb-4">
+              <p className="text-green-400 text-sm font-medium">
+                ✓ Email sent to {emailResult.recipientCount} member{emailResult.recipientCount !== 1 ? 's' : ''}
+              </p>
+              <p className="text-green-600 text-xs mt-0.5">
+                {emailResult.sendsRemaining > 0
+                  ? `${emailResult.sendsRemaining} send${emailResult.sendsRemaining !== 1 ? 's' : ''} remaining today`
+                  : 'Daily limit reached — resets at midnight'}
+              </p>
+            </div>
+          )}
+
+          {/* Message textarea */}
+          <textarea
+            value={emailMessage}
+            onChange={e => setEmailMessage(e.target.value)}
+            maxLength={500}
+            rows={4}
+            placeholder={"Optional personal message, e.g:\n\nWell done to Tommy for staying top! Great move by Carly this week. Remember — £50 bar tab for the winner!"}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500 resize-none"
+          />
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-600">{emailMessage.length}/500 chars · optional</span>
+            <div className="flex items-center gap-2">
+              {confirmSendEmail ? (
+                <>
+                  <span className="text-xs text-yellow-400">Send to all {members.length} members?</span>
+                  <button
+                    onClick={handleSendEmail}
+                    disabled={sendingEmail}
+                    className="text-xs px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-gray-950 font-bold rounded-lg transition-colors"
+                  >
+                    {sendingEmail ? 'Sending…' : 'Yes, send'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmSendEmail(false)}
+                    className="text-xs px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setConfirmSendEmail(true)}
+                  disabled={sendingEmail}
+                  className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-950 font-bold rounded-lg text-sm transition-colors"
+                >
+                  Send Email
+                </button>
+              )}
+            </div>
+          </div>
+        </Section>
+        {/* ────────────────────────────────────────────────────────────────── */}
 
         {/* Danger zone */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
