@@ -17,6 +17,7 @@ function Section({ title, children }) {
 function LogoUpload({ leagueId, initialLogoUrl }) {
   const [preview, setPreview] = useState(initialLogoUrl || null)
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState(null)
   const [successMsg, setSuccessMsg] = useState(null)
   const inputRef = useRef(null)
@@ -63,6 +64,32 @@ function LogoUpload({ leagueId, initialLogoUrl }) {
     }
   }
 
+  // ── Remove logo ────────────────────────────────────────────────────────────
+  const handleRemoveLogo = async () => {
+    setRemoving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/league-admin/remove-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leagueId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to remove logo')
+      } else {
+        setPreview(null)
+        setSuccessMsg('Logo removed ✓')
+        setTimeout(() => setSuccessMsg(null), 3000)
+      }
+    } catch {
+      setError('Failed to remove logo')
+    } finally {
+      setRemoving(false)
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const handleDrop = (e) => {
     e.preventDefault()
     const file = e.dataTransfer.files?.[0]
@@ -71,8 +98,8 @@ function LogoUpload({ leagueId, initialLogoUrl }) {
 
   return (
     <div className="flex items-start gap-5">
-      {/* Current logo / placeholder */}
-      <div className="flex-shrink-0">
+      {/* Current logo / placeholder + remove button */}
+      <div className="flex flex-col items-center gap-2 flex-shrink-0">
         {preview ? (
           <img
             src={preview}
@@ -83,6 +110,16 @@ function LogoUpload({ leagueId, initialLogoUrl }) {
           <div className="w-20 h-20 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center text-2xl text-gray-600">
             🏆
           </div>
+        )}
+        {/* Remove button — only shown when logo is set */}
+        {preview && (
+          <button
+            onClick={handleRemoveLogo}
+            disabled={removing}
+            className="text-xs text-gray-600 hover:text-red-400 transition-colors disabled:opacity-50"
+          >
+            {removing ? 'Removing…' : 'Remove'}
+          </button>
         )}
       </div>
 
@@ -139,10 +176,10 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
   const [confirmChangeAdmin, setConfirmChangeAdmin] = useState(null)
   const [saving, setSaving] = useState(null)
 
-  // ── NEW: Email standings state ─────────────────────────────────────────────
+  // ── Email standings state ──────────────────────────────────────────────────
   const [emailMessage, setEmailMessage] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
-  const [emailResult, setEmailResult] = useState(null) // { sent, recipientCount, sendsRemaining }
+  const [emailResult, setEmailResult] = useState(null)
   const [confirmSendEmail, setConfirmSendEmail] = useState(false)
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -246,7 +283,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
     }
   }
 
-  // ── NEW: Send standings email ──────────────────────────────────────────────
+  // ── Send standings email ───────────────────────────────────────────────────
   const handleSendEmail = async () => {
     setSendingEmail(true)
     setConfirmSendEmail(false)
@@ -262,6 +299,14 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
       showToast(data.error || 'Failed to send email', 'error')
     }
     setSendingEmail(false)
+  }
+
+  // ── Predictions reminder shortcut ─────────────────────────────────────────
+  const handlePredictionsReminder = () => {
+    setEmailMessage(
+      `⏰ Reminder — the tournament kicks off June 11!\n\nPlease make sure you've filled in all 104 of your predictions before then. Head to the site to complete yours now.`
+    )
+    setConfirmSendEmail(true)
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -376,7 +421,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
                           {isLeagueAdmin && <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>}
                           {isCurrentUser && <span className="ml-2 text-xs text-gray-500">(you)</span>}
                         </p>
-                        {/* ── CHANGED: email removed for privacy ── */}
+                        {/* email removed for privacy */}
                       </div>
                     </div>
 
@@ -485,7 +530,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </div>
         </Section>
 
-        {/* ── NEW: Email standings update ────────────────────────────────────── */}
+        {/* Email standings update */}
         <Section title="📧 Email Standings Update">
           <p className="text-gray-500 text-sm mb-4">
             Send the current top 5 standings to all league members. Max 2 emails per day.
@@ -521,9 +566,19 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
             placeholder={"Optional personal message, e.g:\n\nWell done to Tommy for staying top! Great move by Carly this week. Remember — £50 bar tab for the winner!"}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500 resize-none"
           />
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
             <span className="text-xs text-gray-600">{emailMessage.length}/500 chars · optional</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Predictions reminder shortcut */}
+              {!confirmSendEmail && (
+                <button
+                  onClick={handlePredictionsReminder}
+                  disabled={sendingEmail}
+                  className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  ⏰ Predictions reminder
+                </button>
+              )}
               {confirmSendEmail ? (
                 <>
                   <span className="text-xs text-yellow-400">Send to all {members.length} members?</span>
@@ -553,7 +608,6 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
             </div>
           </div>
         </Section>
-        {/* ────────────────────────────────────────────────────────────────── */}
 
         {/* Danger zone */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">

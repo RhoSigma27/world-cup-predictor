@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
 // ── Logo uploader ─────────────────────────────────────────────────────────────
-function LogoUploader({ league, onUploaded }) {
+function LogoUploader({ league, onUploaded, onRemoved }) {
   const [preview, setPreview] = useState(league.logo_url || null)
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
 
@@ -30,6 +31,24 @@ function LogoUploader({ league, onUploaded }) {
     finally { setUploading(false) }
   }
 
+  // ── Remove logo ────────────────────────────────────────────────────────────
+  const handleRemove = async () => {
+    setRemoving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/league-admin/remove-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leagueId: league.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Failed to remove') }
+      else { setPreview(null); onRemoved(league.id) }
+    } catch { setError('Failed to remove') }
+    finally { setRemoving(false) }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col items-center gap-1 flex-shrink-0">
       <button onClick={() => inputRef.current?.click()} title="Upload league logo" className="relative group">
@@ -45,6 +64,16 @@ function LogoUploader({ league, onUploaded }) {
         </div>
       </button>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
+      {/* Remove link — only shown when logo is set */}
+      {preview && (
+        <button
+          onClick={handleRemove}
+          disabled={removing}
+          className="text-[10px] text-gray-600 hover:text-red-400 transition-colors disabled:opacity-50 leading-tight"
+        >
+          {removing ? '…' : 'Remove'}
+        </button>
+      )}
       {error && <span className="text-red-400 text-[10px] text-center leading-tight max-w-12">{error}</span>}
     </div>
   )
@@ -107,19 +136,16 @@ function QRCardModal({ league, onClose }) {
         canvas.width = W; canvas.height = H
         const ctx = canvas.getContext('2d')
 
-        // Background
         const bgGrad = ctx.createLinearGradient(0, 0, 0, H)
         bgGrad.addColorStop(0, '#0a0a0f')
         bgGrad.addColorStop(1, '#111827')
         ctx.fillStyle = bgGrad
         ctx.fillRect(0, 0, W, H)
 
-        // Gold bars top/bottom
         ctx.fillStyle = '#f59e0b'
         ctx.fillRect(0, 0, W, 8)
         ctx.fillRect(0, H - 8, W, 8)
 
-        // Header branding
         ctx.fillStyle = '#f59e0b'
         ctx.font = 'bold 28px sans-serif'
         ctx.textAlign = 'center'
@@ -128,11 +154,9 @@ function QRCardModal({ league, onClose }) {
         ctx.font = '18px sans-serif'
         ctx.fillText('Predict every match. Compete with your mates.', W / 2, 105)
 
-        // Divider
         ctx.strokeStyle = '#374151'; ctx.lineWidth = 1
         ctx.beginPath(); ctx.moveTo(60, 125); ctx.lineTo(W - 60, 125); ctx.stroke()
 
-        // League logo
         const logoY = 155, logoSize = 140, logoCX = W / 2, logoCY = logoY + logoSize / 2
         if (league.logo_url) {
           try {
@@ -150,13 +174,11 @@ function QRCardModal({ league, onClose }) {
           drawInitialCircle(ctx, league.league_name, logoCX, logoCY, logoSize / 2)
         }
 
-        // League name
         ctx.fillStyle = '#ffffff'
         ctx.font = 'bold 42px sans-serif'
         ctx.textAlign = 'center'
         ctx.fillText(league.league_name, W / 2, logoY + logoSize + 55)
 
-        // QR code
         const qrSize = 300, qrX = (W - qrSize) / 2, qrY = logoY + logoSize + 85, pad = 16
         ctx.fillStyle = '#ffffff'
         roundRect(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, 16)
@@ -166,7 +188,6 @@ function QRCardModal({ league, onClose }) {
         await new Promise(res => { qrImg.onload = res; qrImg.src = qrDataUrl })
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
 
-        // Join message
         const msgY = qrY + qrSize + pad + 50
         ctx.fillStyle = '#f59e0b'
         ctx.font = 'bold 26px sans-serif'
@@ -179,7 +200,6 @@ function QRCardModal({ league, onClose }) {
         ctx.font = '16px sans-serif'
         ctx.fillText(`Invite code: ${league.invite_code}`, W / 2, msgY + 70)
 
-        // Footer
         ctx.fillStyle = '#4b5563'
         ctx.font = '14px sans-serif'
         ctx.fillText('thematchpredictor.com', W / 2, H - 25)
@@ -250,7 +270,7 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
   const [deleting, setDeleting] = useState(null)
   const [togglingBan, setTogglingBan] = useState(null)
   const [toast, setToast] = useState(null)
-  const [qrLeague, setQrLeague] = useState(null)  // ← NEW
+  const [qrLeague, setQrLeague] = useState(null)
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -262,6 +282,12 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
   const handleLogoUploaded = (leagueId, logoUrl) => {
     setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, logo_url: logoUrl } : l))
   }
+
+  // ── NEW: logo removed callback ─────────────────────────────────────────────
+  const handleLogoRemoved = (leagueId) => {
+    setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, logo_url: null } : l))
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const handleDelete = async (leagueId) => {
     setDeleting(leagueId)
@@ -338,7 +364,7 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
             <div key={league.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
               <div className="p-5 flex items-center justify-between gap-4">
 
-                <LogoUploader league={league} onUploaded={handleLogoUploaded} />
+                <LogoUploader league={league} onUploaded={handleLogoUploaded} onRemoved={handleLogoRemoved} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -368,7 +394,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                     <span className="text-gray-600 text-xs ml-1">{expanded[league.id] ? '▲' : '▼'}</span>
                   </button>
 
-                  {/* ── NEW: QR card button ── */}
                   <button
                     onClick={() => setQrLeague(league)}
                     className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 border border-gray-700 hover:border-yellow-500/30 rounded-lg transition-colors"
@@ -479,7 +504,7 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
         <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setConfirmDelete(null)} />
       )}
 
-      {/* ── NEW: QR card modal ── */}
+      {/* QR card modal */}
       {qrLeague && (
         <QRCardModal league={qrLeague} onClose={() => setQrLeague(null)} />
       )}
