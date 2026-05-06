@@ -5,7 +5,7 @@ import Link from 'next/link'
 import CopyButton from './CopyButton'
 import ScoringGuide from './ScoringGuide'
 import MembersList from './MembersList'
-import LeagueLogo from '@/app/components/LeagueLogo'   // ← NEW
+import LeagueLogo from '@/app/components/LeagueLogo'
 
 export default async function LeaguePage({ params, searchParams }) {
   const supabase = await createServerSupabaseClient()
@@ -17,7 +17,7 @@ export default async function LeaguePage({ params, searchParams }) {
 
   const adminSupabase = createAdminClient()
 
-  // Get league details — select('*') already includes logo_url after migration
+  // Get league details
   const { data: league, error } = await supabase
     .from('leagues')
     .select('*')
@@ -26,7 +26,7 @@ export default async function LeaguePage({ params, searchParams }) {
 
   if (error || !league) redirect('/dashboard')
 
-  // Get members (excluding banned users) — UNCHANGED
+  // Get members (excluding banned users)
   const { data: membersRaw } = await adminSupabase
     .from('league_members')
     .select(`
@@ -45,7 +45,7 @@ export default async function LeaguePage({ params, searchParams }) {
   const isAdmin = league.admin_id === user.id
   const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/join/${league.invite_code}`
 
-  // Fetch fixtures — UNCHANGED
+  // Fetch fixtures
   const { data: fixtures } = await adminSupabase
     .from('fixtures')
     .select('*')
@@ -57,7 +57,6 @@ export default async function LeaguePage({ params, searchParams }) {
         <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
           ← Dashboard
         </Link>
-        {/* ── NEW: logo + league name in header ── */}
         <div className="flex items-center gap-3">
           <LeagueLogo
             name={league.league_name}
@@ -73,8 +72,9 @@ export default async function LeaguePage({ params, searchParams }) {
         )}
       </nav>
 
-      {/* Everything below — UNCHANGED */}
       <div className="max-w-3xl mx-auto px-6 py-10">
+
+        {/* New league celebration */}
         {isNew && (
           <div className="bg-green-900/30 border border-green-700 rounded-2xl p-6 mb-8 text-center">
             <div className="text-4xl mb-2">🎉</div>
@@ -83,6 +83,7 @@ export default async function LeaguePage({ params, searchParams }) {
           </div>
         )}
 
+        {/* Pinned notice */}
         {league.notice && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-5 mb-6">
             <div className="flex items-start gap-2">
@@ -98,6 +99,45 @@ export default async function LeaguePage({ params, searchParams }) {
           </div>
         )}
 
+        {/* Members */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
+          <h2 className="font-bold text-lg mb-3">
+            👥 Members ({members?.length || 0})
+          </h2>
+          <MembersList
+            members={members}
+            adminId={league.admin_id}
+            currentUserId={user.id}
+            fixtures={fixtures || []}
+            leagueId={id}
+          />
+        </div>
+
+        {/* Action buttons */}
+        <Link
+          href={`/dashboard/league/${id}/standings`}
+          className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-center transition-colors mb-3"
+        >
+          🏅 League Standings
+        </Link>
+
+        {isAdmin && (
+          <Link
+            href={`/dashboard/league/${id}/admin`}
+            className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-yellow-400 font-bold rounded-xl text-center transition-colors mb-3 border border-yellow-500/20"
+          >
+            ⚙️ League Admin
+          </Link>
+        )}
+
+        <Link
+          href={`/dashboard/league/${id}/predictions`}
+          className="hidden sm:block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg text-center transition-colors mb-6"
+        >
+          📝 Enter My Predictions →
+        </Link>
+
+        {/* Invite Friends — moved to bottom */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="font-bold text-lg mb-4">🔗 Invite Friends</h2>
           <div className="space-y-3">
@@ -121,47 +161,12 @@ export default async function LeaguePage({ params, searchParams }) {
           </div>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
-          <h2 className="font-bold text-lg mb-3">
-            👥 Members ({members?.length || 0})
-          </h2>
-          <MembersList
-            members={members}
-            adminId={league.admin_id}
-            currentUserId={user.id}
-            fixtures={fixtures || []}
-            leagueId={id}
-          />
-        </div>
-
         <ScoringGuide />
-
-        <Link
-          href={`/dashboard/league/${id}/standings`}
-          className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-center transition-colors mb-3"
-        >
-          🏅 League Standings
-        </Link>
-
-        {isAdmin && (
-          <Link
-            href={`/dashboard/league/${id}/admin`}
-            className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-yellow-400 font-bold rounded-xl text-center transition-colors mb-3 border border-yellow-500/20"
-          >
-            ⚙️ League Admin
-          </Link>
-        )}
-
-        <Link
-          href={`/dashboard/league/${id}/predictions`}
-          className="hidden sm:block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg text-center transition-colors"
-        >
-          📝 Enter My Predictions →
-        </Link>
 
         <div className="h-24 sm:hidden" />
       </div>
 
+      {/* Mobile sticky predictions button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-950/95 backdrop-blur border-t border-gray-800 sm:hidden z-40">
         <Link
           href={`/dashboard/league/${id}/predictions`}
