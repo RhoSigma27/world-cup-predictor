@@ -69,7 +69,7 @@ function LogoUploader({ league, onUploaded, onRemoved }) {
         <button
           onClick={handleRemove}
           disabled={removing}
-          className="text-[10px] text-gray-600 hover:text-red-400 transition-colors disabled:opacity-50 leading-tight"
+          className="text-[10px] text-gray-600 hover:text-red-400 transition-colors disabled:opacity-50 leading-none h-3"
         >
           {removing ? '…' : 'Remove'}
         </button>
