@@ -403,7 +403,7 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                   </button>
 
                   {confirmDelete === league.id ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 relative z-50">
                       <span className="text-xs text-red-400">Sure?</span>
                       <button
                         onClick={() => handleDelete(league.id)}
