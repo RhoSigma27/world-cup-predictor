@@ -26,13 +26,11 @@ export async function DELETE(request) {
   // Delete in order to respect foreign key constraints:
   // 1. predictions
   await adminSupabase.from('predictions').delete().eq('league_id', leagueId)
-  // 2. extras_predictions
+  // 2. extras_predictions (includes star picks as columns)
   await adminSupabase.from('extras_predictions').delete().eq('league_id', leagueId)
-  // 3. star_picks (if separate table — safe to attempt)
-  await adminSupabase.from('star_picks').delete().eq('league_id', leagueId)
-  // 4. league_members
+  // 3. league_members
   await adminSupabase.from('league_members').delete().eq('league_id', leagueId)
-  // 5. finally the league itself
+  // 4. finally the league itself
   const { error } = await adminSupabase.from('leagues').delete().eq('id', leagueId)
 
   if (error) {
