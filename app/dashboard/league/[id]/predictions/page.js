@@ -68,6 +68,52 @@ export default async function PredictionsPage({ params }) {
     }
   }
 
+  // ── NEW: import source leagues ─────────────────────────────────────────────
+  // Only bother fetching if this league has no predictions yet
+  const currentPredCount = (existingPredictions || []).filter(
+    p => p.predicted_home != null && p.predicted_away != null
+  ).length
+
+  let importableLeagues = []
+  if (currentPredCount === 0) {
+    // Find other leagues this user has predictions in
+    const { data: otherMemberships } = await supabase
+      .from('league_members')
+      .select('league_id, leagues(id, league_name)')
+      .eq('user_id', user.id)
+      .neq('league_id', id)
+
+    if (otherMemberships?.length) {
+      const otherLeagueIds = otherMemberships.map(m => m.league_id)
+
+      // Count filled predictions per league
+      const { data: otherPreds } = await supabase
+        .from('predictions')
+        .select('league_id')
+        .eq('user_id', user.id)
+        .in('league_id', otherLeagueIds)
+        .not('predicted_home', 'is', null)
+        .not('predicted_away', 'is', null)
+
+      // Build count map
+      const countMap = {}
+      for (const p of otherPreds || []) {
+        countMap[p.league_id] = (countMap[p.league_id] || 0) + 1
+      }
+
+      // Only include leagues that have at least 1 prediction
+      importableLeagues = otherMemberships
+        .filter(m => (countMap[m.league_id] || 0) > 0)
+        .map(m => ({
+          id: m.league_id,
+          name: m.leagues?.league_name || 'Unknown league',
+          predCount: countMap[m.league_id] || 0,
+        }))
+        .sort((a, b) => b.predCount - a.predCount) // most complete first
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <PredictionsClient
       league={league}
@@ -78,6 +124,7 @@ export default async function PredictionsPage({ params }) {
       profile={profile}
       leagueId={id}
       fixtureOdds={fixtureOdds}
+      importableLeagues={importableLeagues}
     />
   )
 }

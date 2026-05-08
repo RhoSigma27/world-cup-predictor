@@ -749,13 +749,90 @@ function StarPickStrip({ round, pick, roundLocked, valid, noTeamsYet, onOpen, on
   )
 }
 
+function ImportBanner({ importableLeagues, leagueId, onImported }) {
+  const [selectedLeagueId, setSelectedLeagueId] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+  const [error, setError] = useState(null)
+ 
+  if (dismissed || !importableLeagues?.length) return null
+ 
+  const handleImport = async () => {
+    if (!selectedLeagueId) return
+    setImporting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/predictions/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromLeagueId: selectedLeagueId, toLeagueId: leagueId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Import failed')
+      } else {
+        onImported(data.imported)
+        setDismissed(true)
+      }
+    } catch {
+      setError('Import failed — please try again')
+    } finally {
+      setImporting(false)
+    }
+  }
+ 
+  return (
+    <div className="mb-4 bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-blue-300 mb-1">
+            📋 Import predictions from another league?
+          </p>
+          <p className="text-xs text-gray-500 mb-3">
+            You have no predictions here yet. Copy your scores from another league as a starting point — you can edit them afterwards.
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={selectedLeagueId}
+              onChange={e => setSelectedLeagueId(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+            >
+              <option value="">Select a league…</option>
+              {importableLeagues.map(l => (
+                <option key={l.id} value={l.id}>
+                  {l.name} ({l.predCount}/104 predictions)
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleImport}
+              disabled={!selectedLeagueId || importing}
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-bold rounded-lg text-sm transition-colors flex-shrink-0"
+            >
+              {importing ? 'Importing…' : 'Import'}
+            </button>
+          </div>
+          {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+        </div>
+        <button
+          onClick={() => setDismissed(true)}
+          className="text-gray-600 hover:text-gray-400 text-lg flex-shrink-0"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function PredictionsClient({
   league, fixtures, existingPredictions,
-  extrasPrediction, userId, profile, leagueId, fixtureOdds = {}
+  extrasPrediction, userId, profile, leagueId, fixtureOdds = {},
+  importableLeagues = []
 }) {
   const locked = isLocked()
   const [activeGroup, setActiveGroup] = useState('A')
@@ -804,6 +881,12 @@ export default function PredictionsClient({
     SF:    extrasPrediction?.star_pick_sf    ?? null,
     FINAL: extrasPrediction?.star_pick_final ?? null,
   })
+
+  const handleImported = (count) => {
+    showToast(`${count} predictions imported ✓ — you can edit them now`)
+    // Force a page reload so the imported predictions are loaded from the DB
+    window.location.reload()
+  }
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -1017,6 +1100,14 @@ export default function PredictionsClient({
           </div>
 
           {/* Group tabs */}
+          
+          {/* Import banner — only shown when no predictions yet */}
+          <ImportBanner
+            importableLeagues={importableLeagues}
+            leagueId={leagueId}
+            onImported={handleImported}
+          />
+          
           <div className="flex flex-wrap gap-2 mb-4">
             {GROUPS.map(g => {
               const done = groupFixtures.filter(f => f.match_group === g)
