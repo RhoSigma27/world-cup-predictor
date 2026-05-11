@@ -3,10 +3,23 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
-export default function ProfileClient({ userId, email, currentDisplayName }) {
+export default function ProfileClient({ userId, email, currentDisplayName, memberships = [] }) {
   const [displayName, setDisplayName] = useState(currentDisplayName)
   const [status, setStatus] = useState(null) // null | 'saving' | 'saved' | 'error'
   const [error, setError] = useState(null)
+
+  // ── NEW: per-league nickname state ─────────────────────────────────────────
+  const [nicknames, setNicknames] = useState(() => {
+    const map = {}
+    for (const m of memberships) {
+      map[m.league_id] = m.nickname || ''
+    }
+    return map
+  })
+  const [nicknameSaving, setNicknameSaving] = useState(null) // leagueId | null
+  const [nicknameSaved, setNicknameSaved] = useState(null)   // leagueId | null
+  const [nicknameError, setNicknameError] = useState(null)
+  // ─────────────────────────────────────────────────────────────────────────
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -27,10 +40,33 @@ export default function ProfileClient({ userId, email, currentDisplayName }) {
       setStatus('error')
     } else {
       setStatus('saved')
-      // Reset saved status after 3s
       setTimeout(() => setStatus(null), 3000)
     }
   }
+
+  // ── NEW: save a single league nickname ────────────────────────────────────
+  const handleSaveNickname = async (leagueId) => {
+    setNicknameSaving(leagueId)
+    setNicknameError(null)
+
+    const supabase = createClient()
+    const value = nicknames[leagueId]?.trim() || null
+
+    const { error } = await supabase
+      .from('league_members')
+      .update({ nickname: value })
+      .eq('user_id', userId)
+      .eq('league_id', leagueId)
+
+    if (error) {
+      setNicknameError(error.message)
+    } else {
+      setNicknameSaved(leagueId)
+      setTimeout(() => setNicknameSaved(null), 3000)
+    }
+    setNicknameSaving(null)
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const isDirty = displayName.trim() !== currentDisplayName
   const isEmpty = displayName.trim() === ''
@@ -55,7 +91,7 @@ export default function ProfileClient({ userId, email, currentDisplayName }) {
         </p>
       </div>
 
-      {/* Display name form */}
+      {/* Display name form — UNCHANGED */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
         <form onSubmit={handleSave} className="space-y-4">
           <div>
@@ -73,7 +109,6 @@ export default function ProfileClient({ userId, email, currentDisplayName }) {
             <p className="text-xs text-gray-600 mt-1">{displayName.trim().length}/30 characters</p>
           </div>
 
-          {/* Duplicate name advisory */}
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
             <p className="text-xs text-blue-400">
               💡 If someone in your league has the same name as you, you can change your name here so everyone can be told apart on the standings.
@@ -102,12 +137,69 @@ export default function ProfileClient({ userId, email, currentDisplayName }) {
         </form>
       </div>
 
-      {/* Note about propagation */}
       {status === 'saved' && (
         <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-sm text-green-400">
           ✓ Your display name has been updated. It will appear on all league standings immediately.
         </div>
       )}
+
+      {/* ── NEW: League nicknames ─────────────────────────────────────────── */}
+      {memberships.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+            League Nicknames
+          </h2>
+          <p className="text-gray-500 text-sm mb-4">
+            Set a different name for each league. Leave blank to use your display name.
+          </p>
+
+          <div className="space-y-4">
+            {memberships.map(m => {
+              const leagueId = m.league_id
+              const leagueName = m.leagues?.league_name || 'Unknown league'
+              const value = nicknames[leagueId] ?? ''
+              const isSaving = nicknameSaving === leagueId
+              const isSaved = nicknameSaved === leagueId
+              const originalNickname = m.nickname || ''
+              const isDirtyNickname = value.trim() !== originalNickname
+
+              return (
+                <div key={leagueId}>
+                  <label className="block text-xs text-gray-500 mb-1 truncate">
+                    {leagueName}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={value}
+                      onChange={e => setNicknames(prev => ({ ...prev, [leagueId]: e.target.value }))}
+                      placeholder={displayName || 'Your display name'}
+                      maxLength={30}
+                      className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+                    />
+                    <button
+                      onClick={() => handleSaveNickname(leagueId)}
+                      disabled={isSaving || !isDirtyNickname}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-40 flex-shrink-0
+                        ${isSaved
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                          : 'bg-yellow-500 hover:bg-yellow-400 text-gray-950'
+                        }`}
+                    >
+                      {isSaving ? '…' : isSaved ? '✓' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {nicknameError && (
+            <p className="text-red-400 text-xs mt-3">{nicknameError}</p>
+          )}
+        </div>
+      )}
+      {/* ────────────────────────────────────────────────────────────────── */}
     </div>
   )
 }

@@ -15,6 +15,21 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single()
 
+  // ── NEW: fetch league memberships with nicknames ───────────────────────────
+  const { data: memberships } = await supabase
+    .from('league_members')
+    .select(`
+      league_id,
+      nickname,
+      leagues (
+        id,
+        league_name
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('joined_at', { ascending: true })
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-gray-800 px-6 py-4 flex items-center gap-4">
@@ -29,6 +44,7 @@ export default async function ProfilePage() {
           userId={user.id}
           email={user.email}
           currentDisplayName={profile?.display_name ?? ''}
+          memberships={memberships || []}
         />
       </div>
     </main>
