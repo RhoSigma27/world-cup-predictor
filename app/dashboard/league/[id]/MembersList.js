@@ -20,9 +20,10 @@ export default function MembersList({ members, adminId, currentUserId, fixtures,
   return (
     <>
       <div className="space-y-0">
-        {members?.map(({ user_id, profiles: profile }) => {
+        {members?.map(({ user_id, profiles: profile, nickname }) => {
           const isCurrentUser = user_id === currentUserId
-          const displayName = profile?.display_name
+          // ── CHANGED: nickname takes precedence over display_name ──────────
+          const displayName = nickname || profile?.display_name
           const isClickable = locked && !isCurrentUser
 
           return (

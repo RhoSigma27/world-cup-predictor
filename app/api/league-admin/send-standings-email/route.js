@@ -213,6 +213,7 @@ export async function POST(request) {
       .from('league_members')
       .select(`
         user_id,
+        nickname,
         profiles (
           display_name,
           email,
@@ -255,7 +256,7 @@ export async function POST(request) {
       const total = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras)
       return {
         userId: member.user_id,
-        displayName: member.profiles?.display_name || 'Unknown',
+        displayName: member.nickname || member.profiles?.display_name || 'Unknown',
         total,
       }
     })

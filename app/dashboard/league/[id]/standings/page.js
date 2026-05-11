@@ -119,11 +119,13 @@ export default async function StandingsPage({ params }) {
     .order('match_number', { ascending: true })
 
   // Get all league members with profiles (excluding banned users)
+  // ── CHANGED: added nickname to select ────────────────────────────────────
   const { data: members } = await adminSupabase
     .from('league_members')
     .select(`
       user_id,
       joined_at,
+      nickname,
       profiles (
         display_name,
         is_banned
@@ -197,7 +199,8 @@ export default async function StandingsPage({ params }) {
 
     return {
       userId: member.user_id,
-      displayName: member.profiles?.display_name,
+      // ── CHANGED: nickname takes precedence over display_name ──────────────
+      displayName: member.nickname || member.profiles?.display_name,
       isAdmin: member.user_id === league.admin_id,
       isCurrentUser: member.user_id === user.id,
       starPicks: {
@@ -311,7 +314,7 @@ export default async function StandingsPage({ params }) {
           </div>
         )}
 
-        {/* Standings table — CHANGED: 3 columns only (rank, player, total) */}
+        {/* Standings table */}
         <div className="bg-gray-900 rounded-2xl overflow-hidden">
           <table className="w-full">
             <thead>

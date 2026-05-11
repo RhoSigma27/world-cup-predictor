@@ -18,16 +18,16 @@ export default async function AdminLeaguesPage() {
 
   const adminSupabase = createAdminClient()
 
-  // Get all leagues — ADD logo_url here
+  // Get all leagues
   const { data: leagues } = await adminSupabase
     .from('leagues')
     .select('id, league_name, invite_code, created_at, admin_id, logo_url')
     .order('created_at', { ascending: false })
 
-  // Get all members
+  // Get all members — CHANGED: added nickname
   const { data: allMembers } = await adminSupabase
     .from('league_members')
-    .select('league_id, user_id, joined_at')
+    .select('league_id, user_id, joined_at, nickname')
     .order('joined_at', { ascending: true })
 
   // Collect all unique user IDs (admins + members)
@@ -58,7 +58,6 @@ export default async function AdminLeaguesPage() {
     })
   }
 
-  // ── NEW: prediction counts per user per league ────────────────────────────
   // Fetch fixture round map so we can split group vs KO
   const { data: fixtures } = await adminSupabase
     .from('fixtures')
@@ -84,15 +83,15 @@ export default async function AdminLeaguesPage() {
     if (fixtureRoundMap[p.fixture_id] === 'group') predMap[key].group++
     else predMap[key].ko++
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   const leaguesData = (leagues || []).map(l => ({
     ...l,
     profiles: profileMap[l.admin_id] || null,
     memberCount: countMap[l.id] || 0,
-    // Attach pred counts to each member
     members: (membersByLeague[l.id] || []).map(m => ({
       ...m,
+      // CHANGED: nickname-aware display name
+      display_name_effective: m.nickname || profileMap[m.user_id]?.display_name || 'Unknown',
       predGroup: predMap[`${m.user_id}_${l.id}`]?.group ?? 0,
       predKo:    predMap[`${m.user_id}_${l.id}`]?.ko    ?? 0,
     })),
