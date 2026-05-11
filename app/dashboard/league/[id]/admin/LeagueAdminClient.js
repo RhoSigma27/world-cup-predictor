@@ -236,9 +236,10 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
       leagueId: league.id, userId, name: newMemberName.trim()
     })
     if (ok) {
+      // ── CHANGED: update nickname in local state (not display_name) ─────────
       setMembers(prev => prev.map(m =>
         m.user_id === userId
-          ? { ...m, profiles: { ...m.profiles, display_name: newMemberName.trim() } }
+          ? { ...m, nickname: newMemberName.trim() }
           : m
       ))
       setRenamingMember(null)
@@ -407,21 +408,28 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
               const isRenaming = renamingMember === m.user_id
               const isConfirmRemove = confirmRemove === m.user_id
               const isConfirmAdmin = confirmChangeAdmin === m.user_id
+              // ── CHANGED: use nickname if set ──────────────────────────────
+              const effectiveName = m.nickname || m.profiles?.display_name
 
               return (
                 <div key={m.user_id} className="py-3 border-b border-gray-800/60 last:border-0">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-7 h-7 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
-                        {m.profiles?.display_name?.[0]?.toUpperCase()}
+                        {effectiveName?.[0]?.toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate">
-                          {m.profiles?.display_name}
+                          {effectiveName}
                           {isLeagueAdmin && <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>}
                           {isCurrentUser && <span className="ml-2 text-xs text-gray-500">(you)</span>}
                         </p>
-                        {/* email removed for privacy */}
+                        {/* ── CHANGED: show real name below if nickname is set ── */}
+                        {m.nickname && (
+                          <p className="text-xs text-gray-600 truncate">
+                            {m.profiles?.display_name}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -431,7 +439,8 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
                         <button
                           onClick={() => {
                             setRenamingMember(isRenaming ? null : m.user_id)
-                            setNewMemberName(isRenaming ? '' : m.profiles?.display_name || '')
+                            // ── CHANGED: pre-fill with nickname if set ────────
+                            setNewMemberName(isRenaming ? '' : (m.nickname || m.profiles?.display_name || ''))
                           }}
                           className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg border border-gray-700 transition-colors"
                         >
@@ -459,7 +468,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
                     {/* Confirm remove */}
                     {isConfirmRemove && (
                       <div className="flex items-center gap-2 flex-shrink-0 ml-9 sm:ml-0">
-                        <span className="text-xs text-red-400">Remove {m.profiles?.display_name}?</span>
+                        <span className="text-xs text-red-400">Remove {effectiveName}?</span>
                         <button
                           onClick={() => handleRemoveMember(m.user_id)}
                           disabled={saving === `remove-${m.user_id}`}
@@ -479,7 +488,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
                     {/* Confirm change admin */}
                     {isConfirmAdmin && (
                       <div className="flex items-center gap-2 flex-shrink-0 ml-9 sm:ml-0">
-                        <span className="text-xs text-yellow-400">Make {m.profiles?.display_name} admin?</span>
+                        <span className="text-xs text-yellow-400">Make {effectiveName} admin?</span>
                         <button
                           onClick={() => handleChangeAdmin(m.user_id)}
                           disabled={saving === `admin-${m.user_id}`}
@@ -505,7 +514,8 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
                         value={newMemberName}
                         onChange={e => setNewMemberName(e.target.value)}
                         maxLength={40}
-                        placeholder="New display name"
+                        // ── CHANGED: updated placeholder ─────────────────────
+                        placeholder="Nickname for this league"
                         autoFocus
                         className="flex-1 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
                       />

@@ -12,14 +12,25 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  // Verify caller is the league admin
+  // Verify caller is the league admin or superadmin
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_superadmin')
+    .eq('id', user.id)
+    .single()
+
   const { data: league } = await supabase
     .from('leagues')
     .select('admin_id')
     .eq('id', leagueId)
     .single()
 
-  if (!league || league.admin_id !== user.id) {
+  if (!league) return NextResponse.json({ error: 'League not found' }, { status: 404 })
+
+  const isLeagueAdmin = league.admin_id === user.id
+  const isSuperadmin = profile?.is_superadmin === true
+
+  if (!isLeagueAdmin && !isSuperadmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -34,10 +45,13 @@ export async function POST(request) {
 
   if (!membership) return NextResponse.json({ error: 'User not in league' }, { status: 404 })
 
+  // ── CHANGED: update nickname on league_members (scoped to this league)
+  // rather than display_name on profiles (which would affect all leagues)
   const { error } = await adminSupabase
-    .from('profiles')
-    .update({ display_name: name.trim() })
-    .eq('id', userId)
+    .from('league_members')
+    .update({ nickname: name.trim() })
+    .eq('league_id', leagueId)
+    .eq('user_id', userId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })

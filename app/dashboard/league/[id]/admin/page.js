@@ -23,11 +23,13 @@ export default async function LeagueAdminPage({ params }) {
   const adminSupabase = createAdminClient()
 
   // Get all members with profiles (excluding banned)
+  // ── CHANGED: added nickname ───────────────────────────────────────────────
   const { data: membersRaw } = await adminSupabase
     .from('league_members')
     .select(`
       user_id,
       joined_at,
+      nickname,
       profiles (
         display_name,
         email,
