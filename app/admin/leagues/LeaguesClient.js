@@ -31,7 +31,6 @@ function LogoUploader({ league, onUploaded, onRemoved }) {
     finally { setUploading(false) }
   }
 
-  // ── Remove logo ────────────────────────────────────────────────────────────
   const handleRemove = async () => {
     setRemoving(true)
     setError(null)
@@ -47,7 +46,6 @@ function LogoUploader({ league, onUploaded, onRemoved }) {
     } catch { setError('Failed to remove') }
     finally { setRemoving(false) }
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -64,7 +62,6 @@ function LogoUploader({ league, onUploaded, onRemoved }) {
         </div>
       </button>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
-      {/* Remove link — only shown when logo is set */}
       {preview && (
         <button
           onClick={handleRemove}
@@ -271,6 +268,11 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
   const [togglingBan, setTogglingBan] = useState(null)
   const [toast, setToast] = useState(null)
   const [qrLeague, setQrLeague] = useState(null)
+  // ── NEW: rename state ──────────────────────────────────────────────────────
+  const [renamingMember, setRenamingMember] = useState(null) // { userId, leagueId }
+  const [renameValue, setRenameValue] = useState('')
+  const [renaming, setRenaming] = useState(false)
+  // ─────────────────────────────────────────────────────────────────────────
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -283,11 +285,9 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
     setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, logo_url: logoUrl } : l))
   }
 
-  // ── NEW: logo removed callback ─────────────────────────────────────────────
   const handleLogoRemoved = (leagueId) => {
     setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, logo_url: null } : l))
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   const handleDelete = async (leagueId) => {
     setDeleting(leagueId)
@@ -326,6 +326,46 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
     } catch { showToast('Something went wrong', 'error') }
     finally { setTogglingBan(null) }
   }
+
+  // ── NEW: rename member handler ─────────────────────────────────────────────
+  const handleRename = async () => {
+    if (!renameValue.trim() || !renamingMember) return
+    setRenaming(true)
+    try {
+      const res = await fetch('/api/league-admin/rename-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leagueId: renamingMember.leagueId,
+          userId: renamingMember.userId,
+          name: renameValue.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast(data.error || 'Failed to rename', 'error')
+      } else {
+        // Update display_name_effective in local state
+        setLeagues(prev => prev.map(l =>
+          l.id === renamingMember.leagueId
+            ? {
+                ...l,
+                members: l.members.map(m =>
+                  m.user_id === renamingMember.userId
+                    ? { ...m, display_name_effective: renameValue.trim(), nickname: renameValue.trim() }
+                    : m
+                )
+              }
+            : l
+        ))
+        showToast('Member renamed ✓')
+        setRenamingMember(null)
+        setRenameValue('')
+      }
+    } catch { showToast('Something went wrong', 'error') }
+    finally { setRenaming(false) }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const totalMembers = leagues.reduce((acc, l) => acc + l.memberCount, 0)
 
@@ -438,40 +478,94 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                     <div className="space-y-0">
                       {league.members.map(m => {
                         const isBanned = m.profiles?.is_banned
+                        // ── CHANGED: use display_name_effective ───────────────
+                        const effectiveName = m.display_name_effective || m.profiles?.display_name
+                        const isRenaming = renamingMember?.userId === m.user_id && renamingMember?.leagueId === league.id
                         return (
-                          <div key={m.user_id} className={`flex items-center justify-between py-2 border-b border-gray-800/50 last:border-0 ${isBanned ? 'opacity-50' : ''}`}>
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
-                                {m.profiles?.display_name?.[0]?.toUpperCase()}
+                          <div key={m.user_id} className={`py-2 border-b border-gray-800/50 last:border-0 ${isBanned ? 'opacity-50' : ''}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
+                                  {effectiveName?.[0]?.toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-medium text-white">{effectiveName}</span>
+                                    {m.user_id === league.admin_id && (
+                                      <span className="text-xs text-yellow-400">⭐ Admin</span>
+                                    )}
+                                    {isBanned && (
+                                      <span className="text-xs text-red-400">🚫 Banned</span>
+                                    )}
+                                  </div>
+                                  {/* ── CHANGED: show real name + email below ── */}
+                                  <div className="flex items-center gap-1.5">
+                                    {m.nickname && (
+                                      <span className="text-xs text-gray-600">{m.profiles?.display_name} ·</span>
+                                    )}
+                                    <span className="text-xs text-gray-600">{m.profiles?.email}</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-sm font-medium text-white">{m.profiles?.display_name}</span>
-                                {m.user_id === league.admin_id && (
-                                  <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>
-                                )}
-                                {isBanned && (
-                                  <span className="ml-2 text-xs text-red-400">🚫 Banned</span>
-                                )}
-                                <span className="ml-2 text-xs text-gray-600">{m.profiles?.email}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-gray-600">
+                                  Joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </span>
+                                <PredBadge group={m.predGroup ?? 0} ko={m.predKo ?? 0} />
+                                {/* ── NEW: Rename button ── */}
+                                <button
+                                  onClick={() => {
+                                    if (isRenaming) {
+                                      setRenamingMember(null); setRenameValue('')
+                                    } else {
+                                      setRenamingMember({ userId: m.user_id, leagueId: league.id })
+                                      setRenameValue(m.nickname || m.profiles?.display_name || '')
+                                    }
+                                  }}
+                                  className="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-500 hover:text-gray-300 border border-gray-700 rounded-lg transition-colors"
+                                >
+                                  Rename
+                                </button>
+                                <button
+                                  onClick={() => handleToggleBan(m.user_id, isBanned)}
+                                  disabled={togglingBan === m.user_id}
+                                  className={`text-xs px-2.5 py-1 rounded-lg border transition-colors disabled:opacity-50
+                                    ${isBanned
+                                      ? 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30'
+                                      : 'bg-gray-800 hover:bg-red-500/20 text-gray-500 hover:text-red-400 border-gray-700 hover:border-red-500/30'
+                                    }`}
+                                >
+                                  {togglingBan === m.user_id ? '…' : isBanned ? 'Reinstate' : 'Ban'}
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-gray-600">
-                                Joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                              </span>
-                              <PredBadge group={m.predGroup ?? 0} ko={m.predKo ?? 0} />
-                              <button
-                                onClick={() => handleToggleBan(m.user_id, isBanned)}
-                                disabled={togglingBan === m.user_id}
-                                className={`text-xs px-2.5 py-1 rounded-lg border transition-colors disabled:opacity-50
-                                  ${isBanned
-                                    ? 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30'
-                                    : 'bg-gray-800 hover:bg-red-500/20 text-gray-500 hover:text-red-400 border-gray-700 hover:border-red-500/30'
-                                  }`}
-                              >
-                                {togglingBan === m.user_id ? '…' : isBanned ? 'Reinstate' : 'Ban'}
-                              </button>
-                            </div>
+                            {/* ── NEW: inline rename input ── */}
+                            {isRenaming && (
+                              <div className="flex gap-2 mt-2 ml-9">
+                                <input
+                                  type="text"
+                                  value={renameValue}
+                                  onChange={e => setRenameValue(e.target.value)}
+                                  maxLength={40}
+                                  placeholder="Nickname for this league"
+                                  autoFocus
+                                  className="flex-1 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
+                                />
+                                <button
+                                  onClick={handleRename}
+                                  disabled={renaming || !renameValue.trim()}
+                                  className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-950 font-bold rounded-lg text-sm transition-colors"
+                                >
+                                  {renaming ? '…' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={() => { setRenamingMember(null); setRenameValue('') }}
+                                  className="px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg text-sm transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
