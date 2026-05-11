@@ -7,6 +7,8 @@ import ScoringGuide from './ScoringGuide'
 import MembersList from './MembersList'
 import LeagueLogo from '@/app/components/LeagueLogo'
 
+export const revalidate = 0
+
 export default async function LeaguePage({ params, searchParams }) {
   const supabase = await createServerSupabaseClient()
   const { id } = await params
@@ -32,6 +34,7 @@ export default async function LeaguePage({ params, searchParams }) {
     .select(`
       user_id,
       joined_at,
+      nickname,
       profiles (
         display_name,
         email,
