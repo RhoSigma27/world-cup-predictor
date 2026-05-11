@@ -102,7 +102,7 @@ export default function ProfileClient({ userId, email, currentDisplayName, membe
               type="text"
               value={displayName}
               onChange={e => { setDisplayName(e.target.value); setStatus(null) }}
-              placeholder="e.g. Rahul"
+              placeholder="e.g. B Saka"
               maxLength={30}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
             />
@@ -173,7 +173,7 @@ export default function ProfileClient({ userId, email, currentDisplayName, membe
                       type="text"
                       value={value}
                       onChange={e => setNicknames(prev => ({ ...prev, [leagueId]: e.target.value }))}
-                      placeholder={displayName || 'Your display name'}
+                      placeholder={displayName || 'Enter nickname (optional)'}
                       maxLength={30}
                       className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
                     />
