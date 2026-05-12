@@ -62,9 +62,10 @@ function SignInForm() {
       setError('Invalid or expired code — please check and try again.')
       setVerifying(false)
     } else {
-      // Redirect to dashboard (or back to invite flow)
       const next = invite ? `/join/${invite}` : '/dashboard'
-      router.push(next)
+      // Use full navigation so the session cookie is committed before the
+      // server middleware runs — router.push() is too fast and races the cookie write
+      window.location.href = next
     }
   }
 
