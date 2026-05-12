@@ -1,7 +1,8 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import LeagueLogo from '@/app/components/LeagueLogo'   // ← NEW
+import LeagueLogo from '@/app/components/LeagueLogo'
+import SignOutButton from '@/app/components/SignOutButton'
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient()
@@ -9,14 +10,12 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/signin')
 
-  // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
-  // Get leagues the user belongs to
   const { data: memberships } = await supabase
     .from('league_members')
     .select(`
@@ -35,7 +34,6 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      {/* Header — UNCHANGED */}
       <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-2xl">⚽</span>
@@ -57,16 +55,11 @@ export default async function DashboardPage() {
           >
             👤 {profile?.display_name}
           </Link>
-          <form action="/auth/signout" method="post">
-            <button className="text-sm text-gray-500 hover:text-white transition-colors">
-              Sign out
-            </button>
-          </form>
+          <SignOutButton />
         </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 py-10">
-        {/* Welcome — UNCHANGED */}
         <div className="mb-10">
           <h1 className="text-3xl font-bold mb-1">
             Welcome back, {profile?.display_name} 👋
@@ -76,7 +69,6 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {/* Action cards — UNCHANGED */}
         <div className="grid md:grid-cols-2 gap-4 mb-10">
           <Link
             href="/dashboard/create-league"
@@ -112,7 +104,6 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {/* My Leagues */}
         <div>
           <h2 className="text-xl font-bold mb-4">My Leagues</h2>
           {!memberships || memberships.length === 0 ? (
@@ -132,7 +123,6 @@ export default async function DashboardPage() {
                   className="block bg-gray-900 border border-gray-800 hover:border-yellow-500 rounded-2xl p-5 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-4">
-                    {/* ── NEW: logo + name side by side ── */}
                     <div className="flex items-center gap-3 min-w-0">
                       <LeagueLogo
                         name={league.league_name}
