@@ -182,8 +182,7 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
   }
 
   // ── KO stage scoring (team-centric) ──────────────────────────────────────
-
-  // Simulate this user's bracket from their group predictions
+  
   const groupPredMap = {}
   for (const f of fixtures.filter(f => f.round === 'group')) {
     const pred = predMap[f.id]
@@ -192,10 +191,23 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
   const tables = calcGroupTables(groupPredMap, fixtures)
   const annexMap = buildAnnexMap(tables)
 
-  for (const f of fixtures.filter(f => f.round !== 'group')) {
+  // Build a map of: for each round, which fixture did the user think each team was in?
+  // We do this by simulating the user's full bracket and recording
+  // userFixtureForTeam[round][teamName] = { fixtureId, asHome: bool }
+  const koFixtures = fixtures.filter(f => f.round !== 'group')
+    .sort((a, b) => a.match_number - b.match_number)
+
+  const userFixtureForTeam = {} // round → { teamName → { fixtureId, asHome } }
+  for (const f of koFixtures) {
+    const userHome = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
+    const userAway = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
+    if (!userFixtureForTeam[f.round]) userFixtureForTeam[f.round] = {}
+    if (userHome) userFixtureForTeam[f.round][userHome] = { fixtureId: f.id, asHome: true }
+    if (userAway) userFixtureForTeam[f.round][userAway] = { fixtureId: f.id, asHome: false }
+  }
+
+  for (const f of koFixtures) {
     if (f.home_score == null || f.away_score == null) continue
-    const pred = predMap[f.id]
-    if (!pred || pred.predicted_home == null || pred.predicted_away == null) continue
 
     const [base, bonus] = KO_POINTS[f.round] || [0, 0]
     const starRound = f.round === '3RD' ? 'FINAL' : f.round
@@ -208,47 +220,45 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
       if (f.penalty_winner === f.home_team) actualHome += 1
       else actualAway += 1
     }
-    const actualHomeWins = actualHome > actualAway  // always true in KO (no draws)
+    const actualHomeWins = actualHome > actualAway
     const actualAwayWins = actualAway > actualHome
 
-    // Penalty adjustment for user prediction
-    // User signals pen winner by giving +1 to one side in a drawn score
-    // We use their raw predicted scores directly
-    const predHomeWins = pred.predicted_home > pred.predicted_away
-    const predAwayWins = pred.predicted_away > pred.predicted_home
+    // Score each real team in this fixture independently
+    for (const [realTeam, realTeamWins] of [
+      [f.home_team, actualHomeWins],
+      [f.away_team, actualAwayWins],
+    ]) {
+      // Did the user predict this team in this round?
+      const userEntry = userFixtureForTeam[f.round]?.[realTeam]
+      if (!userEntry) continue // user didn't have this team here — no points
 
-    // Resolve which teams the USER predicted in each slot
-    const userHome = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
-    const userAway = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
+      // Get the user's predicted score for the fixture they thought this team was in
+      const userPred = predMap[userEntry.fixtureId]
+      if (!userPred || userPred.predicted_home == null || userPred.predicted_away == null) continue
 
-    // Score home slot team
-    if (userHome && userHome === f.home_team) {
-      // User had the correct team in this slot
-      if (actualHomeWins === predHomeWins && actualAwayWins === predAwayWins) {
-        // Correct result for this team
-        let pts = base
-        // Exact score bonus — using pen-adjusted actual vs raw predicted
-        if (pred.predicted_home === actualHome && pred.predicted_away === actualAway) {
-          pts += bonus
-        }
-        if (starPick && starPick === userHome) pts *= 2
-        koPts += pts
+      // From the user's perspective, did they predict this team to win?
+      const userTeamWins = userEntry.asHome
+        ? userPred.predicted_home > userPred.predicted_away
+        : userPred.predicted_away > userPred.predicted_home
+
+      if (userTeamWins !== realTeamWins) continue // wrong result for this team
+
+      let pts = base
+
+      // Exact score bonus — compare pen-adjusted actual scoreline to user's predicted scoreline
+      // The user's predicted scoreline may be from a different fixture but same team
+      // We compare from the perspective of this team: goals for / goals against
+      const realTeamGF = realTeam === f.home_team ? actualHome : actualAway
+      const realTeamGA = realTeam === f.home_team ? actualAway : actualHome
+      const userTeamGF = userEntry.asHome ? userPred.predicted_home : userPred.predicted_away
+      const userTeamGA = userEntry.asHome ? userPred.predicted_away : userPred.predicted_home
+
+      if (userTeamGF === realTeamGF && userTeamGA === realTeamGA) {
+        pts += bonus
       }
-    }
 
-    // Score away slot team
-    if (userAway && userAway === f.away_team) {
-      // User had the correct team in this slot
-      if (actualHomeWins === predHomeWins && actualAwayWins === predAwayWins) {
-        // Correct result for this team
-        let pts = base
-        // Exact score bonus
-        if (pred.predicted_home === actualHome && pred.predicted_away === actualAway) {
-          pts += bonus
-        }
-        if (starPick && starPick === userAway) pts *= 2
-        koPts += pts
-      }
+      if (starPick && starPick === realTeam) pts *= 2
+      koPts += pts
     }
   }
 
