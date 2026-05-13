@@ -326,7 +326,7 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
     }
   }
 
-  return { total: groupPts + koPts + extrasPts, groupPts, koPts, extrasPts, koDebug }
+  return { total: groupPts + koPts + extrasPts, groupPts, koPts, extrasPts }
 }
 
 export default async function StandingsPage({ params }) {
@@ -460,9 +460,6 @@ export default async function StandingsPage({ params }) {
     cumulativeChart.push(cumPoint)
   }
 
-  const currentUserStanding = standings.find(s => s.isCurrentUser)
-  const debugRows = currentUserStanding?.koDebug ?? []
-
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 bg-gray-950 z-40">
@@ -540,46 +537,6 @@ export default async function StandingsPage({ params }) {
         <div className="mt-6 p-4 bg-gray-900 border border-gray-800 rounded-xl text-xs text-gray-500">
           <strong className="text-gray-400">Scoring:</strong> Groups: 10pts result + 5pts score · R32: 10+5 per team · R16: 20+10 · QF/SF: 30+15 · 3rd/Final: 50+25 · Star Pick = 2× · Extras: 50pts closest
         </div>
-
-        {/* ── TEMP DEBUG — remove before launch ── */}
-        {debugRows.length > 0 && (
-          <div className="mt-6 p-4 bg-gray-900 border border-yellow-500/30 rounded-xl overflow-x-auto">
-            <p className="text-yellow-400 text-xs font-bold mb-3">🔧 DEBUG: KO Scoring for {currentUserStanding?.displayName}</p>
-            <table className="w-full text-xs text-gray-400">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left px-2 py-1">M#</th>
-                  <th className="text-left px-2 py-1">Round</th>
-                  <th className="text-left px-2 py-1">Team</th>
-                  <th className="text-left px-2 py-1">Real GF-GA</th>
-                  <th className="text-left px-2 py-1">Had team?</th>
-                  <th className="text-left px-2 py-1">User pred</th>
-                  <th className="text-left px-2 py-1">User GF-GA</th>
-                  <th className="text-left px-2 py-1">Result✓</th>
-                  <th className="text-left px-2 py-1">Score✓</th>
-                  <th className="text-left px-2 py-1">Pts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {debugRows.map((r, i) => (
-                  <tr key={i} className={`border-b border-gray-800/50 ${r.pts > 0 ? 'text-green-400' : ''}`}>
-                    <td className="px-2 py-1">{r.match}</td>
-                    <td className="px-2 py-1">{r.round}</td>
-                    <td className="px-2 py-1 font-medium">{r.realTeam}</td>
-                    <td className="px-2 py-1">{r.realResult}</td>
-                    <td className="px-2 py-1">{r.userHadTeam ? '✅' : '❌'}</td>
-                    <td className="px-2 py-1">{r.userPredScore ?? '—'}</td>
-                    <td className="px-2 py-1">{r.userTeamScore ?? '—'}</td>
-                    <td className="px-2 py-1">{r.resultCorrect ? '✅' : '❌'}</td>
-                    <td className="px-2 py-1">{r.scoreCorrect ? '✅' : '❌'}</td>
-                    <td className="px-2 py-1 font-bold">{r.pts}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {/* ── END DEBUG ── */}
 
       </div>
 
