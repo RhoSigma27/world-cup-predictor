@@ -114,6 +114,21 @@ function resolveUserSlot(slotCode, matchNum, tables, annexMap, predMap, fixtures
   return null
 }
 
+// ─── Find which fixture the USER predicted a team to be in ───────────────────
+// Searches through all fixtures in the given round and returns the fixture
+// where the user's bracket simulation places the given team.
+
+function findUserFixtureForTeam(team, round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum) {
+  const roundFixtures = koFixtures.filter(f => f.round === round)
+  for (const f of roundFixtures) {
+    const userHome = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
+    const userAway = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
+    if (userHome === team) return { fixtureId: f.id, asHome: true }
+    if (userAway === team) return { fixtureId: f.id, asHome: false }
+  }
+  return null
+}
+
 // ─── Main scoring function ────────────────────────────────────────────────────
 
 const KO_POINTS = {
@@ -177,13 +192,21 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
   const koFixtures = fixtures.filter(f => f.round !== 'group')
     .sort((a, b) => a.match_number - b.match_number)
 
+  // For each real KO fixture, find which teams the user predicted there,
+  // then find which fixture in the USER'S bracket those teams were playing in.
   const userFixtureForTeam = {}
   for (const f of koFixtures) {
+    if (!userFixtureForTeam[f.round]) userFixtureForTeam[f.round] = {}
     const userHome = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
     const userAway = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
-    if (!userFixtureForTeam[f.round]) userFixtureForTeam[f.round] = {}
-    if (userHome) userFixtureForTeam[f.round][userHome] = { fixtureId: f.id, asHome: true }
-    if (userAway) userFixtureForTeam[f.round][userAway] = { fixtureId: f.id, asHome: false }
+    if (userHome) {
+      const entry = findUserFixtureForTeam(userHome, f.round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum)
+      if (entry) userFixtureForTeam[f.round][userHome] = entry
+    }
+    if (userAway) {
+      const entry = findUserFixtureForTeam(userAway, f.round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum)
+      if (entry) userFixtureForTeam[f.round][userAway] = entry
+    }
   }
 
   const koDebug = []
@@ -209,8 +232,8 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
       [f.away_team, actualAwayWins],
     ]) {
       const userEntry = userFixtureForTeam[f.round]?.[realTeam]
-
       const userPred = userEntry ? predMap[userEntry.fixtureId] : null
+
       const userTeamWins = userEntry && userPred
         ? (userEntry.asHome
             ? userPred.predicted_home > userPred.predicted_away
@@ -226,8 +249,8 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
         ? (userEntry.asHome ? userPred.predicted_away : userPred.predicted_home)
         : null
 
-      const resultCorrect = userEntry && userPred && userTeamWins === realTeamWins
-      const scoreCorrect = resultCorrect && userTeamGF === realTeamGF && userTeamGA === realTeamGA
+      const resultCorrect = !!(userEntry && userPred && userTeamWins === realTeamWins)
+      const scoreCorrect = !!(resultCorrect && userTeamGF === realTeamGF && userTeamGA === realTeamGA)
 
       let pts = 0
       if (resultCorrect) {
@@ -243,8 +266,6 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
         realTeam,
         realResult: `${realTeamGF}-${realTeamGA}`,
         userHadTeam: !!userEntry,
-        userPredFixture: userEntry?.fixtureId ?? null,
-        userAsHome: userEntry?.asHome ?? null,
         userPredScore: userPred ? `${userPred.predicted_home}-${userPred.predicted_away}` : null,
         userTeamScore: userTeamGF != null ? `${userTeamGF}-${userTeamGA}` : null,
         resultCorrect,
@@ -400,7 +421,6 @@ export default async function StandingsPage({ params }) {
     cumulativeChart.push(cumPoint)
   }
 
-  // ── Build debug data for current user only ────────────────────────────────
   const currentUserStanding = standings.find(s => s.isCurrentUser)
   const debugRows = currentUserStanding?.koDebug ?? []
 
