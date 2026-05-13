@@ -1,25 +1,157 @@
+// ─── standings/page.js ───────────────────────────────────────────────────────
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import PointsChart from './PointsChart'
 import LeagueLogo from '@/app/components/LeagueLogo'
+import {
+  GROUPS, GROUP_TEAMS, ANNEX_C,
+} from '@/lib/worldcup'
 
-// ─── Scoring Engine ───────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function getResult(s1, s2) {
   if (s1 > s2) return 'H'
   if (s2 > s1) return 'A'
   return 'D'
 }
 
-// R32 matches that host a 3rd-place team (Annex C slot positions)
-// matchNumber → column index in the Annex C row
-const ANNEX_C_R32_MATCHES = new Set([74, 77, 79, 80, 81, 82, 85, 87])
+// ─── Group table simulation (mirrors PredictionsClient.js) ───────────────────
 
-function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, effectiveThirdPlaceGroups = []) {
-  let groupPts = 0, koPts = 0, extrasPts = 0
+function calcGroupTables(predMap, fixtures) {
+  const tables = {}
+  for (const g of GROUPS) {
+    tables[g] = GROUP_TEAMS[g].map(t => ({
+      team: t, played: 0, gf: 0, ga: 0, gd: 0, pts: 0, group: g,
+    }))
+  }
+  for (const f of fixtures.filter(f => f.round === 'group')) {
+    const pred = predMap[f.id]
+    if (!pred || pred.predicted_home == null || pred.predicted_away == null) continue
+    const g = f.match_group
+    const t1 = tables[g]?.find(x => x.team === f.home_team)
+    const t2 = tables[g]?.find(x => x.team === f.away_team)
+    if (!t1 || !t2) continue
+    t1.played++; t2.played++
+    t1.gf += pred.predicted_home; t1.ga += pred.predicted_away
+    t2.gf += pred.predicted_away; t2.ga += pred.predicted_home
+    t1.gd = t1.gf - t1.ga; t2.gd = t2.gf - t2.ga
+    if (pred.predicted_home > pred.predicted_away) { t1.pts += 3 }
+    else if (pred.predicted_away > pred.predicted_home) { t2.pts += 3 }
+    else { t1.pts += 1; t2.pts += 1 }
+  }
+  for (const g of GROUPS) {
+    tables[g].sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+  }
+  return tables
+}
 
-  // Build per-round star pick map from new columns
+function calcAllThirds(tables) {
+  return GROUPS
+    .map(g => ({ ...tables[g][2], group: g }))
+    .filter(Boolean)
+    .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+}
+
+// ─── Annex C resolution ───────────────────────────────────────────────────────
+
+const ANNEX_C_MATCH_TO_COL = { 79:0, 85:1, 81:2, 74:3, 82:4, 77:5, 87:6, 80:7 }
+
+function buildAnnexMap(tables) {
+  const top8 = calcAllThirds(tables).slice(0, 8).map(t => t.group)
+  const key = [...top8].sort().join('')
+  const entry = ANNEX_C[key]
+  if (!entry) return {}
+  const result = {}
+  for (const [matchNum, col] of Object.entries(ANNEX_C_MATCH_TO_COL)) {
+    const groupLetter = entry[col]
+    result[Number(matchNum)] = tables[groupLetter]?.[2]?.team ?? null
+  }
+  return result
+}
+
+// ─── Bracket slot resolver ────────────────────────────────────────────────────
+// Returns the team a USER predicted would occupy a given slot,
+// based on their group predictions and KO predictions.
+
+function resolveUserSlot(slotCode, matchNum, tables, annexMap, predMap, fixturesByMatchNum, depth = 0) {
+  if (!slotCode || depth > 10) return null
+
+  // Group winner/runner-up
+  if (/^[12][A-L]$/.test(slotCode)) {
+    const pos = slotCode[0] === '1' ? 0 : 1
+    return tables[slotCode[1]]?.[pos]?.team ?? null
+  }
+
+  // 3rd place slot — resolved via Annex C
+  if (/^3[A-L]{2,}$/.test(slotCode)) {
+    return annexMap[matchNum] ?? null
+  }
+
+  // Winner of match N
+  if (slotCode.startsWith('W')) {
+    const matchNum2 = parseInt(slotCode.slice(1))
+    const f = fixturesByMatchNum[matchNum2]
+    if (!f) return null
+    const pred = predMap[f.id]
+    if (!pred || pred.predicted_home == null || pred.predicted_away == null) return null
+    const t1 = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum, depth + 1)
+    const t2 = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum, depth + 1)
+    // Apply pen adjustment: if draw, no winner resolvable
+    const effHome = pred.predicted_home
+    const effAway = pred.predicted_away
+    if (effHome > effAway) return t1
+    if (effAway > effHome) return t2
+    return null // draw — can't resolve winner
+  }
+
+  // Loser of match N (for 3rd place)
+  if (slotCode.startsWith('L')) {
+    const matchNum2 = parseInt(slotCode.slice(1))
+    const f = fixturesByMatchNum[matchNum2]
+    if (!f) return null
+    const pred = predMap[f.id]
+    if (!pred || pred.predicted_home == null || pred.predicted_away == null) return null
+    const t1 = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum, depth + 1)
+    const t2 = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum, depth + 1)
+    if (pred.predicted_home > pred.predicted_away) return t2
+    if (pred.predicted_away > pred.predicted_home) return t1
+    return null
+  }
+
+  return null
+}
+
+// ─── Main scoring function ────────────────────────────────────────────────────
+
+const KO_POINTS = {
+  R32:   [10,  5],
+  R16:   [20, 10],
+  QF:    [30, 15],
+  SF:    [30, 15],
+  '3RD': [50, 25],
+  FINAL: [50, 25],
+}
+
+function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
+  let groupPts = 0
+  let koPts = 0
+  let extrasPts = 0
+
+  // Build prediction map: fixture_id → {predicted_home, predicted_away}
+  const predMap = {}
+  for (const p of predictions) {
+    predMap[p.fixture_id] = p
+  }
+
+  // Build fixture index by match_number
+  const fixturesByMatchNum = {}
+  for (const f of fixtures) {
+    if (f.match_number) fixturesByMatchNum[f.match_number] = f
+  }
+
+  // Star picks per round
   const starPicks = {
     group: extrasPred?.star_pick_group ?? null,
     R32:   extrasPred?.star_pick_r32   ?? null,
@@ -29,52 +161,98 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, effec
     FINAL: extrasPred?.star_pick_final ?? null,
   }
 
-  for (const f of fixtures) {
+  // ── Group stage scoring (fixture-based, unchanged) ────────────────────────
+  for (const f of fixtures.filter(f => f.round === 'group')) {
     if (f.home_score == null || f.away_score == null) continue
-    const pred = predictions.find(p => p.fixture_id === f.id)
+    const pred = predMap[f.id]
     if (!pred || pred.predicted_home == null || pred.predicted_away == null) continue
 
-    // For KO matches with a penalty winner, treat as +1 for scoring purposes
-    // e.g. 1-1 with home winning pens → treat as 2-1 for result/score comparison
-    let effectiveHome = f.home_score
-    let effectiveAway = f.away_score
-    if (f.penalty_winner && f.home_score === f.away_score) {
-      if (f.penalty_winner === f.home_team) effectiveHome += 1
-      else effectiveAway += 1
-    }
-
-    const masterResult = getResult(effectiveHome, effectiveAway)
+    const masterResult = getResult(f.home_score, f.away_score)
     const predResult = getResult(pred.predicted_home, pred.predicted_away)
-
     if (masterResult !== predResult) continue
 
-    const roundPoints = {
-      group: [10, 5],
-      R32: [10, 5],
-      R16: [20, 10],
-      QF: [30, 15],
-      SF: [50, 25],
-      '3RD': [80, 40],
-      FINAL: [80, 40],
+    let pts = 10
+    if (pred.predicted_home === f.home_score && pred.predicted_away === f.away_score) pts += 5
+
+    // Star pick doubles
+    if (starPicks.group && (f.home_team === starPicks.group || f.away_team === starPicks.group)) {
+      pts *= 2
     }
-
-    const [base, bonus] = roundPoints[f.round] || [0, 0]
-    let pts = base
-    if (pred.predicted_home === effectiveHome && pred.predicted_away === effectiveAway) {
-      pts += bonus
-    }
-
-    // Star pick doubles points — use the pick for this specific round
-    const roundKey = f.round === '3RD' ? 'FINAL' : f.round // bronze uses FINAL pick
-    const starPick = starPicks[roundKey] ?? null
-    const teamInvolved = f.home_team === starPick || f.away_team === starPick
-    if (starPick && teamInvolved) pts *= 2
-
-    if (f.round === 'group') groupPts += pts
-    else koPts += pts
+    groupPts += pts
   }
 
-  // Extras scoring
+  // ── KO stage scoring (team-centric) ──────────────────────────────────────
+
+  // Simulate this user's bracket from their group predictions
+  const groupPredMap = {}
+  for (const f of fixtures.filter(f => f.round === 'group')) {
+    const pred = predMap[f.id]
+    if (pred) groupPredMap[f.id] = pred
+  }
+  const tables = calcGroupTables(groupPredMap, fixtures)
+  const annexMap = buildAnnexMap(tables)
+
+  for (const f of fixtures.filter(f => f.round !== 'group')) {
+    if (f.home_score == null || f.away_score == null) continue
+    const pred = predMap[f.id]
+    if (!pred || pred.predicted_home == null || pred.predicted_away == null) continue
+
+    const [base, bonus] = KO_POINTS[f.round] || [0, 0]
+    const starRound = f.round === '3RD' ? 'FINAL' : f.round
+    const starPick = starPicks[starRound] ?? null
+
+    // Penalty adjustment for actual result
+    let actualHome = f.home_score
+    let actualAway = f.away_score
+    if (f.penalty_winner && f.home_score === f.away_score) {
+      if (f.penalty_winner === f.home_team) actualHome += 1
+      else actualAway += 1
+    }
+    const actualHomeWins = actualHome > actualAway  // always true in KO (no draws)
+    const actualAwayWins = actualAway > actualHome
+
+    // Penalty adjustment for user prediction
+    // User signals pen winner by giving +1 to one side in a drawn score
+    // We use their raw predicted scores directly
+    const predHomeWins = pred.predicted_home > pred.predicted_away
+    const predAwayWins = pred.predicted_away > pred.predicted_home
+
+    // Resolve which teams the USER predicted in each slot
+    const userHome = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
+    const userAway = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
+
+    // Score home slot team
+    if (userHome && userHome === f.home_team) {
+      // User had the correct team in this slot
+      if (actualHomeWins === predHomeWins && actualAwayWins === predAwayWins) {
+        // Correct result for this team
+        let pts = base
+        // Exact score bonus — using pen-adjusted actual vs raw predicted
+        if (pred.predicted_home === actualHome && pred.predicted_away === actualAway) {
+          pts += bonus
+        }
+        if (starPick && starPick === userHome) pts *= 2
+        koPts += pts
+      }
+    }
+
+    // Score away slot team
+    if (userAway && userAway === f.away_team) {
+      // User had the correct team in this slot
+      if (actualHomeWins === predHomeWins && actualAwayWins === predAwayWins) {
+        // Correct result for this team
+        let pts = base
+        // Exact score bonus
+        if (pred.predicted_home === actualHome && pred.predicted_away === actualAway) {
+          pts += bonus
+        }
+        if (starPick && starPick === userAway) pts *= 2
+        koPts += pts
+      }
+    }
+  }
+
+  // ── Extras scoring (unchanged) ────────────────────────────────────────────
   if (masterExtras) {
     if (masterExtras.total_red_cards != null && extrasPred?.predicted_red_cards != null) {
       const diff = Math.abs(masterExtras.total_red_cards - extrasPred.predicted_red_cards)
@@ -86,12 +264,7 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras, effec
     }
   }
 
-  return {
-    total: groupPts + koPts + extrasPts,
-    groupPts,
-    koPts,
-    extrasPts,
-  }
+  return { total: groupPts + koPts + extrasPts, groupPts, koPts, extrasPts }
 }
 
 export default async function StandingsPage({ params }) {
@@ -140,43 +313,6 @@ export default async function StandingsPage({ params }) {
     .eq('id', '00000000-0000-0000-0000-000000000001')
     .maybeSingle()
 
-  // Determine the effective 3rd-place qualifying groups:
-  // If admin has set a manual override, use that; otherwise derive from real scores.
-  // This is used to correctly identify which 3rd-place team slot each R32 fixture
-  // belongs to when applying star-pick bonuses and future bracket logic.
-  const effectiveThirdPlaceGroups = masterExtras?.third_place_override
-    ? masterExtras.third_place_override  // e.g. ['C','F','G','H','I','J','K','L']
-    : (() => {
-        // Auto-compute from completed group fixtures
-        const groupFixtures = fixtures?.filter(f => f.round === 'group') || []
-        const groupStats = {}
-        for (const f of groupFixtures) {
-          if (f.home_score == null || f.away_score == null) continue
-          const g = f.match_group
-          if (!groupStats[g]) {
-            groupStats[g] = {}
-          }
-          for (const [team, gf, ga] of [
-            [f.home_team, f.home_score, f.away_score],
-            [f.away_team, f.away_score, f.home_score],
-          ]) {
-            if (!groupStats[g][team]) groupStats[g][team] = { pts: 0, gd: 0, gf: 0, played: 0 }
-            const s = groupStats[g][team]
-            s.played++; s.gf += gf; s.ga += ga; s.gd += gf - ga
-            if (gf > ga) s.pts += 3
-            else if (gf === ga) s.pts += 1
-          }
-        }
-        // Get 3rd-place team per group, then rank by pts/gd/gf, take top 8
-        const thirds = Object.entries(groupStats).map(([g, teams]) => {
-          const sorted = Object.entries(teams)
-            .sort(([, a], [, b]) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
-          return sorted[2] ? { group: g, ...(sorted[2][1]) } : null
-        }).filter(Boolean)
-        thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
-        return thirds.slice(0, 8).map(t => t.group)
-      })()
-
   // Get all predictions for this league
   const { data: allPredictions } = await adminSupabase
     .from('predictions')
@@ -194,7 +330,7 @@ export default async function StandingsPage({ params }) {
     const userPreds = allPredictions?.filter(p => p.user_id === member.user_id) || []
     const userExtras = allExtras?.find(e => e.user_id === member.user_id) || null
 
-    const score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras, effectiveThirdPlaceGroups)
+    const score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras)
     const filled = userPreds.filter(p => p.predicted_home != null && p.predicted_away != null).length
 
     return {
@@ -261,7 +397,7 @@ export default async function StandingsPage({ params }) {
       }
       const roundPoints = {
         group: [10, 5], R32: [10, 5], R16: [20, 10],
-        QF: [30, 15], SF: [50, 25], '3RD': [80, 40], FINAL: [80, 40],
+        QF: [30, 15], SF: [30, 15], '3RD': [50, 25], FINAL: [50, 25],
       }
       const [base, bonus] = roundPoints[f.round] || [0, 0]
       let pts = base
@@ -360,7 +496,7 @@ export default async function StandingsPage({ params }) {
 
         {/* Scoring guide */}
         <div className="mt-6 p-4 bg-gray-900 border border-gray-800 rounded-xl text-xs text-gray-500">
-          <strong className="text-gray-400">Scoring:</strong> Group/R32: 10pts result + 5pts score · R16: 20+10 · QF: 30+15 · SF: 50+25 · Final: 80+40 · Star Pick = 2× · Extras: 50pts closest
+          <strong className="text-gray-400">Scoring:</strong> Groups: 10pts result + 5pts score · R32: 10+5 per team · R16: 20+10 · QF/SF: 30+15 · 3rd/Final: 50+25 · Star Pick = 2× · Extras: 50pts closest
         </div>
       </div>
 
