@@ -19,6 +19,49 @@ function getResult(s1, s2) {
 
 // ─── Group table simulation (mirrors PredictionsClient.js) ───────────────────
 
+function calcH2H(teamNames, groupLetter, predMap, fixtures) {
+  const stats = {}
+  for (const t of teamNames) stats[t] = { pts: 0, gd: 0, gf: 0 }
+  for (const f of fixtures) {
+    if (f.round !== 'group' || f.match_group !== groupLetter) continue
+    if (!teamNames.includes(f.home_team) || !teamNames.includes(f.away_team)) continue
+    const pred = predMap[f.id]
+    if (!pred || pred.predicted_home == null || pred.predicted_away == null) continue
+    stats[f.home_team].gf += pred.predicted_home
+    stats[f.home_team].gd += pred.predicted_home - pred.predicted_away
+    stats[f.away_team].gf += pred.predicted_away
+    stats[f.away_team].gd += pred.predicted_away - pred.predicted_home
+    if (pred.predicted_home > pred.predicted_away) stats[f.home_team].pts += 3
+    else if (pred.predicted_away > pred.predicted_home) stats[f.away_team].pts += 3
+    else { stats[f.home_team].pts++; stats[f.away_team].pts++ }
+  }
+  return stats
+}
+
+function sortGroupFifa(rows, groupLetter, predMap, fixtures) {
+  rows.sort((a, b) => b.pts - a.pts)
+  const sorted = []
+  let i = 0
+  while (i < rows.length) {
+    let j = i + 1
+    while (j < rows.length && rows[j].pts === rows[i].pts) j++
+    const tied = rows.slice(i, j)
+    if (tied.length === 1) { sorted.push(...tied); i = j; continue }
+    const h2h = calcH2H(tied.map(r => r.team), groupLetter, predMap, fixtures)
+    tied.sort((a, b) => {
+      const ha = h2h[a.team], hb = h2h[b.team]
+      if (hb.pts !== ha.pts) return hb.pts - ha.pts
+      if (hb.gd  !== ha.gd)  return hb.gd  - ha.gd
+      if (hb.gf  !== ha.gf)  return hb.gf  - ha.gf
+      if (b.gd   !== a.gd)   return b.gd   - a.gd
+      return b.gf - a.gf
+    })
+    sorted.push(...tied)
+    i = j
+  }
+  return sorted
+}
+
 function calcGroupTables(predMap, fixtures) {
   const tables = {}
   for (const g of GROUPS) {
@@ -42,7 +85,7 @@ function calcGroupTables(predMap, fixtures) {
     else { t1.pts += 1; t2.pts += 1 }
   }
   for (const g of GROUPS) {
-    tables[g].sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+    tables[g] = sortGroupFifa(tables[g], g, predMap, fixtures)
   }
   return tables
 }
@@ -115,8 +158,6 @@ function resolveUserSlot(slotCode, matchNum, tables, annexMap, predMap, fixtures
 }
 
 // ─── Find which fixture the USER predicted a team to be in ───────────────────
-// Searches through all fixtures in the given round and returns the fixture
-// where the user's bracket simulation places the given team.
 
 function findUserFixtureForTeam(team, round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum) {
   const roundFixtures = koFixtures.filter(f => f.round === round)
@@ -192,18 +233,16 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
   const koFixtures = fixtures.filter(f => f.round !== 'group')
     .sort((a, b) => a.match_number - b.match_number)
 
-  // For each real KO fixture, find which teams the user predicted there,
-  // then find which fixture in the USER'S bracket those teams were playing in.
   const userFixtureForTeam = {}
   for (const f of koFixtures) {
     if (!userFixtureForTeam[f.round]) userFixtureForTeam[f.round] = {}
     const userHome = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
     const userAway = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
-    if (userHome) {
+    if (userHome && !userFixtureForTeam[f.round][userHome]) {
       const entry = findUserFixtureForTeam(userHome, f.round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum)
       if (entry) userFixtureForTeam[f.round][userHome] = entry
     }
-    if (userAway) {
+    if (userAway && !userFixtureForTeam[f.round][userAway]) {
       const entry = findUserFixtureForTeam(userAway, f.round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum)
       if (entry) userFixtureForTeam[f.round][userAway] = entry
     }
