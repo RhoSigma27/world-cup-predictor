@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense } from 'react'
+import Link from 'next/link'
 
 function SignInForm() {
   const [email, setEmail] = useState('')
@@ -13,6 +14,7 @@ function SignInForm() {
   const [sent, setSent] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState(null)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
   const invite = searchParams.get('invite')
@@ -20,6 +22,10 @@ function SignInForm() {
   // ── Step 1: request OTP ───────────────────────────────────────────────────
   const handleSendOtp = async (e) => {
     e.preventDefault()
+    if (!agreedToTerms) {
+      setError('Please agree to the Terms & Conditions and Privacy Policy to continue.')
+      return
+    }
     setLoading(true)
     setError(null)
 
@@ -29,10 +35,8 @@ function SignInForm() {
       email,
       options: {
         shouldCreateUser: true,
-        data: {
-          display_name: displayName,
-        }
-      }
+        data: { display_name: displayName },
+      },
     })
 
     if (error) {
@@ -63,8 +67,6 @@ function SignInForm() {
       setVerifying(false)
     } else {
       const next = invite ? `/join/${invite}` : '/dashboard'
-      // Use full navigation so the session cookie is committed before the
-      // server middleware runs — router.push() is too fast and races the cookie write
       window.location.href = next
     }
   }
@@ -113,6 +115,27 @@ function SignInForm() {
                 required
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500"
               />
+            </div>
+
+            {/* T&Cs checkbox */}
+            <div className="flex items-start gap-3 pt-1">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-600 bg-gray-800 text-yellow-500 focus:ring-yellow-500 cursor-pointer"
+              />
+              <label htmlFor="terms" className="text-sm text-gray-400 cursor-pointer">
+                I agree to the{' '}
+                <Link href="/terms" target="_blank" className="text-yellow-400 hover:text-yellow-300 underline">
+                  Terms &amp; Conditions
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" target="_blank" className="text-yellow-400 hover:text-yellow-300 underline">
+                  Privacy Policy
+                </Link>
+              </label>
             </div>
 
             {error && <p className="text-red-400 text-sm">{error}</p>}
