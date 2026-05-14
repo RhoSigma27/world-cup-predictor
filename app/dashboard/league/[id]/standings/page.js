@@ -17,7 +17,7 @@ function getResult(s1, s2) {
   return 'D'
 }
 
-// ─── Group table simulation (mirrors PredictionsClient.js) ───────────────────
+// ─── Group table simulation with full FIFA H2H tiebreakers ───────────────────
 
 function calcH2H(teamNames, groupLetter, predMap, fixtures) {
   const stats = {}
@@ -157,20 +157,43 @@ function resolveUserSlot(slotCode, matchNum, tables, annexMap, predMap, fixtures
   return null
 }
 
-// ─── Find which fixture the USER predicted a team to be in ───────────────────
+// ─── Build user KO results map ────────────────────────────────────────────────
+// Simulates the user's full bracket once and produces a flat lookup:
+// userKOResults[round][teamName] = { gf, ga, won }
+// This is the single source of truth for KO scoring and chart data.
 
-function findUserFixtureForTeam(team, round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum) {
-  const roundFixtures = koFixtures.filter(f => f.round === round)
-  for (const f of roundFixtures) {
+function buildUserKOResults(predMap, fixtures, tables, annexMap, fixturesByMatchNum) {
+  const results = {}
+  const koFixtures = fixtures.filter(f => f.round !== 'group')
+    .sort((a, b) => a.match_number - b.match_number)
+
+  for (const f of koFixtures) {
+    const pred = predMap[f.id]
+    if (!pred || pred.predicted_home == null || pred.predicted_away == null) continue
+
     const userHome = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
     const userAway = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
-    if (userHome === team) return { fixtureId: f.id, asHome: true }
-    if (userAway === team) return { fixtureId: f.id, asHome: false }
+    if (!userHome || !userAway) continue
+
+    if (!results[f.round]) results[f.round] = {}
+
+    // Store from each team's perspective: gf = goals scored, ga = goals conceded
+    results[f.round][userHome] = {
+      gf: pred.predicted_home,
+      ga: pred.predicted_away,
+      won: pred.predicted_home > pred.predicted_away,
+    }
+    results[f.round][userAway] = {
+      gf: pred.predicted_away,
+      ga: pred.predicted_home,
+      won: pred.predicted_away > pred.predicted_home,
+    }
   }
-  return null
+
+  return results
 }
 
-// ─── Main scoring function ────────────────────────────────────────────────────
+// ─── Scoring constants ────────────────────────────────────────────────────────
 
 const KO_POINTS = {
   R32:   [10,  5],
@@ -181,21 +204,51 @@ const KO_POINTS = {
   FINAL: [50, 25],
 }
 
+// ─── Score a single KO fixture for a user ────────────────────────────────────
+// Returns points earned for this fixture (0–2 teams can score).
+// realHome/realAway are the actual teams; actualHome/actualAway are pen-adjusted scores.
+
+function scoreKOFixture(f, actualHome, actualAway, userKOResults, starPick) {
+  const [base, bonus] = KO_POINTS[f.round] || [0, 0]
+  let pts = 0
+
+  for (const [realTeam, realGF, realGA, realWon] of [
+    [f.home_team, actualHome, actualAway, actualHome > actualAway],
+    [f.away_team, actualAway, actualHome, actualAway > actualHome],
+  ]) {
+    const userResult = userKOResults[f.round]?.[realTeam]
+    if (!userResult) continue
+    if (userResult.won !== realWon) continue
+
+    let teamPts = base
+    if (userResult.gf === realGF && userResult.ga === realGA) teamPts += bonus
+    if (starPick && starPick === realTeam) teamPts *= 2
+    pts += teamPts
+  }
+
+  return pts
+}
+
+// ─── Main scoring function ────────────────────────────────────────────────────
+
 function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
   let groupPts = 0
   let koPts = 0
   let extrasPts = 0
 
+  // Build prediction map: fixture_id → prediction row
   const predMap = {}
   for (const p of predictions) {
     predMap[p.fixture_id] = p
   }
 
+  // Build fixture index by match_number
   const fixturesByMatchNum = {}
   for (const f of fixtures) {
     if (f.match_number) fixturesByMatchNum[f.match_number] = f
   }
 
+  // Star picks per round
   const starPicks = {
     group: extrasPred?.star_pick_group ?? null,
     R32:   extrasPred?.star_pick_r32   ?? null,
@@ -205,7 +258,7 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
     FINAL: extrasPred?.star_pick_final ?? null,
   }
 
-  // ── Group stage scoring ───────────────────────────────────────────────────
+  // ── Group stage scoring (fixture-based) ──────────────────────────────────
   for (const f of fixtures.filter(f => f.round === 'group')) {
     if (f.home_score == null || f.away_score == null) continue
     const pred = predMap[f.id]
@@ -221,7 +274,9 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
     groupPts += pts
   }
 
-  // ── KO stage scoring (team-centric) ──────────────────────────────────────
+  // ── KO stage scoring (team-centric via userKOResults map) ────────────────
+
+  // Simulate user's bracket once to build the team result map
   const groupPredMap = {}
   for (const f of fixtures.filter(f => f.round === 'group')) {
     const pred = predMap[f.id]
@@ -229,89 +284,23 @@ function scoreParticipant(predictions, fixtures, extrasPred, masterExtras) {
   }
   const tables = calcGroupTables(groupPredMap, fixtures)
   const annexMap = buildAnnexMap(tables)
+  const userKOResults = buildUserKOResults(predMap, fixtures, tables, annexMap, fixturesByMatchNum)
 
-  const koFixtures = fixtures.filter(f => f.round !== 'group')
-    .sort((a, b) => a.match_number - b.match_number)
-
-  const userFixtureForTeam = {}
-  for (const f of koFixtures) {
-    if (!userFixtureForTeam[f.round]) userFixtureForTeam[f.round] = {}
-    const userHome = resolveUserSlot(f.slot1, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
-    const userAway = resolveUserSlot(f.slot2, f.match_number, tables, annexMap, predMap, fixturesByMatchNum)
-    if (userHome && !userFixtureForTeam[f.round][userHome]) {
-      const entry = findUserFixtureForTeam(userHome, f.round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum)
-      if (entry) userFixtureForTeam[f.round][userHome] = entry
-    }
-    if (userAway && !userFixtureForTeam[f.round][userAway]) {
-      const entry = findUserFixtureForTeam(userAway, f.round, koFixtures, tables, annexMap, predMap, fixturesByMatchNum)
-      if (entry) userFixtureForTeam[f.round][userAway] = entry
-    }
-  }
-
-  const koDebug = []
-
-  for (const f of koFixtures) {
+  for (const f of fixtures.filter(f => f.round !== 'group')) {
     if (f.home_score == null || f.away_score == null) continue
 
-    const [base, bonus] = KO_POINTS[f.round] || [0, 0]
-    const starRound = f.round === '3RD' ? 'FINAL' : f.round
-    const starPick = starPicks[starRound] ?? null
-
+    // Penalty adjustment for actual result
     let actualHome = f.home_score
     let actualAway = f.away_score
     if (f.penalty_winner && f.home_score === f.away_score) {
       if (f.penalty_winner === f.home_team) actualHome += 1
       else actualAway += 1
     }
-    const actualHomeWins = actualHome > actualAway
-    const actualAwayWins = actualAway > actualHome
 
-    for (const [realTeam, realTeamWins] of [
-      [f.home_team, actualHomeWins],
-      [f.away_team, actualAwayWins],
-    ]) {
-      const userEntry = userFixtureForTeam[f.round]?.[realTeam]
-      const userPred = userEntry ? predMap[userEntry.fixtureId] : null
+    const starRound = f.round === '3RD' ? 'FINAL' : f.round
+    const starPick = starPicks[starRound] ?? null
 
-      const userTeamWins = userEntry && userPred
-        ? (userEntry.asHome
-            ? userPred.predicted_home > userPred.predicted_away
-            : userPred.predicted_away > userPred.predicted_home)
-        : null
-
-      const realTeamGF = realTeam === f.home_team ? actualHome : actualAway
-      const realTeamGA = realTeam === f.home_team ? actualAway : actualHome
-      const userTeamGF = userEntry && userPred
-        ? (userEntry.asHome ? userPred.predicted_home : userPred.predicted_away)
-        : null
-      const userTeamGA = userEntry && userPred
-        ? (userEntry.asHome ? userPred.predicted_away : userPred.predicted_home)
-        : null
-
-      const resultCorrect = !!(userEntry && userPred && userTeamWins === realTeamWins)
-      const scoreCorrect = !!(resultCorrect && userTeamGF === realTeamGF && userTeamGA === realTeamGA)
-
-      let pts = 0
-      if (resultCorrect) {
-        pts = base
-        if (scoreCorrect) pts += bonus
-        if (starPick && starPick === realTeam) pts *= 2
-        koPts += pts
-      }
-
-      koDebug.push({
-        match: f.match_number,
-        round: f.round,
-        realTeam,
-        realResult: `${realTeamGF}-${realTeamGA}`,
-        userHadTeam: !!userEntry,
-        userPredScore: userPred ? `${userPred.predicted_home}-${userPred.predicted_away}` : null,
-        userTeamScore: userTeamGF != null ? `${userTeamGF}-${userTeamGA}` : null,
-        resultCorrect,
-        scoreCorrect,
-        pts,
-      })
-    }
+    koPts += scoreKOFixture(f, actualHome, actualAway, userKOResults, starPick)
   }
 
   // ── Extras scoring ────────────────────────────────────────────────────────
@@ -338,6 +327,7 @@ export default async function StandingsPage({ params }) {
 
   const adminSupabase = createAdminClient()
 
+  // Get league
   const { data: league } = await supabase
     .from('leagues')
     .select('*')
@@ -346,11 +336,13 @@ export default async function StandingsPage({ params }) {
 
   if (!league) redirect('/dashboard')
 
+  // Get all fixtures
   const { data: fixtures } = await supabase
     .from('fixtures')
     .select('*')
     .order('match_number', { ascending: true })
 
+  // Get all league members with profiles (excluding banned users)
   const { data: members } = await adminSupabase
     .from('league_members')
     .select(`
@@ -364,25 +356,30 @@ export default async function StandingsPage({ params }) {
     `)
     .eq('league_id', id)
 
+  // Get global master extras
   const { data: masterExtras } = await supabase
     .from('master_extras')
     .select('*')
     .eq('id', '00000000-0000-0000-0000-000000000001')
     .maybeSingle()
 
+  // Get all predictions for this league
   const { data: allPredictions } = await adminSupabase
     .from('predictions')
     .select('*')
     .eq('league_id', id)
 
+  // Get all extras predictions for this league
   const { data: allExtras } = await adminSupabase
     .from('extras_predictions')
     .select('*')
     .eq('league_id', id)
 
+  // Calculate scores for each member (excluding banned users)
   const standings = members?.filter(m => !m.profiles?.is_banned).map(member => {
     const userPreds = allPredictions?.filter(p => p.user_id === member.user_id) || []
     const userExtras = allExtras?.find(e => e.user_id === member.user_id) || null
+
     const score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras)
     const filled = userPreds.filter(p => p.predicted_home != null && p.predicted_away != null).length
 
@@ -404,8 +401,10 @@ export default async function StandingsPage({ params }) {
     }
   }) || []
 
+  // Sort by total points, break ties by group points
   standings.sort((a, b) => b.total - a.total || b.groupPts - a.groupPts)
 
+  // Assign places (handle ties)
   let place = 1
   standings.forEach((s, i) => {
     if (i > 0 && s.total !== standings[i - 1].total) place = i + 1
@@ -414,42 +413,76 @@ export default async function StandingsPage({ params }) {
 
   const resultsEntered = fixtures?.filter(f => f.home_score != null && f.away_score != null).length || 0
 
+  // ── Chart data ────────────────────────────────────────────────────────────
+  // Build cumulative points progression per player per completed match.
+  // Group fixtures use fixture-based scoring; KO fixtures use team-centric scoring
+  // via each player's userKOResults map — consistent with the standings engine.
+
   const completedFixtures = (fixtures || [])
     .filter(f => f.home_score != null && f.away_score != null)
     .sort((a, b) => a.match_number - b.match_number)
 
+  // Pre-build userKOResults for each player (needed for chart KO scoring)
+  const playerKOResults = {}
+  for (const s of standings) {
+    const userPreds = allPredictions?.filter(p => p.user_id === s.userId) || []
+    const predMap = {}
+    for (const p of userPreds) predMap[p.fixture_id] = p
+    const fixturesByMatchNum = {}
+    for (const f of fixtures || []) if (f.match_number) fixturesByMatchNum[f.match_number] = f
+    const groupPredMap = {}
+    for (const f of (fixtures || []).filter(f => f.round === 'group')) {
+      const pred = predMap[f.id]
+      if (pred) groupPredMap[f.id] = pred
+    }
+    const tables = calcGroupTables(groupPredMap, fixtures || [])
+    const annexMap = buildAnnexMap(tables)
+    playerKOResults[s.userId] = buildUserKOResults(predMap, fixtures || [], tables, annexMap, fixturesByMatchNum)
+  }
+
   const chartData = completedFixtures.map((f, idx) => {
     const point = { match: f.match_number }
+
     standings.forEach(s => {
       const pred = allPredictions?.find(p => p.user_id === s.userId && p.fixture_id === f.id)
-      if (!pred || pred.predicted_home == null || pred.predicted_away == null) {
-        point[s.displayName] = idx === 0 ? 0 : null
-        return
+
+      if (f.round === 'group') {
+        // Group stage: fixture-based scoring
+        if (!pred || pred.predicted_home == null || pred.predicted_away == null) {
+          point[s.displayName] = 0
+          return
+        }
+        const masterResult = getResult(f.home_score, f.away_score)
+        const predResult = getResult(pred.predicted_home, pred.predicted_away)
+        if (masterResult !== predResult) { point[s.displayName] = 0; return }
+
+        let pts = 10
+        if (pred.predicted_home === f.home_score && pred.predicted_away === f.away_score) pts += 5
+        const chartStarPick = s.starPicks?.group ?? null
+        if (chartStarPick && (f.home_team === chartStarPick || f.away_team === chartStarPick)) pts *= 2
+        point[s.displayName] = pts
+
+      } else {
+        // KO stage: team-centric scoring via userKOResults
+        let actualHome = f.home_score
+        let actualAway = f.away_score
+        if (f.penalty_winner && f.home_score === f.away_score) {
+          if (f.penalty_winner === f.home_team) actualHome += 1
+          else actualAway += 1
+        }
+
+        const starRound = f.round === '3RD' ? 'FINAL' : f.round
+        const starPick = s.starPicks?.[starRound] ?? null
+        const userKOResults = playerKOResults[s.userId] || {}
+
+        point[s.displayName] = scoreKOFixture(f, actualHome, actualAway, userKOResults, starPick)
       }
-      let effectiveHome = f.home_score
-      let effectiveAway = f.away_score
-      if (f.penalty_winner && f.home_score === f.away_score) {
-        if (f.penalty_winner === f.home_team) effectiveHome += 1
-        else effectiveAway += 1
-      }
-      const effectiveMasterResult = getResult(effectiveHome, effectiveAway)
-      const effectivePredResult = getResult(pred.predicted_home, pred.predicted_away)
-      if (effectiveMasterResult !== effectivePredResult) { point[s.displayName] = 0; return }
-      const roundPoints = {
-        group: [10, 5], R32: [10, 5], R16: [20, 10],
-        QF: [30, 15], SF: [30, 15], '3RD': [50, 25], FINAL: [50, 25],
-      }
-      const [base, bonus] = roundPoints[f.round] || [0, 0]
-      let pts = base
-      if (pred.predicted_home === effectiveHome && pred.predicted_away === effectiveAway) pts += bonus
-      const chartRoundKey = f.round === '3RD' ? 'FINAL' : f.round
-      const chartStarPick = s.starPicks?.[chartRoundKey] ?? null
-      if (chartStarPick && (f.home_team === chartStarPick || f.away_team === chartStarPick)) pts *= 2
-      point[s.displayName] = pts
     })
+
     return point
   })
 
+  // Convert to cumulative
   const cumulativeChart = []
   for (const point of chartData) {
     const cumPoint = { match: point.match }
@@ -537,7 +570,6 @@ export default async function StandingsPage({ params }) {
         <div className="mt-6 p-4 bg-gray-900 border border-gray-800 rounded-xl text-xs text-gray-500">
           <strong className="text-gray-400">Scoring:</strong> Groups: 10pts result + 5pts score · R32: 10+5 per team · R16: 20+10 · QF/SF: 30+15 · 3rd/Final: 50+25 · Star Pick = 2× · Extras: 50pts closest
         </div>
-
       </div>
 
       {/* Points progression chart */}
