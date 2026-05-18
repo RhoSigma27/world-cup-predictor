@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export const metadata = {
   title: 'Terms & Conditions — The Match Predictor',
@@ -281,7 +282,7 @@ export default function TermsPage() {
           prose-a:text-yellow-400 prose-a:no-underline hover:prose-a:underline
           prose-hr:border-gray-800
           prose-em:text-gray-400">
-          <ReactMarkdown>{termsContent}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{termsContent}</ReactMarkdown>
         </div>
       </div>
 

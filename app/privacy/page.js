@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export const metadata = {
   title: 'Privacy Policy — The Match Predictor',
@@ -238,7 +239,7 @@ export default function PrivacyPage() {
           prose-em:text-gray-400
           prose-table:text-gray-300 prose-thead:border-gray-700 prose-tr:border-gray-800
           prose-th:text-gray-200 prose-th:font-semibold">
-          <ReactMarkdown>{privacyContent}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{privacyContent}</ReactMarkdown>
         </div>
       </div>
 
