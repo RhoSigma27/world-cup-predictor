@@ -3,6 +3,28 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
+// ── Tier config ───────────────────────────────────────────────────────────────
+const TIER_CONFIG = {
+  hobby:      { label: 'Hobby',      cls: 'text-gray-400 bg-gray-800 border-gray-600' },
+  enthusiast: { label: 'Enthusiast', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
+  fanatic:    { label: 'Fanatic',    cls: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
+  business:   { label: 'Business',   cls: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+}
+
+function TierBadge({ tier, isComped }) {
+  if (isComped) return (
+    <span className="text-xs px-2 py-0.5 rounded-full border font-medium text-green-400 bg-green-500/10 border-green-500/30">
+      ⭐ Comped
+    </span>
+  )
+  const cfg = TIER_CONFIG[tier ?? 'hobby'] ?? TIER_CONFIG.hobby
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${cfg.cls}`}>
+      {cfg.label}
+    </span>
+  )
+}
+
 // ── Logo uploader ─────────────────────────────────────────────────────────────
 function LogoUploader({ league, onUploaded, onRemoved }) {
   const [preview, setPreview] = useState(league.logo_url || null)
@@ -63,11 +85,8 @@ function LogoUploader({ league, onUploaded, onRemoved }) {
       </button>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
       {preview && (
-        <button
-          onClick={handleRemove}
-          disabled={removing}
-          className="text-[10px] text-gray-600 hover:text-red-400 transition-colors disabled:opacity-50 leading-none h-3"
-        >
+        <button onClick={handleRemove} disabled={removing}
+          className="text-[10px] text-gray-600 hover:text-red-400 transition-colors disabled:opacity-50 leading-none h-3">
           {removing ? '…' : 'Remove'}
         </button>
       )}
@@ -258,6 +277,7 @@ function QRCardModal({ league, onClose }) {
     </div>
   )
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LeaguesClient({ leagues: initialLeagues }) {
@@ -266,13 +286,12 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [togglingBan, setTogglingBan] = useState(null)
+  const [togglingComp, setTogglingComp] = useState(null)
   const [toast, setToast] = useState(null)
   const [qrLeague, setQrLeague] = useState(null)
-  // ── NEW: rename state ──────────────────────────────────────────────────────
-  const [renamingMember, setRenamingMember] = useState(null) // { userId, leagueId }
+  const [renamingMember, setRenamingMember] = useState(null)
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
-  // ─────────────────────────────────────────────────────────────────────────
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -299,7 +318,7 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
       })
       const data = await res.json()
       if (!res.ok) showToast(data.error || 'Failed to delete league', 'error')
-      else { setLeagues(prev => prev.filter(l => l.id !== leagueId)); showToast('League deleted successfully') }
+      else { setLeagues(prev => prev.filter(l => l.id !== leagueId)); showToast('League deleted') }
     } catch { showToast('Something went wrong', 'error') }
     finally { setDeleting(null); setConfirmDelete(null) }
   }
@@ -327,7 +346,24 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
     finally { setTogglingBan(null) }
   }
 
-  // ── NEW: rename member handler ─────────────────────────────────────────────
+  const handleToggleComp = async (leagueId, currentlyComped) => {
+    setTogglingComp(leagueId)
+    try {
+      const res = await fetch('/api/admin/toggle-comp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leagueId, comped: !currentlyComped }),
+      })
+      const data = await res.json()
+      if (!res.ok) showToast(data.error || 'Failed to update', 'error')
+      else {
+        setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, is_comped: !currentlyComped } : l))
+        showToast(currentlyComped ? 'Comp removed' : '⭐ League comped')
+      }
+    } catch { showToast('Something went wrong', 'error') }
+    finally { setTogglingComp(null) }
+  }
+
   const handleRename = async () => {
     if (!renameValue.trim() || !renamingMember) return
     setRenaming(true)
@@ -345,7 +381,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
       if (!res.ok) {
         showToast(data.error || 'Failed to rename', 'error')
       } else {
-        // Update display_name_effective in local state
         setLeagues(prev => prev.map(l =>
           l.id === renamingMember.leagueId
             ? {
@@ -365,7 +400,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
     } catch { showToast('Something went wrong', 'error') }
     finally { setRenaming(false) }
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   const totalMembers = leagues.reduce((acc, l) => acc + l.memberCount, 0)
 
@@ -412,6 +446,8 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                     <code className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded font-mono">
                       {league.invite_code}
                     </code>
+                    {/* ── Tier badge ── */}
+                    <TierBadge tier={league.tier} isComped={league.is_comped} />
                   </div>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="text-xs text-gray-500">
@@ -424,7 +460,7 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
                   <button
                     onClick={() => toggleExpand(league.id)}
                     className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors text-sm"
@@ -440,6 +476,19 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                     title="Generate QR table card"
                   >
                     📋 QR
+                  </button>
+
+                  {/* ── Comp toggle ── */}
+                  <button
+                    onClick={() => handleToggleComp(league.id, league.is_comped)}
+                    disabled={togglingComp === league.id}
+                    className={`text-xs px-3 py-1.5 border rounded-lg transition-colors disabled:opacity-50
+                      ${league.is_comped
+                        ? 'bg-green-500/20 hover:bg-green-500/10 text-green-400 border-green-500/30'
+                        : 'bg-gray-800 hover:bg-green-500/10 text-gray-500 hover:text-green-400 border-gray-700 hover:border-green-500/30'
+                      }`}
+                  >
+                    {togglingComp === league.id ? '…' : league.is_comped ? '⭐ Comped' : 'Comp'}
                   </button>
 
                   {confirmDelete === league.id ? (
@@ -478,7 +527,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                     <div className="space-y-0">
                       {league.members.map(m => {
                         const isBanned = m.profiles?.is_banned
-                        // ── CHANGED: use display_name_effective ───────────────
                         const effectiveName = m.display_name_effective || m.profiles?.display_name
                         const isRenaming = renamingMember?.userId === m.user_id && renamingMember?.leagueId === league.id
                         return (
@@ -498,7 +546,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                                       <span className="text-xs text-red-400">🚫 Banned</span>
                                     )}
                                   </div>
-                                  {/* ── CHANGED: show real name + email below ── */}
                                   <div className="flex items-center gap-1.5">
                                     {m.nickname && (
                                       <span className="text-xs text-gray-600">{m.profiles?.display_name} ·</span>
@@ -512,7 +559,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                                   Joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                 </span>
                                 <PredBadge group={m.predGroup ?? 0} ko={m.predKo ?? 0} />
-                                {/* ── NEW: Rename button ── */}
                                 <button
                                   onClick={() => {
                                     if (isRenaming) {
@@ -539,7 +585,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                                 </button>
                               </div>
                             </div>
-                            {/* ── NEW: inline rename input ── */}
                             {isRenaming && (
                               <div className="flex gap-2 mt-2 ml-9">
                                 <input
@@ -585,7 +630,6 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
         )}
       </div>
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium z-50
           ${toast.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
@@ -593,12 +637,10 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
         </div>
       )}
 
-      {/* Delete confirm backdrop */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setConfirmDelete(null)} />
       )}
 
-      {/* QR card modal */}
       {qrLeague && (
         <QRCardModal league={qrLeague} onClose={() => setQrLeague(null)} />
       )}

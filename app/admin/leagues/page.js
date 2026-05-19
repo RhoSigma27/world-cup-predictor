@@ -18,13 +18,13 @@ export default async function AdminLeaguesPage() {
 
   const adminSupabase = createAdminClient()
 
-  // Get all leagues
+  // Get all leagues — added tier and is_comped
   const { data: leagues } = await adminSupabase
     .from('leagues')
-    .select('id, league_name, invite_code, created_at, admin_id, logo_url')
+    .select('id, league_name, invite_code, created_at, admin_id, logo_url, tier, is_comped')
     .order('created_at', { ascending: false })
 
-  // Get all members — CHANGED: added nickname
+  // Get all members
   const { data: allMembers } = await adminSupabase
     .from('league_members')
     .select('league_id, user_id, joined_at, nickname')
@@ -90,7 +90,6 @@ export default async function AdminLeaguesPage() {
     memberCount: countMap[l.id] || 0,
     members: (membersByLeague[l.id] || []).map(m => ({
       ...m,
-      // CHANGED: nickname-aware display name
       display_name_effective: m.nickname || profileMap[m.user_id]?.display_name || 'Unknown',
       predGroup: predMap[`${m.user_id}_${l.id}`]?.group ?? 0,
       predKo:    predMap[`${m.user_id}_${l.id}`]?.ko    ?? 0,
