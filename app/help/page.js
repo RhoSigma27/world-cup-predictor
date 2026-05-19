@@ -131,7 +131,9 @@ The app displays penalty shootout results with a **(p)** indicator in the bracke
       },
       {
         q: 'Can I be in more than one league?',
-        a: `Yes! You can join as many leagues as you like. Your predictions are entered separately for each league — if you are in multiple leagues you will need to enter your predictions in each one. This means you could theoretically make different predictions in different leagues.`
+        a: `Yes! You can join as many leagues as you like. Your predictions are entered separately for each league — if you are in multiple leagues you will need to enter your predictions in each one. This means you could theoretically make different predictions in different leagues.
+
+If you haven't yet entered any predictions in a particular league, you'll have the option to import your predictions from another league you've already completed — saving you from having to enter everything twice.`
       },
       {
         q: 'Who can see my predictions?',
