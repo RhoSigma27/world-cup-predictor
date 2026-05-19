@@ -3,28 +3,30 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+const SCORING_ROWS = [
+  { round: 'Group Stage',       result: '10 pts', exact: '+5 pts'  },
+  { round: 'Round of 32',       result: '10 pts', exact: '+5 pts'  },
+  { round: 'Round of 16',       result: '20 pts', exact: '+10 pts' },
+  { round: 'Quarter-Finals',    result: '30 pts', exact: '+15 pts' },
+  { round: 'Semi-Finals',       result: '50 pts', exact: '+25 pts' },
+  { round: 'Bronze / Final',    result: '80 pts', exact: '+40 pts' },
+]
+
 const FAQS = [
   {
     category: 'Scoring',
     items: [
       {
         q: 'How does scoring work?',
-        a: `For every match you predict, you earn points based on how accurate your prediction is:
+        type: 'scoring',
+      },
+      {
+        q: 'Why did I score points even though my predicted opponent was different?',
+        a: `In the knockout rounds, scoring is team-centric — the app evaluates each team's result independently, not each fixture as a whole.
 
-- **Correct result** (win/draw/loss): base points for that round
-- **Correct score** (exact scoreline): base points + bonus points
+When a knockout match is played, the app looks at both teams separately and asks: did you predict this team to reach this round, and did you predict the right outcome for them? If yes, you earn points — regardless of who their opponent actually was.
 
-Points scale up in the knockout rounds:
-
-| Round | Result | + Exact Score |
-|-------|--------|---------------|
-| Group / R32 | 10 pts | +5 pts |
-| Round of 16 | 20 pts | +10 pts |
-| Quarter-Finals | 30 pts | +15 pts |
-| Semi-Finals | 50 pts | +25 pts |
-| Bronze / Final | 80 pts | +40 pts |
-
-For knockout matches that go to penalties, a correct result prediction means you predicted the same team to win (regardless of the score you entered).`
+This is by design. In the Round of 32, 8 of the 32 fixtures involve third-placed group teams whose placement is determined by a FIFA draw with 495 possible combinations. Scoring only on exact fixture match-ups would mean nearly everyone scores zero on those matches through no fault of their own. The team-centric model rewards your football knowledge — correctly calling which teams advance and which exit — rather than luck of the draw.`
       },
       {
         q: 'What is a Star Pick and how does it work?',
@@ -40,9 +42,9 @@ To set your Star Pick, go to your Predictions page and tap "Star pick" at the to
         q: 'What are the Extras predictions?',
         a: `On the Predictions page you'll find two bonus predictions at the bottom:
 
-- **Total goals** — your prediction for the total number of goals scored across all 104 matches of the tournament. You earn up to 50 pts. Points scale down the further off you are, but your score will never go below zero — the minimum you can earn is 0 pts.
+• **Total goals** — your prediction for the total number of goals scored across all 104 matches of the tournament. You earn up to 50 pts. Points scale down the further off you are, but your score will never go below zero — the minimum you can earn is 0 pts.
 
-- **Total red cards** — your prediction for total red cards shown in the tournament. Same scoring — up to 50 pts, minimum 0 pts.
+• **Total red cards** — your prediction for total red cards shown in the tournament. Same scoring — up to 50 pts, minimum 0 pts.
 
 In both cases, the closer you are, the more you earn. An exact prediction earns the full 50 pts.`
       },
@@ -135,24 +137,101 @@ The app displays penalty shootout results with a **(p)** indicator in the bracke
         q: 'Who can see my predictions?',
         a: `Your predicted scorelines are private until the tournament begins. Once predictions are locked on **11 June 2026**, other members of your league can view your predicted knockout bracket by tapping your name on the league page.
 
-        The standings page only shows each player's total points, not the actual scores they predicted.
-        Your **Star Pick** is private — no one else can see which team you have nominated for any round, even after lock.`
+The standings page only shows each player's total points, not the actual scores they predicted.
+
+Your **Star Pick** is private — no one else can see which team you have nominated for any round, even after lock.`
       },
     ]
   },
 ]
 
-function FAQItem({ q, a }) {
-  const [open, setOpen] = useState(false)
+// ─── Scoring table ────────────────────────────────────────────────────────────
 
-  const hasTable = a.includes('| Round |')
-  const tableRows = [
-    ['Group / R32', '10 pts', '+5 pts'],
-    ['Round of 16', '20 pts', '+10 pts'],
-    ['Quarter-Finals', '30 pts', '+15 pts'],
-    ['Semi-Finals', '50 pts', '+25 pts'],
-    ['Bronze / Final', '80 pts', '+40 pts'],
-  ]
+function ScoringTable() {
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-700 my-4">
+      {/* Header */}
+      <div className="grid grid-cols-[1fr_72px_80px] bg-yellow-500/10 border-b border-gray-700 px-4 py-2.5">
+        <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">Round</span>
+        <span className="text-xs text-gray-400 text-center">Result</span>
+        <span className="text-xs text-gray-400 text-center">Exact score</span>
+      </div>
+      {/* Rows */}
+      {SCORING_ROWS.map(({ round, result, exact }, i) => (
+        <div
+          key={round}
+          className={`grid grid-cols-[1fr_72px_80px] items-center px-4 py-3 ${
+            i < SCORING_ROWS.length - 1 ? 'border-b border-gray-800/60' : ''
+          }`}
+        >
+          <span className="text-sm text-white font-medium">{round}</span>
+          <span className="text-sm font-semibold text-green-400 text-center">{result}</span>
+          <span className="text-sm font-semibold text-blue-400 text-center">{exact}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Scoring FAQ (custom renderer) ───────────────────────────────────────────
+
+function ScoringAnswer() {
+  return (
+    <div className="space-y-4 text-sm text-gray-400">
+
+      {/* Group stage */}
+      <div>
+        <p className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-1.5">Group Stage</p>
+        <p className="leading-relaxed">
+          Predict the scoreline for each of the 48 group matches. For each match you earn:
+        </p>
+        <ul className="mt-2 space-y-1">
+          <li className="flex gap-2 items-start">
+            <span className="text-green-400 flex-shrink-0 mt-0.5">•</span>
+            <span><strong className="text-white">Correct result</strong> (win / draw / loss) — base points</span>
+          </li>
+          <li className="flex gap-2 items-start">
+            <span className="text-blue-400 flex-shrink-0 mt-0.5">•</span>
+            <span><strong className="text-white">Correct exact score</strong> — base points + bonus points</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* KO stage */}
+      <div>
+        <p className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-1.5">Knockout Rounds</p>
+        <p className="leading-relaxed">
+          Knockout scoring is <strong className="text-white">team-centric</strong>. For each real knockout result, the app evaluates both teams independently:
+        </p>
+        <ul className="mt-2 space-y-1.5">
+          <li className="flex gap-2 items-start">
+            <span className="text-yellow-400 flex-shrink-0 mt-0.5">•</span>
+            <span>Did you predict this team to reach this round? If yes — did you call the right outcome (advance or exit)? You earn points regardless of who their opponent actually was.</span>
+          </li>
+          <li className="flex gap-2 items-start">
+            <span className="text-yellow-400 flex-shrink-0 mt-0.5">•</span>
+            <span>
+              <strong className="text-white">Exact score bonus</strong> is compared from each team's own perspective (their goals for and against). Example: you predict Australia to lose 1–3. In the actual tournament Australia lose 1–3 to France — a different opponent. You still earn the exact score bonus.
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      {/* Points table */}
+      <ScoringTable />
+
+      {/* Penalties note */}
+      <p className="leading-relaxed text-gray-500 text-xs">
+        For penalty shootouts, the winning team gets +1 added to their score for exact score comparison purposes. A match finishing 2–2 aet with Germany winning on penalties is treated as a <strong className="text-gray-300">2–3 Germany win</strong>.
+      </p>
+    </div>
+  )
+}
+
+// ─── FAQ item ─────────────────────────────────────────────────────────────────
+
+function FAQItem({ q, a, type }) {
+  const [open, setOpen] = useState(false)
 
   return (
     <div className="border border-gray-800 rounded-xl overflow-hidden">
@@ -163,48 +242,13 @@ function FAQItem({ q, a }) {
         <span className="font-medium text-sm text-white pr-4">{q}</span>
         <span className={`text-yellow-400 text-lg flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-45' : ''}`}>+</span>
       </button>
+
       {open && (
-        <div className="px-5 pb-5 text-sm text-gray-400 space-y-1 border-t border-gray-800 pt-4">
-          {hasTable ? (
-            <>
-              {a.split('\n').filter(l => !l.startsWith('|') && !l.startsWith('•')).map((line, i) => (
-                line.trim() ? (
-                  <p key={i} className="leading-relaxed mb-2"
-                    dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>') }} />
-                ) : null
-              ))}
-              <ul className="space-y-1 my-2">
-                {a.split('\n').filter(l => l.startsWith('• ')).map((line, i) => (
-                  <li key={i} className="flex gap-2 items-start">
-                    <span className="text-yellow-400 mt-0.5 flex-shrink-0">•</span>
-                    <span dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>') }} />
-                  </li>
-                ))}
-              </ul>
-              <div className="rounded-lg overflow-hidden border border-gray-700 mt-3">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-yellow-500/10 border-b border-gray-700">
-                      <th className="px-3 py-2 text-left text-yellow-400">Round</th>
-                      <th className="px-3 py-2 text-center text-gray-400">Result</th>
-                      <th className="px-3 py-2 text-center text-gray-400">+ Exact Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableRows.map(([round, result, bonus], i) => (
-                      <tr key={i} className="border-b border-gray-800/50">
-                        <td className="px-3 py-2 text-white font-medium">{round}</td>
-                        <td className="px-3 py-2 text-center text-green-400">{result}</td>
-                        <td className="px-3 py-2 text-center text-blue-400">{bonus}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 leading-relaxed text-gray-400">For knockout matches that go to penalties, a correct result prediction means you predicted the same team to win (regardless of the score you entered).</p>
-            </>
+        <div className="px-5 pb-5 border-t border-gray-800 pt-4">
+          {type === 'scoring' ? (
+            <ScoringAnswer />
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1 text-sm text-gray-400">
               {a.split('\n').map((line, i) => {
                 if (line.startsWith('• ')) {
                   return (
@@ -214,7 +258,7 @@ function FAQItem({ q, a }) {
                     </li>
                   )
                 }
-                if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ') || line.startsWith('4. ') || line.startsWith('5. ')) {
+                if (/^[1-5]\. /.test(line)) {
                   const num = line.split('.')[0]
                   const text = line.slice(num.length + 2)
                   return (
@@ -238,6 +282,8 @@ function FAQItem({ q, a }) {
   )
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function HelpPage() {
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -260,8 +306,8 @@ export default function HelpPage() {
             <div key={category}>
               <h2 className="text-xs font-bold text-yellow-400 uppercase tracking-widest mb-3 px-1">{category}</h2>
               <div className="space-y-2">
-                {items.map(({ q, a }) => (
-                  <FAQItem key={q} q={q} a={a} />
+                {items.map(({ q, a, type }) => (
+                  <FAQItem key={q} q={q} a={a} type={type} />
                 ))}
               </div>
             </div>
