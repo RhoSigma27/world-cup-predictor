@@ -4,7 +4,14 @@ import Link from 'next/link'
 import LeagueLogo from '@/app/components/LeagueLogo'
 import SignOutButton from '@/app/components/SignOutButton'
 
-export default async function DashboardPage() {
+const TIER_LABELS = {
+  hobby:      'Hobby',
+  enthusiast: 'Enthusiast',
+  fanatic:    'Fanatic',
+  business:   'Business',
+}
+
+export default async function DashboardPage({ searchParams }) {
   const supabase = await createServerSupabaseClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -31,6 +38,12 @@ export default async function DashboardPage() {
       )
     `)
     .eq('user_id', user.id)
+
+  const sp = await searchParams
+  const error       = sp?.error
+  const leagueName  = sp?.league_name
+  const tier        = sp?.tier
+  const adminName   = sp?.admin
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -60,6 +73,42 @@ export default async function DashboardPage() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 py-10">
+
+        {/* ── Error banners ───────────────────────────────────────────────── */}
+        {error === 'league-full' && (
+          <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
+            <p className="font-bold text-red-400 mb-1">
+              🚫 {leagueName ? `"${leagueName}" is full` : 'That league is full'}
+            </p>
+            <p className="text-sm text-gray-400">
+              This league is on the{' '}
+              <span className="text-white font-medium">{TIER_LABELS[tier] ?? 'Hobby'}</span> tier
+              and has reached its member limit.
+              Ask <span className="text-white font-medium">{adminName ?? 'the league admin'}</span> to
+              upgrade the league to add more members.
+            </p>
+          </div>
+        )}
+
+        {error === 'invalid-invite' && (
+          <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
+            <p className="font-bold text-red-400 mb-1">Invalid invite code</p>
+            <p className="text-sm text-gray-400">
+              That invite link doesn't match any league. Ask your league admin to share a fresh link.
+            </p>
+          </div>
+        )}
+
+        {error === 'join-failed' && (
+          <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
+            <p className="font-bold text-red-400 mb-1">Couldn't join league</p>
+            <p className="text-sm text-gray-400">
+              Something went wrong. Please try the invite link again or contact support.
+            </p>
+          </div>
+        )}
+        {/* ─────────────────────────────────────────────────────────────────── */}
+
         <div className="mb-10">
           <h1 className="text-3xl font-bold mb-1">
             Welcome back, {profile?.display_name} 👋
