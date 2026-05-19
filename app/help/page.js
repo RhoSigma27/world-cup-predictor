@@ -4,12 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 const SCORING_ROWS = [
-  { round: 'Group Stage',       result: '10 pts', exact: '+5 pts'  },
-  { round: 'Round of 32',       result: '10 pts', exact: '+5 pts'  },
-  { round: 'Round of 16',       result: '20 pts', exact: '+10 pts' },
-  { round: 'Quarter-Finals',    result: '30 pts', exact: '+15 pts' },
-  { round: 'Semi-Finals',       result: '50 pts', exact: '+25 pts' },
-  { round: 'Bronze / Final',    result: '80 pts', exact: '+40 pts' },
+  { round: 'Group Stage',            result: '10 pts', exact: '+5 pts'  },
+  { round: 'Round of 32',            result: '10 pts', exact: '+5 pts'  },
+  { round: 'Round of 16',            result: '20 pts', exact: '+10 pts' },
+  { round: 'Quarter-Finals / Semis', result: '30 pts', exact: '+15 pts' },
+  { round: 'Bronze Final / Final',   result: '50 pts', exact: '+25 pts' },
 ]
 
 const FAQS = [

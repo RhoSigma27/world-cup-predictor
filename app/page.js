@@ -71,20 +71,26 @@ export default function Home() {
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h2 className="text-3xl font-bold text-center mb-12">Scoring</h2>
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          {/* Header row */}
+          <div className="grid grid-cols-[1fr_72px_88px] px-6 py-3 border-b border-gray-700 bg-yellow-500/10">
+            <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">Round</span>
+            <span className="text-xs text-gray-400 text-center">Result</span>
+            <span className="text-xs text-gray-400 text-center">Exact score</span>
+          </div>
           {[
-            { round: 'Group Stage', result: '10 pts', score: '+ 5 pts' },
-            { round: 'Round of 32', result: '10 pts', score: '+ 5 pts' },
-            { round: 'Round of 16', result: '20 pts', score: '+ 10 pts' },
-            { round: 'Quarter Finals', result: '30 pts', score: '+ 15 pts' },
-            { round: 'Semi Finals', result: '50 pts', score: '+ 25 pts' },
-            { round: 'Final', result: '80 pts', score: '+ 40 pts' },
+            { round: 'Group Stage',            result: '10 pts', score: '+5 pts'  },
+            { round: 'Round of 32',            result: '10 pts', score: '+5 pts'  },
+            { round: 'Round of 16',            result: '20 pts', score: '+10 pts' },
+            { round: 'Quarter-Finals / Semis', result: '30 pts', score: '+15 pts' },
+            { round: 'Bronze Final / Final',   result: '50 pts', score: '+25 pts' },
           ].map((row, i) => (
-            <div key={row.round} className={`flex items-center justify-between px-6 py-4 ${i < 5 ? 'border-b border-gray-800' : ''}`}>
-              <span className="font-medium">{row.round}</span>
-              <div className="flex gap-6 text-sm">
-                <span className="text-yellow-400 font-bold">{row.result} correct result</span>
-                <span className="text-green-400 font-bold">{row.score} exact score</span>
-              </div>
+            <div
+              key={row.round}
+              className={`grid grid-cols-[1fr_72px_88px] items-center px-6 py-4 ${i < 4 ? 'border-b border-gray-800' : ''}`}
+            >
+              <span className="font-medium text-white">{row.round}</span>
+              <span className="text-yellow-400 font-bold text-sm text-center">{row.result}</span>
+              <span className="text-green-400 font-bold text-sm text-center">{row.score}</span>
             </div>
           ))}
         </div>
