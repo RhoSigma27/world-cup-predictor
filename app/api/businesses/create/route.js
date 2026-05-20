@@ -105,11 +105,11 @@ export async function POST(request) {
   })
 
   if (!lsResponse.ok) {
-    // League was created but checkout failed — clean up the league so user can retry
+    const lsError = await lsResponse.json().catch(() => ({}))
+    console.error('LS checkout creation failed:', JSON.stringify(lsError))
     await adminSupabase.from('league_members').delete().eq('league_id', league.id)
     await adminSupabase.from('leagues').delete().eq('id', league.id)
-    console.error('LS checkout creation failed for business league')
-    return NextResponse.json({ error: 'Failed to create checkout — please try again' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create checkout — please try again', detail: lsError }, { status: 500 })
   }
 
   const data = await lsResponse.json()
