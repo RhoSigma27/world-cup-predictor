@@ -82,6 +82,8 @@ To let them in, upgrade your league to the next tier — this takes effect immed
       },
     ]
   },
+  {
+    category: 'Predictions',
     items: [
       {
         q: 'When is the deadline to enter predictions?',
