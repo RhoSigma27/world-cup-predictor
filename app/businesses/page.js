@@ -117,7 +117,7 @@ export default function BusinessesPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href="/auth/signin"
+            href="/businesses/setup"
             className="px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors"
           >
             Get started — £100 →
@@ -186,7 +186,7 @@ export default function BusinessesPage() {
             ))}
           </ul>
           <Link
-            href="/auth/signin"
+            href="/businesses/setup"
             className="block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors"
           >
             Get Started →
@@ -219,7 +219,7 @@ export default function BusinessesPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href="/auth/signin"
+            href="/businesses/setup"
             className="px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors"
           >
             Get started — £100 →

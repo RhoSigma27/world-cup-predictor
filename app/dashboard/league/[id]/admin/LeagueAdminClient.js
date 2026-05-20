@@ -25,8 +25,8 @@ const TIER_BADGE = {
   business:   'text-amber-400 bg-amber-500/10 border-amber-500/30',
 }
 
-// Upgrade options available from each tier
-// { targetTier, label, price, description }
+// Upgrade options available from each consumer tier
+// Business tier is only available via the /businesses dedicated flow
 const UPGRADE_OPTIONS = {
   hobby: [
     { targetTier: 'enthusiast', label: 'Enthusiast', price: '£12', description: 'Up to 11 members' },

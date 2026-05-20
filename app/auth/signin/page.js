@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
 
@@ -16,8 +16,8 @@ function SignInForm() {
   const [error, setError] = useState(null)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const searchParams = useSearchParams()
-  const router = useRouter()
   const invite = searchParams.get('invite')
+  const next = searchParams.get('next') // e.g. /businesses/setup
 
   // ── Step 1: request OTP ───────────────────────────────────────────────────
   const handleSendOtp = async (e) => {
@@ -66,8 +66,9 @@ function SignInForm() {
       setError('Invalid or expired code — please check and try again.')
       setVerifying(false)
     } else {
-      const next = invite ? `/join/${invite}` : '/dashboard'
-      window.location.href = next
+      // Priority: invite → next param → dashboard
+      const destination = invite ? `/join/${invite}` : (next || '/dashboard')
+      window.location.href = destination
     }
   }
 
@@ -82,6 +83,10 @@ function SignInForm() {
             {invite ? (
               <p className="text-yellow-400 mt-2 font-medium">
                 You've been invited to join a league! Sign in to accept.
+              </p>
+            ) : next === '/businesses/setup' ? (
+              <p className="text-yellow-400 mt-2 font-medium">
+                Sign in to set up your Business League
               </p>
             ) : (
               <p className="text-gray-400 mt-2">Sign in to join or create a league</p>
