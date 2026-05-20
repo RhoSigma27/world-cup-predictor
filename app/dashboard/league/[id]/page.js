@@ -87,7 +87,14 @@ export default async function LeaguePage({ params, searchParams }) {
           <div className="bg-green-900/30 border border-green-700 rounded-2xl p-6 mb-8 text-center">
             <div className="text-4xl mb-2">🎉</div>
             <h2 className="text-xl font-bold text-green-400 mb-1">League Created!</h2>
-            <p className="text-gray-400 text-sm">Share the invite link below with your friends</p>
+            <p className="text-gray-400 text-sm mb-4">Share the invite link below with your friends</p>
+            <div className="bg-black/20 rounded-xl px-4 py-3 text-sm text-gray-400">
+              You're on the <span className="text-white font-medium">Hobby</span> plan — free, up to 6 members.
+              Expecting a bigger group?{' '}
+              <Link href={`/dashboard/league/${id}/admin`} className="text-yellow-400 hover:text-yellow-300 font-medium">
+                Upgrade in League Admin →
+              </Link>
+            </div>
           </div>
         )}
 
