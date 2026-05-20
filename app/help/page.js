@@ -117,6 +117,14 @@ Do not feel tied to these when making your predictions! They reflect the market'
         q: 'Do I need to predict every match?',
         a: `No — you can predict as many or as few matches as you like. You simply won't earn points for matches you haven't predicted. That said, the more you predict, the more chances you have to score points!`
       },
+      {
+        q: 'Can I delete all my predictions and start again?',
+        a: `Yes — as long as the tournament hasn't started yet. On your Predictions page, scroll to the top of the match list and tap **🗑 Start again**. You'll be asked to confirm before anything is deleted.
+
+This removes all your predicted scores, extras (red cards and total goals), and star picks for that league. It cannot be undone, so make sure you want a clean slate before confirming.
+
+Once the tournament begins on **11 June 2026**, predictions are locked and cannot be cleared.`
+      },
     ]
   },
   {
