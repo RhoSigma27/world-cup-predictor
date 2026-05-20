@@ -9,17 +9,8 @@ import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  CONSTANTS
-// ─────────────────────────────────────────────────────────────────────────────
-
 const LOCK_DATE = new Date('2026-06-11T19:00:00Z')
 const isLocked = () => new Date() >= LOCK_DATE
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  GROUP TABLE CALCULATION — FIFA 2026 Article 20 tiebreaker order:
-//  1. Points  2. H2H pts  3. H2H GD  4. H2H GF  5. Overall GD  6. Overall GF
-// ─────────────────────────────────────────────────────────────────────────────
 
 function calcGroupTables(predictions, fixtures) {
   const tables = {}
@@ -94,15 +85,12 @@ function sortGroupFifa(rows, groupLetter, predictions, fixtures) {
   return sorted
 }
 
-// 3rd place ranking — no H2H (different groups), stop at GF
 function calcAllThirds(tables) {
   return GROUPS
     .map(g => ({ ...tables[g][2], group: g }))
     .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
 }
 
-// ─── CHANGE 1: isGroupComplete helper ────────────────────────────────────────
-// Returns true only when all 6 group matches for a group are fully predicted
 function isGroupComplete(groupLetter, groupPredictions, fixtures) {
   const groupFs = fixtures.filter(f => f.round === 'group' && f.match_group === groupLetter)
   return groupFs.length === 6 && groupFs.every(f => {
@@ -111,21 +99,12 @@ function isGroupComplete(groupLetter, groupPredictions, fixtures) {
   })
 }
 
-// ANNEX_C is imported from @/lib/worldcup
-
-
-// Match number → which Annex C column (which winner) that 3rd-place slot feeds
 const ANNEX_C_MATCH_TO_COL = { 79:0, 85:1, 81:2, 74:3, 82:4, 77:5, 87:6, 80:7 }
 
-/**
- * Given the top-8 qualifying 3rd-place groups, return a map of
- * matchNumber → team name for each 3rd-place R32 slot.
- */
 function resolveAnnexC(top8groups, tables) {
   const key = [...top8groups].sort().join('')
   const entry = ANNEX_C[key]
-  if (!entry) return {}  // should never happen with valid top-8 input
-  // entry[col] = group letter whose 3rd-place team goes into that match
+  if (!entry) return {}
   const result = {}
   for (const [matchNum, col] of Object.entries(ANNEX_C_MATCH_TO_COL)) {
     const groupLetter = entry[col]
@@ -134,90 +113,48 @@ function resolveAnnexC(top8groups, tables) {
   return result
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  BRACKET RESOLUTION
-//
-//  resolveTeam(slotCode, tables, allThirds, annexMap, predictions, fixturesByMatchNum)
-//  resolves any slot code to a team name:
-//    "1A"        → group A winner
-//    "2B"        → group B runner-up
-//    "3ABCDF"    → the 3rd-place team assigned to this match via Annex C
-//                  (looked up by match number of the fixture containing this slot)
-//    "W73"       → winner of match 73 (recursively resolved)
-//    "L101"      → loser of match 101 (recursively resolved)
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─── CHANGE 2 & 3: add fixtures param, check isGroupComplete ─────────────────
 function resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures = [], depth = 0) {
   if (!slotCode || depth > 10) return 'TBD'
-
-  // Group winner / runner-up — only resolve if all 6 group matches are predicted
   if (/^[12][A-L]$/.test(slotCode)) {
     const groupLetter = slotCode[1]
     const pos = slotCode[0] === '1' ? 0 : 1
     if (!isGroupComplete(groupLetter, groupPredictions, fixtures)) return 'TBD'
     return tables[groupLetter]?.[pos]?.team ?? 'TBD'
   }
-
-  // 3rd-place slot (e.g. "3ABCDF") — resolved via Annex C annexMap
-  // annexMap is keyed by the match_number of the fixture containing this slot
-  // We need to find which fixture has this slotCode and use its match_number
-  if (/^3[A-L]{2,}$/.test(slotCode)) {
-    // annexMap is keyed by match number → team name, pre-computed
-    // We look up by match number from the fixture context
-    // This is handled by the caller passing the correct match number
-    return null  // signal to caller to use match-number lookup
-  }
-
-  // Winner of match N
+  if (/^3[A-L]{2,}$/.test(slotCode)) return null
   if (slotCode.startsWith('W')) {
     const matchNum = parseInt(slotCode.slice(1))
     const fixture = fixturesByMatchNum[matchNum]
     if (!fixture) return 'TBD'
     const pred = koPredictions[fixture.id]
     if (!pred || pred.home == null || pred.away == null) return 'TBD'
-    // ─── CHANGE 4: pass fixtures through recursive calls ──────────────────────
     const t1 = resolveFixtureTeam(fixture.slot1, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth + 1)
     const t2 = resolveFixtureTeam(fixture.slot2, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth + 1)
     return pred.home > pred.away ? t1 : pred.away > pred.home ? t2 : 'TBD'
   }
-
-  // Loser of match N
   if (slotCode.startsWith('L')) {
     const matchNum = parseInt(slotCode.slice(1))
     const fixture = fixturesByMatchNum[matchNum]
     if (!fixture) return 'TBD'
     const pred = koPredictions[fixture.id]
     if (!pred || pred.home == null || pred.away == null) return 'TBD'
-    // ─── CHANGE 4 (continued): pass fixtures through recursive calls ──────────
     const t1 = resolveFixtureTeam(fixture.slot1, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth + 1)
     const t2 = resolveFixtureTeam(fixture.slot2, fixture.match_number, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth + 1)
     return pred.away > pred.home ? t1 : pred.home > pred.away ? t2 : 'TBD'
   }
-
   return 'TBD'
 }
 
-// Resolve a slot code in the context of a specific fixture's match number
-// This handles the 3rd-place slot codes by using the annexMap
-// ─── CHANGE 5: add fixtures param, pass to resolveTeam ───────────────────────
 function resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures = [], depth = 0) {
   if (!slotCode || depth > 10) return 'TBD'
-
-  // 3rd-place slot — only resolve once all 72 group matches are predicted
   if (/^3[A-L]{2,}$/.test(slotCode)) {
     const allGroupsDone = GROUPS.every(g => isGroupComplete(g, groupPredictions, fixtures))
     if (!allGroupsDone) return 'TBD'
     return annexMap[matchNum] ?? 'TBD'
   }
-
   return resolveTeam(slotCode, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures, depth)
 }
 
-/**
- * Build the complete bracket resolution context from current predictions.
- * Returns annexMap (matchNum → 3rd-place team) and tables.
- */
 function buildBracketContext(groupPredictions, fixtures, tables) {
   const allThirds = calcAllThirds(tables)
   const top8 = allThirds.slice(0, 8)
@@ -225,10 +162,6 @@ function buildBracketContext(groupPredictions, fixtures, tables) {
   const annexMap = resolveAnnexC(top8groups, tables)
   return { annexMap, allThirds }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  COMPONENTS
-// ─────────────────────────────────────────────────────────────────────────────
 
 function FlagImg({ team, className = 'w-5 h-3' }) {
   const src = flagUrl(team)
@@ -287,8 +220,6 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
           </button>
         ))}
       </div>
-
-      {/* Selected group table */}
       <div className="bg-gray-900 rounded-xl overflow-hidden mb-4">
         <div className="bg-yellow-500/10 px-3 py-2 text-xs font-bold text-yellow-400 uppercase tracking-wider">
           Group {displayGroup}
@@ -324,8 +255,6 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
           </tbody>
         </table>
       </div>
-
-      {/* Best 3rd place table */}
       <div className="bg-gray-900 rounded-xl overflow-hidden">
         <div className="bg-yellow-500/10 px-3 py-2 text-xs font-bold text-yellow-400 uppercase tracking-wider">
           Best 3rd Place (Top 8 Advance)
@@ -364,10 +293,6 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  BRACKET MODAL
-// ─────────────────────────────────────────────────────────────────────────────
-
 function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tables, annexMap, fixturesByMatchNum }) {
   const koFixtures = fixtures.filter(f => f.round !== 'group')
 
@@ -382,8 +307,7 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
     return pred.home > pred.away ? t1 : t2
   }
 
-  // Build match card
-  const MatchCard = ({ f, compact = false }) => {
+  const MatchCard = ({ f }) => {
     if (!f) return <div className="w-44 h-16 rounded-lg bg-gray-800/40 border border-gray-700/30" />
     const pred = koPredictions[f.id] || {}
     const t1 = resolveSlot(f.slot1 || f.home_team, f.match_number)
@@ -394,8 +318,7 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
     const isTbd2 = t2 === 'TBD'
 
     const TeamRow = ({ team, score, isWinner, isTbd }) => (
-      <div className={`flex items-center justify-between px-2 py-1 rounded
-        ${isWinner ? 'bg-yellow-500/15' : ''}`}>
+      <div className={`flex items-center justify-between px-2 py-1 rounded ${isWinner ? 'bg-yellow-500/15' : ''}`}>
         <div className="flex items-center gap-1.5 min-w-0">
           {!isTbd && <FlagImg team={team} className="w-4 h-3 flex-shrink-0" />}
           <span className={`text-xs truncate max-w-[90px] ${isTbd ? 'text-gray-600 italic' : isWinner ? 'text-yellow-300 font-bold' : 'text-gray-300'}`}>
@@ -409,11 +332,8 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
     )
 
     return (
-      <div className={`w-44 bg-gray-900 border rounded-lg overflow-hidden flex-shrink-0
-        ${hasPred ? 'border-gray-600' : 'border-gray-700/50'}`}>
-        <div className="px-2 pt-1 pb-0.5 text-[10px] text-gray-600 border-b border-gray-800">
-          M{f.match_number}
-        </div>
+      <div className={`w-44 bg-gray-900 border rounded-lg overflow-hidden flex-shrink-0 ${hasPred ? 'border-gray-600' : 'border-gray-700/50'}`}>
+        <div className="px-2 pt-1 pb-0.5 text-[10px] text-gray-600 border-b border-gray-800">M{f.match_number}</div>
         <div className="p-1 space-y-0.5">
           <TeamRow team={t1} score={pred.home} isWinner={winner === t1 && !isTbd1} isTbd={isTbd1} />
           <TeamRow team={t2} score={pred.away} isWinner={winner === t2 && !isTbd2} isTbd={isTbd2} />
@@ -424,49 +344,29 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
 
   const rounds = ['R32', 'R16', 'QF', 'SF', 'FINAL']
   const bronze = koFixtures.find(f => f.round === '3RD')
-
-  // For each round, get fixtures in match_number order
   const roundFixtures = (round) => koFixtures.filter(f => f.round === round).sort((a, b) => a.match_number - b.match_number)
-
-  // Connector line heights — used to visually pair matches between rounds
-  // R32 has 16 matches → R16 has 8 → QF 4 → SF 2 → F 1
-  // Each match card is ~80px tall, gap between pairs creates the tree structure
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={onClose}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950 flex-shrink-0"
-        onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950 flex-shrink-0" onClick={e => e.stopPropagation()}>
         <div>
           <h2 className="font-bold text-white">🏆 My Predicted Bracket</h2>
           <p className="text-xs text-gray-500 mt-0.5">Based on your current predictions · winner highlighted in gold</p>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-white text-xl px-2">✕</button>
       </div>
-
-      {/* Scrollable bracket area */}
       <div className="flex-1 overflow-auto p-6" onClick={e => e.stopPropagation()}>
         <div className="flex gap-6 items-start min-w-max">
-
           {rounds.map((round, roundIdx) => {
             const fs = roundFixtures(round)
-            // Card height + gap unit. Each successive round doubles the slot height.
-            const CARD_H = 80   // px — approximate rendered height of one MatchCard
-            const BASE_GAP = 8  // px — gap between cards in R32
+            const CARD_H = 80, BASE_GAP = 8
             const slotH = (CARD_H + BASE_GAP) * Math.pow(2, roundIdx)
-
             return (
               <div key={round} className="flex flex-col flex-shrink-0">
-                {/* Round label */}
-                <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 text-center w-44">
-                  {ROUND_LABELS[round]}
-                </div>
-                {/* Match cards — each sits in a slot of slotH, centred vertically */}
+                <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 text-center w-44">{ROUND_LABELS[round]}</div>
                 <div className="flex flex-col">
                   {fs.map((f) => (
-                    <div key={f.id}
-                      style={{ height: `${slotH}px` }}
-                      className="flex items-center">
+                    <div key={f.id} style={{ height: `${slotH}px` }} className="flex items-center">
                       <MatchCard f={f} />
                     </div>
                   ))}
@@ -474,21 +374,15 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
               </div>
             )
           })}
-
-          {/* Bronze play-off — separate column, aligned at top */}
           {bronze && (
             <div className="flex flex-col flex-shrink-0 opacity-75 ml-4">
-              <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 text-center w-44">
-                Bronze Final
-              </div>
+              <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 text-center w-44">Bronze Final</div>
               <div style={{ height: `${(80 + 8) * 8}px` }} className="flex items-start pt-2">
                 <MatchCard f={bronze} />
               </div>
             </div>
           )}
         </div>
-
-        {/* Legend */}
         <div className="mt-8 flex items-center gap-4 text-xs text-gray-600">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500/15 inline-block border border-yellow-500/30" /> predicted winner</span>
           <span className="flex items-center gap-1"><span className="text-gray-600 italic">TBD</span> = team not yet determined from your predictions</span>
@@ -498,33 +392,21 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  ODDS PIE — football-textured pie chart showing implied probabilities
-// ─────────────────────────────────────────────────────────────────────────────
-
 function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
   const canvasRef = useRef(null)
-
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     const W = 178, H = 178, cx = 89, cy = 89, R = 86
-
     const probs = [homePct / 100, drawPct / 100, awayPct / 100]
     const light = ['#4a90d9', '#aaaaaa', '#e05555']
     const dark  = ['#0a3d7a', '#3a3a3a', '#7a0f0f']
-
-    // Draw football texture offscreen
     const off = document.createElement('canvas')
     off.width = W; off.height = H
     const o = off.getContext('2d')
-
-    // White base
     o.fillStyle = '#fff'
     o.beginPath(); o.arc(cx, cy, R, 0, Math.PI * 2); o.fill()
-
-    // Classic pentagon patches
     function pentagon(c, x, y, r, rot) {
       c.beginPath()
       for (let i = 0; i < 5; i++) {
@@ -534,29 +416,21 @@ function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
       }
       c.closePath()
     }
-
     o.fillStyle = '#111'
     pentagon(o, cx, cy, 18, -Math.PI / 2); o.fill()
     for (let i = 0; i < 5; i++) {
       const a = -Math.PI / 2 + i * Math.PI * 2 / 5
-      pentagon(o, cx + 40 * Math.cos(a), cy + 40 * Math.sin(a), 15, a + Math.PI / 5)
-      o.fill()
+      pentagon(o, cx + 40 * Math.cos(a), cy + 40 * Math.sin(a), 15, a + Math.PI / 5); o.fill()
     }
     for (let i = 0; i < 5; i++) {
       const a = -Math.PI / 2 + (i + 0.5) * Math.PI * 2 / 5
-      pentagon(o, cx + 70 * Math.cos(a), cy + 70 * Math.sin(a), 12, a)
-      o.fill()
+      pentagon(o, cx + 70 * Math.cos(a), cy + 70 * Math.sin(a), 12, a); o.fill()
     }
-
     const fd = o.getImageData(0, 0, W, H).data
-
-    // Segment angle boundaries
     const angles = []
     let cum = -Math.PI / 2
     for (const p of probs) { angles.push(cum); cum += p * Math.PI * 2 }
     angles.push(cum)
-
-    // Paint pixels
     const out = ctx.createImageData(W, H)
     const od = out.data
     for (let y = 0; y < H; y++) {
@@ -565,7 +439,6 @@ function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
         const dist = Math.sqrt(dx * dx + dy * dy)
         const i = (y * W + x) * 4
         if (dist > R) { od[i + 3] = 0; continue }
-
         let angle = Math.atan2(dy, dx)
         let seg = probs.length - 1
         for (let s = 0; s < probs.length; s++) {
@@ -573,7 +446,6 @@ function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
           while (a < angles[s] - 0.001) a += Math.PI * 2
           if (a >= angles[s] && a < angles[s + 1]) { seg = s; break }
         }
-
         const brightness = (fd[i] + fd[i + 1] + fd[i + 2]) / 3
         const t = brightness / 255
         const lc = light[seg], dc = dark[seg]
@@ -586,20 +458,15 @@ function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
       }
     }
     ctx.putImageData(out, 0, 0)
-
-    // Dividers
     ctx.save()
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip()
     ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2.5
     for (let s = 0; s < probs.length; s++) {
       ctx.beginPath(); ctx.moveTo(cx, cy)
-      ctx.lineTo(cx + R * Math.cos(angles[s]), cy + R * Math.sin(angles[s]))
-      ctx.stroke()
+      ctx.lineTo(cx + R * Math.cos(angles[s]), cy + R * Math.sin(angles[s])); ctx.stroke()
     }
     ctx.beginPath(); ctx.arc(cx, cy, R - 1, 0, Math.PI * 2)
     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke()
-
-    // Labels
     ctx.font = 'bold 13px sans-serif'
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     const labels = [`${homePct}%`, `${drawPct}%`, `${awayPct}%`]
@@ -615,11 +482,8 @@ function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
 
   return (
     <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 w-52 shadow-xl">
-      <div className="text-xs text-gray-400 text-center mb-3 font-medium truncate">
-        {homeTeam} vs {awayTeam}
-      </div>
-      <canvas ref={canvasRef} width="178" height="178"
-        className="block mx-auto rounded-full" />
+      <div className="text-xs text-gray-400 text-center mb-3 font-medium truncate">{homeTeam} vs {awayTeam}</div>
+      <canvas ref={canvasRef} width="178" height="178" className="block mx-auto rounded-full" />
       <div className="mt-3 space-y-1.5">
         {[
           { label: `${homeTeam} win`, pct: homePct, color: '#1a5fa8' },
@@ -635,16 +499,10 @@ function OddsPie({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
           </div>
         ))}
       </div>
-      <div className="mt-2 pt-2 border-t border-gray-800 text-center text-xs text-gray-600">
-        Market implied probability
-      </div>
+      <div className="mt-2 pt-2 border-t border-gray-800 text-center text-xs text-gray-600">Market implied probability</div>
     </div>
   )
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  ODDS POPOVER — portal-based so it escapes all scroll/clip boundaries
-// ─────────────────────────────────────────────────────────────────────────────
 
 function OddsPopover({ rect, odds, homeTeam, awayTeam, onClose }) {
   useEffect(() => {
@@ -652,26 +510,14 @@ function OddsPopover({ rect, odds, homeTeam, awayTeam, onClose }) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
-
   if (!rect) return null
-
   const popoverH = 320
   const spaceBelow = window.innerHeight - rect.bottom
   const top = spaceBelow > popoverH ? rect.bottom + 6 : rect.top - popoverH - 6
   const right = window.innerWidth - rect.right
-
   return createPortal(
-    <div
-      style={{ position: 'fixed', top, right, zIndex: 9999 }}
-      onMouseDown={e => e.stopPropagation()}
-    >
-      <OddsPie
-        homePct={Math.round(odds.home_prob)}
-        drawPct={Math.round(odds.draw_prob)}
-        awayPct={Math.round(odds.away_prob)}
-        homeTeam={homeTeam}
-        awayTeam={awayTeam}
-      />
+    <div style={{ position: 'fixed', top, right, zIndex: 9999 }} onMouseDown={e => e.stopPropagation()}>
+      <OddsPie homePct={Math.round(odds.home_prob)} drawPct={Math.round(odds.draw_prob)} awayPct={Math.round(odds.away_prob)} homeTeam={homeTeam} awayTeam={awayTeam} />
     </div>,
     document.body
   )
@@ -679,7 +525,6 @@ function OddsPopover({ rect, odds, homeTeam, awayTeam, onClose }) {
 
 function StarPickStrip({ round, pick, roundLocked, valid, noTeamsYet, onOpen, onClear, inline = false }) {
   if (inline) {
-    // Compact version for KO round headers
     return (
       <div className="flex items-center gap-2">
         {pick && !roundLocked && (
@@ -691,58 +536,35 @@ function StarPickStrip({ round, pick, roundLocked, valid, noTeamsYet, onOpen, on
           </>
         )}
         {pick && roundLocked && (
-          <>
-            <FlagImg team={pick} />
-            <span className="text-xs text-yellow-400">⭐ {pick}</span>
-            <span className="text-xs text-gray-600">🔒</span>
-          </>
+          <><FlagImg team={pick} /><span className="text-xs text-yellow-400">⭐ {pick}</span><span className="text-xs text-gray-600">🔒</span></>
         )}
         {!pick && !roundLocked && (
-          <button
-            onClick={onOpen}
-            disabled={noTeamsYet}
-            className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
+          <button onClick={onOpen} disabled={noTeamsYet}
+            className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             ⭐ Star pick
           </button>
         )}
-        {!pick && roundLocked && (
-          <span className="text-xs text-gray-600">No star pick 🔒</span>
-        )}
+        {!pick && roundLocked && <span className="text-xs text-gray-600">No star pick 🔒</span>}
         {!roundLocked && pick && (
           <button onClick={onOpen} className="text-xs text-gray-500 hover:text-yellow-400 transition-colors">change</button>
         )}
       </div>
     )
   }
-
-  // Full-width version for group stage
   return (
-    <div className={`flex items-center justify-between px-4 py-2.5 border-b border-gray-800
-      ${roundLocked ? 'bg-gray-800/30' : 'bg-yellow-500/5'}`}>
+    <div className={`flex items-center justify-between px-4 py-2.5 border-b border-gray-800 ${roundLocked ? 'bg-gray-800/30' : 'bg-yellow-500/5'}`}>
       <div className="flex items-center gap-2">
         <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">⭐ Group Stage Star Pick</span>
-        {pick && (
-          <>
-            <FlagImg team={pick} />
-            <span className="text-xs text-yellow-400 font-medium">{pick}</span>
-            {!valid && <span className="text-xs text-amber-400">⚠ team not in group</span>}
-          </>
-        )}
+        {pick && (<><FlagImg team={pick} /><span className="text-xs text-yellow-400 font-medium">{pick}</span>{!valid && <span className="text-xs text-amber-400">⚠ team not in group</span>}</>)}
         {!pick && !roundLocked && <span className="text-xs text-gray-500">None selected</span>}
         {roundLocked && <span className="text-xs text-gray-600">🔒 Locked</span>}
       </div>
       {!roundLocked && (
         <div className="flex items-center gap-2">
-          <button
-            onClick={onOpen}
-            className="text-xs px-2.5 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors"
-          >
+          <button onClick={onOpen} className="text-xs px-2.5 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors">
             {pick ? 'Change' : 'Pick team'}
           </button>
-          {pick && (
-            <button onClick={onClear} className="text-xs text-gray-600 hover:text-red-400 transition-colors">✕</button>
-          )}
+          {pick && <button onClick={onClear} className="text-xs text-gray-600 hover:text-red-400 transition-colors">✕</button>}
         </div>
       )}
     </div>
@@ -754,13 +576,10 @@ function ImportBanner({ importableLeagues, leagueId, onImported }) {
   const [importing, setImporting] = useState(false)
   const [dismissed, setDismissed] = useState(false)
   const [error, setError] = useState(null)
- 
   if (dismissed || !importableLeagues?.length) return null
- 
   const handleImport = async () => {
     if (!selectedLeagueId) return
-    setImporting(true)
-    setError(null)
+    setImporting(true); setError(null)
     try {
       const res = await fetch('/api/predictions/import', {
         method: 'POST',
@@ -768,58 +587,33 @@ function ImportBanner({ importableLeagues, leagueId, onImported }) {
         body: JSON.stringify({ fromLeagueId: selectedLeagueId, toLeagueId: leagueId }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        setError(data.error || 'Import failed')
-      } else {
-        onImported(data.imported)
-        setDismissed(true)
-      }
-    } catch {
-      setError('Import failed — please try again')
-    } finally {
-      setImporting(false)
-    }
+      if (!res.ok) setError(data.error || 'Import failed')
+      else { onImported(data.imported); setDismissed(true) }
+    } catch { setError('Import failed — please try again') }
+    finally { setImporting(false) }
   }
- 
   return (
     <div className="mb-4 bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <p className="text-sm font-medium text-blue-300 mb-1">
-            📋 Import predictions from another league?
-          </p>
-          <p className="text-xs text-gray-500 mb-3">
-            You have no predictions here yet. Copy your scores from another league as a starting point — you can edit them afterwards.
-          </p>
+          <p className="text-sm font-medium text-blue-300 mb-1">📋 Import predictions from another league?</p>
+          <p className="text-xs text-gray-500 mb-3">You have no predictions here yet. Copy your scores from another league as a starting point — you can edit them afterwards.</p>
           <div className="flex items-center gap-2 flex-wrap">
-            <select
-              value={selectedLeagueId}
-              onChange={e => setSelectedLeagueId(e.target.value)}
-              className="flex-1 min-w-0 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
-            >
+            <select value={selectedLeagueId} onChange={e => setSelectedLeagueId(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500">
               <option value="">Select a league…</option>
               {importableLeagues.map(l => (
-                <option key={l.id} value={l.id}>
-                  {l.name} ({l.predCount}/104 predictions)
-                </option>
+                <option key={l.id} value={l.id}>{l.name} ({l.predCount}/104 predictions)</option>
               ))}
             </select>
-            <button
-              onClick={handleImport}
-              disabled={!selectedLeagueId || importing}
-              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-bold rounded-lg text-sm transition-colors flex-shrink-0"
-            >
+            <button onClick={handleImport} disabled={!selectedLeagueId || importing}
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-bold rounded-lg text-sm transition-colors flex-shrink-0">
               {importing ? 'Importing…' : 'Import'}
             </button>
           </div>
           {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
         </div>
-        <button
-          onClick={() => setDismissed(true)}
-          className="text-gray-600 hover:text-gray-400 text-lg flex-shrink-0"
-        >
-          ✕
-        </button>
+        <button onClick={() => setDismissed(true)} className="text-gray-600 hover:text-gray-400 text-lg flex-shrink-0">✕</button>
       </div>
     </div>
   )
@@ -840,8 +634,12 @@ export default function PredictionsClient({
   const [toast, setToast] = useState(null)
   const [showMobileTables, setShowMobileTables] = useState(false)
   const [showBracketModal, setShowBracketModal] = useState(false)
-  const [oddsOpen, setOddsOpen] = useState(null) // { fixtureId, rect, odds, homeTeam, awayTeam }
-  const [starPickRound, setStarPickRound] = useState(null) // which round's picker is open
+  const [oddsOpen, setOddsOpen] = useState(null)
+  const [starPickRound, setStarPickRound] = useState(null)
+  // ── NEW: clear all state ──────────────────────────────────────────────────
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  // ─────────────────────────────────────────────────────────────────────────
   const saveTimers = useRef({})
   const supabaseRef = useRef(null)
   if (!supabaseRef.current) supabaseRef.current = createClient()
@@ -884,9 +682,36 @@ export default function PredictionsClient({
 
   const handleImported = (count) => {
     showToast(`${count} predictions imported ✓ — you can edit them now`)
-    // Force a page reload so the imported predictions are loaded from the DB
     window.location.reload()
   }
+
+  // ── NEW: clear all predictions ────────────────────────────────────────────
+  const handleClearAll = async () => {
+    setClearing(true)
+    try {
+      const res = await fetch('/api/predictions/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ league_id: leagueId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setGroupPredictions({})
+        setKoPredictions({})
+        setExtras({ redcards: null, goals: null })
+        setStarPicks({ group: null, R32: null, R16: null, QF: null, SF: null, FINAL: null })
+        setShowClearConfirm(false)
+        showToast('All predictions cleared')
+      } else {
+        showToast(data.error || 'Failed to clear predictions', 'error')
+      }
+    } catch {
+      showToast('Something went wrong', 'error')
+    } finally {
+      setClearing(false)
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -970,61 +795,38 @@ export default function PredictionsClient({
     else showToast(`⭐ Star pick saved for ${ROUND_LABELS[round] || round}`)
   }
 
-  // ── Derived bracket state (recomputed on every prediction change) ──────────
-
   const groupFixtures    = fixtures.filter(f => f.round === 'group')
   const koFixtures       = fixtures.filter(f => f.round !== 'group')
   const filteredFixtures = activeGroup === 'ALL' ? groupFixtures : groupFixtures.filter(f => f.match_group === activeGroup)
 
   const totalGroupPredictions = groupFixtures.filter(f => {
-    const p = groupPredictions[f.id]
-    return p?.home != null && p?.away != null
+    const p = groupPredictions[f.id]; return p?.home != null && p?.away != null
   }).length
-
   const totalKoPredictions = koFixtures.filter(f => {
-    const p = koPredictions[f.id]
-    return p?.home != null && p?.away != null
+    const p = koPredictions[f.id]; return p?.home != null && p?.away != null
   }).length
-
   const totalPredictions = totalGroupPredictions + totalKoPredictions
   const progressPct = Math.round((totalGroupPredictions / 72) * 100)
 
-  // Build fixture index by match_number for KO resolution
   const fixturesByMatchNum = {}
-  for (const f of fixtures) {
-    if (f.match_number) fixturesByMatchNum[f.match_number] = f
-  }
+  for (const f of fixtures) { if (f.match_number) fixturesByMatchNum[f.match_number] = f }
 
-  // Group tables — update live as group predictions change
   const tables = calcGroupTables(groupPredictions, fixtures)
-
-  // Annex C — build from current top-8 thirds
   const { annexMap } = buildBracketContext(groupPredictions, fixtures, tables)
-
-  // ─── CHANGE 6: pass fixtures to resolve helper ────────────────────────────
-  // Resolve a team for a given slot code + the fixture's match number context
   const resolve = (slotCode, matchNum) =>
     resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures)
 
-  // ── Per-round star pick helpers ──────────────────────────────────────────────
-
-  // Lock time for each round = kickoff of first fixture in that round
   const roundLockTimes = {}
   const starPickRounds = ['group', 'R32', 'R16', 'QF', 'SF', 'FINAL']
   for (const round of starPickRounds) {
-    const key = round === 'group' ? 'group' : round
     const roundFs = fixtures.filter(f => f.round === (round === 'group' ? 'group' : round))
     if (roundFs.length) {
       const earliest = roundFs.reduce((a, b) => new Date(a.kickoff_utc) < new Date(b.kickoff_utc) ? a : b)
       roundLockTimes[round] = new Date(earliest.kickoff_utc)
     }
   }
-  const isRoundLocked = (round) => {
-    const lockTime = roundLockTimes[round]
-    return lockTime ? new Date() >= lockTime : false
-  }
+  const isRoundLocked = (round) => { const lockTime = roundLockTimes[round]; return lockTime ? new Date() >= lockTime : false }
 
-  // Teams available for star pick per round — derived from bracket resolution
   const teamsForRound = (round) => {
     if (round === 'group') return Object.values(GROUP_TEAMS).flat().sort()
     const roundFs = koFixtures.filter(f => f.round === round)
@@ -1038,10 +840,9 @@ export default function PredictionsClient({
     return [...teams].sort()
   }
 
-  // Check if a star pick is still valid (team is in the predicted bracket for that round)
   const isStarPickValid = (round, team) => {
     if (!team) return true
-    if (round === 'group') return true // all 48 always valid
+    if (round === 'group') return true
     return teamsForRound(round).includes(team)
   }
 
@@ -1049,7 +850,6 @@ export default function PredictionsClient({
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
       <nav className="border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 bg-gray-950 z-40">
         <Link href={`/dashboard/league/${leagueId}`} className="text-gray-400 hover:text-white text-sm">
           ← {league?.league_name}
@@ -1099,15 +899,22 @@ export default function PredictionsClient({
             </div>
           </div>
 
+          {/* ── NEW: Start again button — only shown when unlocked and predictions exist ── */}
+          {!locked && totalPredictions > 0 && (
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="text-xs text-gray-600 hover:text-red-400 transition-colors"
+              >
+                🗑 Start again
+              </button>
+            </div>
+          )}
+
+          {/* Import banner */}
+          <ImportBanner importableLeagues={importableLeagues} leagueId={leagueId} onImported={handleImported} />
+
           {/* Group tabs */}
-          
-          {/* Import banner — only shown when no predictions yet */}
-          <ImportBanner
-            importableLeagues={importableLeagues}
-            leagueId={leagueId}
-            onImported={handleImported}
-          />
-          
           <div className="flex flex-wrap gap-2 mb-4">
             {GROUPS.map(g => {
               const done = groupFixtures.filter(f => f.match_group === g)
@@ -1134,14 +941,10 @@ export default function PredictionsClient({
 
           {/* Group match table */}
           <div className="bg-gray-900 rounded-xl overflow-hidden">
-            {/* Group stage star pick */}
             <StarPickStrip
-              round="group"
-              pick={starPicks.group}
-              roundLocked={isRoundLocked('group')}
+              round="group" pick={starPicks.group} roundLocked={isRoundLocked('group')}
               valid={isStarPickValid('group', starPicks.group)}
-              onOpen={() => setStarPickRound('group')}
-              onClear={() => saveStarPick('group', null)}
+              onOpen={() => setStarPickRound('group')} onClear={() => saveStarPick('group', null)}
             />
             <table className="w-full text-sm">
               <thead>
@@ -1161,9 +964,7 @@ export default function PredictionsClient({
                   const oddsIsOpen = oddsOpen?.fixtureId === f.id
                   return (
                     <tr key={f.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                      <td className="px-2 py-2 text-right">
-                        <TeamCell team={f.home_team} align="right" />
-                      </td>
+                      <td className="px-2 py-2 text-right"><TeamCell team={f.home_team} align="right" /></td>
                       <td className="px-1 py-2 text-center">
                         <ScoreInput value={pred.home} onChange={v => updateGroupPrediction(f.id, 'home', v)} disabled={locked}/>
                       </td>
@@ -1171,9 +972,7 @@ export default function PredictionsClient({
                       <td className="px-1 py-2 text-center">
                         <ScoreInput value={pred.away} onChange={v => updateGroupPrediction(f.id, 'away', v)} disabled={locked}/>
                       </td>
-                      <td className="px-2 py-2">
-                        <TeamCell team={f.away_team} align="left" />
-                      </td>
+                      <td className="px-2 py-2"><TeamCell team={f.away_team} align="left" /></td>
                       <td className="px-2 py-2 text-right text-xs text-gray-600 hidden md:table-cell whitespace-nowrap">
                         {new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </td>
@@ -1187,9 +986,7 @@ export default function PredictionsClient({
                               setOddsOpen({ fixtureId: f.id, rect, odds, homeTeam: f.home_team, awayTeam: f.away_team })
                             }}
                             className={`inline-flex items-center gap-1 text-xs px-1.5 py-1 rounded border transition-colors
-                              ${oddsIsOpen
-                                ? 'border-gray-500 text-gray-300 bg-gray-800'
-                                : 'border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'}`}
+                              ${oddsIsOpen ? 'border-gray-500 text-gray-300 bg-gray-800' : 'border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'}`}
                           >
                             <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
                               <rect x="0" y="5" width="3" height="7" rx="1" fill="currentColor"/>
@@ -1207,7 +1004,7 @@ export default function PredictionsClient({
             </table>
           </div>
 
-          {/* KO bracket — always shown, TBD until teams are known */}
+          {/* KO bracket */}
           <div className="mt-8">
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4 flex items-start justify-between gap-3">
               <div>
@@ -1217,17 +1014,15 @@ export default function PredictionsClient({
                   Enter a score for each KO match to advance teams to the next round.
                 </p>
               </div>
-              <button
-                onClick={() => setShowBracketModal(true)}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
-              >
+              <button onClick={() => setShowBracketModal(true)}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs font-bold rounded-lg transition-colors whitespace-nowrap">
                 🏆 View bracket
               </button>
             </div>
 
             {roundOrder.map(round => {
               const roundFixtures = koFixtures.filter(f => f.round === round)
-              const starRound = round === '3RD' ? 'FINAL' : round // bronze uses FINAL pick
+              const starRound = round === '3RD' ? 'FINAL' : round
               const pick = starPicks[starRound]
               const roundLocked = isRoundLocked(starRound)
               const availableTeams = teamsForRound(starRound)
@@ -1235,24 +1030,13 @@ export default function PredictionsClient({
               return (
                 <div key={round} className="mt-5">
                   <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-800">
-                    <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">
-                      {ROUND_LABELS[round]}
-                    </span>
+                    <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">{ROUND_LABELS[round]}</span>
                     {round !== '3RD' && (
-                      <StarPickStrip
-                        round={starRound}
-                        pick={pick}
-                        roundLocked={roundLocked}
-                        valid={isStarPickValid(starRound, pick)}
-                        noTeamsYet={noTeamsYet}
-                        onOpen={() => setStarPickRound(starRound)}
-                        onClear={() => saveStarPick(starRound, null)}
-                        inline
-                      />
+                      <StarPickStrip round={starRound} pick={pick} roundLocked={roundLocked}
+                        valid={isStarPickValid(starRound, pick)} noTeamsYet={noTeamsYet}
+                        onOpen={() => setStarPickRound(starRound)} onClear={() => saveStarPick(starRound, null)} inline />
                     )}
-                    {round === '3RD' && (
-                      <span className="text-xs text-gray-600">Uses Final star pick</span>
-                    )}
+                    {round === '3RD' && <span className="text-xs text-gray-600">Uses Final star pick</span>}
                   </div>
                   <div className="bg-gray-900 rounded-xl overflow-hidden">
                     <table className="w-full text-sm">
@@ -1266,9 +1050,7 @@ export default function PredictionsClient({
                             <Fragment key={f.id}>
                               <tr className="border-b border-gray-800/50 hover:bg-gray-800/30">
                                 <td className="px-2 py-2 text-right">
-                                  {t1 === 'TBD'
-                                    ? <span className="text-gray-600 text-xs italic">TBD</span>
-                                    : <TeamCell team={t1} align="right" />}
+                                  {t1 === 'TBD' ? <span className="text-gray-600 text-xs italic">TBD</span> : <TeamCell team={t1} align="right" />}
                                 </td>
                                 <td className="px-1 py-2 text-center">
                                   <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={locked || t1 === 'TBD' || t2 === 'TBD'}/>
@@ -1278,9 +1060,7 @@ export default function PredictionsClient({
                                   <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={locked || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-2 py-2">
-                                  {t2 === 'TBD'
-                                    ? <span className="text-gray-600 text-xs italic">TBD</span>
-                                    : <TeamCell team={t2} align="left" />}
+                                  {t2 === 'TBD' ? <span className="text-gray-600 text-xs italic">TBD</span> : <TeamCell team={t2} align="left" />}
                                 </td>
                                 <td className="px-2 py-2 text-right hidden md:table-cell">
                                   <span className="text-xs text-gray-600 whitespace-nowrap">
@@ -1330,14 +1110,10 @@ export default function PredictionsClient({
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
                   onChange={e => setExtras(prev => ({ ...prev, goals: e.target.value === '' ? null : parseInt(e.target.value) }))}/>
                 {(() => {
-                  const sum = [
-                    ...Object.values(groupPredictions),
-                    ...Object.values(koPredictions),
-                  ].reduce((acc, p) => acc + (p.home ?? 0) + (p.away ?? 0), 0)
-                  const filled = [
-                    ...Object.values(groupPredictions),
-                    ...Object.values(koPredictions),
-                  ].filter(p => p.home != null && p.away != null).length
+                  const sum = [...Object.values(groupPredictions), ...Object.values(koPredictions)]
+                    .reduce((acc, p) => acc + (p.home ?? 0) + (p.away ?? 0), 0)
+                  const filled = [...Object.values(groupPredictions), ...Object.values(koPredictions)]
+                    .filter(p => p.home != null && p.away != null).length
                   if (filled === 0) return null
                   return (
                     <p className="text-xs text-gray-500 mt-1">
@@ -1383,7 +1159,7 @@ export default function PredictionsClient({
         </div>
       </div>
 
-      {/* Star pick modal — per round */}
+      {/* Star pick modal */}
       {starPickRound && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setStarPickRound(null)}>
           <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -1392,11 +1168,7 @@ export default function PredictionsClient({
               <button onClick={() => setStarPickRound(null)} className="text-gray-500 hover:text-white">✕</button>
             </div>
             <p className="text-xs text-gray-500 mb-4">
-              {starPickRound === 'group' ? 'Group Stage' :
-               starPickRound === 'R32' ? 'Round of 32' :
-               starPickRound === 'R16' ? 'Round of 16' :
-               starPickRound === 'QF' ? 'Quarter Finals' :
-               starPickRound === 'SF' ? 'Semi Finals' : 'The Final'} — points doubled for this team's match
+              {starPickRound === 'group' ? 'Group Stage' : starPickRound === 'R32' ? 'Round of 32' : starPickRound === 'R16' ? 'Round of 16' : starPickRound === 'QF' ? 'Quarter Finals' : starPickRound === 'SF' ? 'Semi Finals' : 'The Final'} — points doubled for this team's match
             </p>
             {(() => {
               const teams = teamsForRound(starPickRound)
@@ -1407,8 +1179,7 @@ export default function PredictionsClient({
               return (
                 <div className="grid grid-cols-2 gap-2">
                   {teams.map(team => (
-                    <button key={team}
-                      onClick={() => saveStarPick(starPickRound, team)}
+                    <button key={team} onClick={() => saveStarPick(starPickRound, team)}
                       className={`px-3 py-2 rounded-lg text-sm text-left flex items-center gap-2 transition-colors
                         ${current === team ? 'bg-yellow-500 text-gray-950 font-bold' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
                       <FlagImg team={team} />
@@ -1430,26 +1201,36 @@ export default function PredictionsClient({
 
       {/* Bracket modal */}
       {showBracketModal && (
-        <BracketModal
-          onClose={() => setShowBracketModal(false)}
-          fixtures={fixtures}
-          groupPredictions={groupPredictions}
-          koPredictions={koPredictions}
-          tables={tables}
-          annexMap={annexMap}
-          fixturesByMatchNum={fixturesByMatchNum}
-        />
+        <BracketModal onClose={() => setShowBracketModal(false)} fixtures={fixtures}
+          groupPredictions={groupPredictions} koPredictions={koPredictions}
+          tables={tables} annexMap={annexMap} fixturesByMatchNum={fixturesByMatchNum} />
       )}
 
-      {/* Odds popover — portal rendered over everything */}
+      {/* ── NEW: Clear all confirmation modal ── */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setShowClearConfirm(false)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-lg text-white mb-2">🗑 Start again?</h3>
+            <p className="text-gray-400 text-sm mb-5">
+              This will delete all your predictions for this league — match scores, extras, and star picks. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={handleClearAll} disabled={clearing}
+                className="flex-1 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold rounded-xl text-sm transition-colors disabled:opacity-50">
+                {clearing ? 'Clearing…' : 'Yes, clear everything'}
+              </button>
+              <button onClick={() => setShowClearConfirm(false)}
+                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold rounded-xl text-sm transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Odds popover */}
       {oddsOpen && (
-        <OddsPopover
-          rect={oddsOpen.rect}
-          odds={oddsOpen.odds}
-          homeTeam={oddsOpen.homeTeam}
-          awayTeam={oddsOpen.awayTeam}
-          onClose={() => setOddsOpen(null)}
-        />
+        <OddsPopover rect={oddsOpen.rect} odds={oddsOpen.odds} homeTeam={oddsOpen.homeTeam} awayTeam={oddsOpen.awayTeam} onClose={() => setOddsOpen(null)} />
       )}
 
       {/* Toast */}
