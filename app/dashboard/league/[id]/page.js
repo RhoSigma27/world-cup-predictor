@@ -9,10 +9,13 @@ import LeagueLogo from '@/app/components/LeagueLogo'
 
 export const revalidate = 0
 
+const TIER_LIMITS  = { hobby: 6, enthusiast: 11, fanatic: Infinity, business: Infinity }
+const TIER_LABELS  = { hobby: 'Hobby', enthusiast: 'Enthusiast', fanatic: 'Fanatic', business: 'Business' }
+
 export default async function LeaguePage({ params, searchParams }) {
   const supabase = await createServerSupabaseClient()
   const { id } = await params
-  const { new: isNew } = await searchParams
+  const { new: isNew, upgraded } = await searchParams
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/signin')
@@ -48,6 +51,14 @@ export default async function LeaguePage({ params, searchParams }) {
   const isAdmin = league.admin_id === user.id
   const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/join/${league.invite_code}`
 
+  // Tier / member count helpers
+  const tier       = league.tier ?? 'hobby'
+  const isComped   = league.is_comped === true
+  const tierLimit  = isComped ? Infinity : (TIER_LIMITS[tier] ?? 6)
+  const tierLabel  = TIER_LABELS[tier] ?? 'Hobby'
+  const memberCount = members.length
+  const atLimit    = isFinite(tierLimit) && memberCount >= tierLimit
+
   // Fetch fixtures
   const { data: fixtures } = await adminSupabase
     .from('fixtures')
@@ -61,17 +72,11 @@ export default async function LeaguePage({ params, searchParams }) {
           ← Dashboard
         </Link>
         <div className="flex items-center gap-3">
-          <LeagueLogo
-            name={league.league_name}
-            logoUrl={league.logo_url}
-            size="sm"
-          />
+          <LeagueLogo name={league.league_name} logoUrl={league.logo_url} size="sm" />
           <span className="font-bold text-yellow-400">{league.league_name}</span>
         </div>
         {isAdmin && (
-          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
-            Admin
-          </span>
+          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">Admin</span>
         )}
       </nav>
 
@@ -83,6 +88,14 @@ export default async function LeaguePage({ params, searchParams }) {
             <div className="text-4xl mb-2">🎉</div>
             <h2 className="text-xl font-bold text-green-400 mb-1">League Created!</h2>
             <p className="text-gray-400 text-sm">Share the invite link below with your friends</p>
+          </div>
+        )}
+
+        {/* Upgrade success banner */}
+        {upgraded === 'true' && (
+          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 mb-6 text-center">
+            <p className="text-green-400 font-bold text-lg mb-1">🎉 League upgraded!</p>
+            <p className="text-gray-400 text-sm">Your new member limit is now active.</p>
           </div>
         )}
 
@@ -105,7 +118,7 @@ export default async function LeaguePage({ params, searchParams }) {
         {/* Members */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="font-bold text-lg mb-3">
-            👥 Members ({members?.length || 0})
+            👥 Members ({memberCount}{isFinite(tierLimit) ? `/${tierLimit}` : ''})
           </h2>
           <MembersList
             members={members}
@@ -140,7 +153,7 @@ export default async function LeaguePage({ params, searchParams }) {
           📝 Enter My Predictions →
         </Link>
 
-        {/* Invite Friends — moved to bottom */}
+        {/* Invite Friends */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="font-bold text-lg mb-4">🔗 Invite Friends</h2>
           <div className="space-y-3">
@@ -161,6 +174,23 @@ export default async function LeaguePage({ params, searchParams }) {
                 <CopyButton text={inviteUrl} />
               </div>
             </div>
+          </div>
+
+          {/* Member count + tier info */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800 gap-3 flex-wrap">
+            <span className="text-sm text-gray-500">
+              {memberCount} member{memberCount !== 1 ? 's' : ''} · {isComped ? 'Comped' : tierLabel} tier
+              {isFinite(tierLimit) ? ` (max ${tierLimit})` : ' (unlimited)'}
+              {atLimit && <span className="text-red-400 ml-1 font-medium">· full</span>}
+            </span>
+            {isAdmin && isFinite(tierLimit) && (
+              <Link
+                href={`/dashboard/league/${id}/admin`}
+                className="text-xs text-yellow-400 hover:text-yellow-300 font-medium transition-colors flex-shrink-0"
+              >
+                Want more members? Upgrade →
+              </Link>
+            )}
           </div>
         </div>
 

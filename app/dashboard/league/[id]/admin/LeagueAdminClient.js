@@ -68,7 +68,8 @@ function UpgradeSection({ league, memberCount, onUpgrade, upgrading }) {
           {isComped ? '⭐ Comped' : tierLabel}
         </span>
         <span className="text-sm text-gray-400">
-          {memberCount}{isFinite(limit) ? ` / ${limit}` : ''} member{memberCount !== 1 ? 's' : ''}
+          {memberCount} member{memberCount !== 1 ? 's' : ''} · {isComped ? 'Comped' : tierLabel} tier
+          {isFinite(limit) ? ` (max ${limit})` : ' (unlimited)'}
           {isFinite(limit) && memberCount >= limit && (
             <span className="ml-2 text-red-400 font-medium">· limit reached</span>
           )}

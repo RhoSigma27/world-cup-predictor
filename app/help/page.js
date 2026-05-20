@@ -50,7 +50,38 @@ In both cases, the closer you are, the more you earn. An exact prediction earns 
     ]
   },
   {
-    category: 'Predictions',
+    category: 'Plans & Pricing',
+    items: [
+      {
+        q: 'What plans are available and what do they cost?',
+        a: `There are four plans for a league:
+
+• **Hobby** — free. Up to 6 members (admin + 5). Perfect for a small group of friends.
+
+• **Enthusiast** — £12 one-time. Up to 11 members (admin + 10).
+
+• **Fanatic** — £20 one-time. Unlimited members.
+
+• **Business** — £100 one-time. Unlimited members, designed for pubs and workplaces. Includes a QR code table card for easy joining.
+
+All plans are a one-time payment — there are no subscriptions or recurring charges.`
+      },
+      {
+        q: 'How do I upgrade my league?',
+        a: `Only the league admin can upgrade. Go to your league page and tap **⚙️ League Admin**, then scroll to the **League Plan** section. You'll see your current tier and the available upgrade options. Tap the upgrade you want and you'll be taken to a secure checkout. Your league is upgraded instantly once payment is confirmed.`
+      },
+      {
+        q: 'What happens when my league is full?',
+        a: `When your league reaches its member limit, anyone who tries to join using your invite link will be blocked and shown a message explaining the league is full. You'll also receive an email letting you know someone tried to join.
+
+To let them in, upgrade your league to the next tier — this takes effect immediately and they can rejoin straight away.`
+      },
+      {
+        q: 'Can I get a refund?',
+        a: `Upgrades take effect immediately, so we don't offer refunds as a general rule. If your payment was taken but your league wasn't upgraded, contact us at support@thematchpredictor.com and we'll resolve it promptly. Payments are processed securely by Lemon Squeezy.`
+      },
+    ]
+  },
     items: [
       {
         q: 'When is the deadline to enter predictions?',
