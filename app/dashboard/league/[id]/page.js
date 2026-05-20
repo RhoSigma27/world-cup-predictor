@@ -82,6 +82,18 @@ export default async function LeaguePage({ params, searchParams }) {
 
       <div className="max-w-3xl mx-auto px-6 py-10">
 
+        {/* Business league banner */}
+        {league.banner_url && (
+          <div className="-mx-6 -mt-10 mb-6">
+            <img
+              src={league.banner_url}
+              alt="{league.league_name} banner"
+              className="w-full object-cover"
+              style={{ maxHeight: 200 }}
+            />
+          </div>
+        )}
+
         {/* New league celebration */}
         {isNew && (
           <div className="bg-green-900/30 border border-green-700 rounded-2xl p-6 mb-8 text-center">

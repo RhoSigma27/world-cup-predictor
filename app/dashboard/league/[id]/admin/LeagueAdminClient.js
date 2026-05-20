@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
 // ── Tier config ───────────────────────────────────────────────────────────────
@@ -213,6 +213,192 @@ function LogoUpload({ leagueId, initialLogoUrl }) {
   )
 }
 
+
+// ── QR Card Modal (Business tier) ────────────────────────────────────────────
+function QRCardModal({ league, onClose }) {
+  const canvasRef = useRef(null)
+  const [generating, setGenerating] = useState(true)
+  const [qrError, setQrError] = useState(null)
+  const joinUrl = `https://thematchpredictor.com/join/${league.invite_code}`
+
+  useEffect(() => {
+      let cancelled = false
+      const generate = async () => {
+        try {
+          const QRCode = (await import("qrcode")).default
+          const W = 794, H = 1123
+          const canvas = canvasRef.current
+          if (!canvas || cancelled) return
+          canvas.width = W; canvas.height = H
+          const ctx = canvas.getContext("2d")
+          const bgGrad = ctx.createLinearGradient(0, 0, 0, H)
+          bgGrad.addColorStop(0, "#0a0a0f"); bgGrad.addColorStop(1, "#111827")
+          ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H)
+          ctx.fillStyle = "#f59e0b"; ctx.fillRect(0, 0, W, 8); ctx.fillRect(0, H - 8, W, 8)
+          ctx.fillStyle = "#f59e0b"; ctx.font = "bold 28px sans-serif"; ctx.textAlign = "center"
+          ctx.fillText("⚽ World Cup Predictor 2026", W / 2, 70)
+          ctx.fillStyle = "#9ca3af"; ctx.font = "18px sans-serif"
+          ctx.fillText("Predict every match. Compete with your mates.", W / 2, 105)
+          ctx.strokeStyle = "#374151"; ctx.lineWidth = 1
+          ctx.beginPath(); ctx.moveTo(60, 125); ctx.lineTo(W - 60, 125); ctx.stroke()
+          ctx.fillStyle = "#ffffff"; ctx.font = "bold 42px sans-serif"
+          ctx.fillText(league.league_name, W / 2, 200)
+          const qrSize = 300, qrX = (W - qrSize) / 2, qrY = 230, pad = 16
+          ctx.fillStyle = "#ffffff"
+          ctx.beginPath(); ctx.roundRect(qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, 16); ctx.fill()
+          const qrDataUrl = await QRCode.toDataURL(joinUrl, { width: qrSize, margin: 1, color: { dark: "#000000", light: "#ffffff" } })
+          const qrImg = new window.Image()
+          await new Promise(res => { qrImg.onload = res; qrImg.src = qrDataUrl })
+          ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+          const msgY = qrY + qrSize + pad + 50
+          ctx.fillStyle = "#f59e0b"; ctx.font = "bold 26px sans-serif"
+          ctx.fillText("Scan to join our league", W / 2, msgY)
+          ctx.fillStyle = "#d1d5db"; ctx.font = "20px sans-serif"
+          ctx.fillText("and make your World Cup predictions!", W / 2, msgY + 34)
+          ctx.fillStyle = "#6b7280"; ctx.font = "16px sans-serif"
+          ctx.fillText(`Invite code: ${league.invite_code}`, W / 2, msgY + 70)
+          ctx.fillStyle = "#4b5563"; ctx.font = "14px sans-serif"
+          ctx.fillText("thematchpredictor.com", W / 2, H - 25)
+          if (!cancelled) setGenerating(false)
+        } catch (err) {
+          console.error(err)
+          if (!cancelled) setQrError("Failed to generate card")
+        }
+      }
+      generate()
+      return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleDownloadPDF = async () => {
+    try {
+      const { jsPDF } = await import("jspdf")
+      const canvas = canvasRef.current
+      const imgData = canvas.toDataURL("image/png", 1.0)
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a5" })
+      pdf.addImage(imgData, "PNG", 0, 0, 148, 210)
+      pdf.save(`${league.league_name.replace(/\s+/g, "-")}-qr-card.pdf`)
+    } catch (err) { console.error(err) }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-bold text-white">📋 QR Table Card</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{league.league_name}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-white text-xl px-2">✕</button>
+        </div>
+        <div className="relative bg-gray-800 rounded-xl overflow-hidden mb-4" style={{ minHeight: 200 }}>
+          {generating && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-6 h-6 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-gray-400">Generating card…</span>
+              </div>
+            </div>
+          )}
+          {qrError && <div className="absolute inset-0 flex items-center justify-center"><span className="text-red-400 text-sm">{qrError}</span></div>}
+          <canvas ref={canvasRef} className="w-full h-auto" style={{ display: generating ? "none" : "block" }} />
+        </div>
+        {!generating && !qrError && (
+          <div className="flex gap-3">
+            <button onClick={handleDownloadPDF} className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors">
+              ⬇ Download PDF (A5)
+            </button>
+            <button onClick={onClose} className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-xl text-sm transition-colors">Close</button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Banner uploader (Business tier only) ─────────────────────────────────────
+function BannerUpload({ leagueId, initialBannerUrl }) {
+  const [preview, setPreview] = useState(initialBannerUrl || null)
+  const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [error, setError] = useState(null)
+  const [successMsg, setSuccessMsg] = useState(null)
+  const inputRef = useRef(null)
+
+  const handleFile = async (file) => {
+    if (!file) return
+    setError(null); setSuccessMsg(null)
+    if (file.size > 2097152) { setError('File too large — maximum 2 MB'); return }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) { setError('Use JPEG, PNG, WebP or GIF'); return }
+    const reader = new FileReader()
+    reader.onload = (e) => setPreview(e.target.result)
+    reader.readAsDataURL(file)
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('leagueId', leagueId)
+      fd.append('file', file)
+      const res = await fetch('/api/league-admin/upload-banner', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Upload failed'); setPreview(initialBannerUrl || null) }
+      else { setSuccessMsg('Banner updated ✓'); setTimeout(() => setSuccessMsg(null), 3000) }
+    } catch { setError('Upload failed — please try again'); setPreview(initialBannerUrl || null) }
+    finally { setUploading(false) }
+  }
+
+  const handleRemove = async () => {
+    setRemoving(true); setError(null)
+    try {
+      const res = await fetch('/api/league-admin/remove-banner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leagueId }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Failed to remove') }
+      else { setPreview(null); setSuccessMsg('Banner removed ✓'); setTimeout(() => setSuccessMsg(null), 3000) }
+    } catch { setError('Failed to remove') }
+    finally { setRemoving(false) }
+  }
+
+  const handleDrop = (e) => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file) }
+
+  return (
+    <div>
+      {preview && (
+        <div className="relative mb-4 rounded-xl overflow-hidden border border-gray-700">
+          <img src={preview} alt="League banner" className="w-full object-cover max-h-48" />
+          <button onClick={handleRemove} disabled={removing}
+            className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-50">
+            {removing ? 'Removing…' : '✕ Remove'}
+          </button>
+        </div>
+      )}
+      <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}
+        onClick={() => inputRef.current?.click()}
+        className="border-2 border-dashed border-gray-700 hover:border-yellow-500/50 rounded-xl p-4 cursor-pointer transition-colors text-center group">
+        {uploading ? (
+          <div className="flex items-center justify-center gap-2 text-yellow-400">
+            <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm">Uploading…</span>
+          </div>
+        ) : (
+          <>
+            <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">🖼️</div>
+            <p className="text-sm text-gray-400 group-hover:text-gray-300">Click to upload or drag & drop</p>
+            <p className="text-xs text-gray-600 mt-0.5">JPEG, PNG, WebP, GIF · max 2 MB · recommended 1200×400px</p>
+          </>
+        )}
+      </div>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
+      {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+      {successMsg && <p className="text-green-400 text-xs mt-2">{successMsg}</p>}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LeagueAdminClient({ league: initialLeague, members: initialMembers, currentUserId }) {
@@ -229,6 +415,7 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
   const [confirmRemove, setConfirmRemove] = useState(null)
   const [confirmChangeAdmin, setConfirmChangeAdmin] = useState(null)
   const [saving, setSaving] = useState(null)
+  const [showQrModal, setShowQrModal] = useState(false)
 
   // Email standings state
   const [emailMessage, setEmailMessage] = useState('')
@@ -363,6 +550,8 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
     setConfirmSendEmail(true)
   }
 
+  const isBusiness = league.tier === 'business' || league.is_comped === true
+
   const noticeLines = notice.split('\n').length
   const noticeChanged = notice.trim() !== (league.notice || '').trim()
   const lastSentDisplay = league.last_email_sent_at
@@ -416,6 +605,31 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
           </p>
           <LogoUpload leagueId={league.id} initialLogoUrl={league.logo_url || null} />
         </Section>
+
+        {/* Business: Banner upload */}
+        {isBusiness && (
+          <Section title="🖼️ League Banner">
+            <p className="text-gray-500 text-sm mb-4">
+              A full-width cover photo shown at the top of your league page. Great for your pub's branding, logo, or atmosphere. Recommended 1200×400px · max 2 MB.
+            </p>
+            <BannerUpload leagueId={league.id} initialBannerUrl={league.banner_url || null} />
+          </Section>
+        )}
+
+        {/* Business: QR card */}
+        {isBusiness && (
+          <Section title="📋 QR Table Card">
+            <p className="text-gray-500 text-sm mb-4">
+              Generate a print-ready A5 PDF with your league's QR code. Put one on every table so your members can join instantly by scanning.
+            </p>
+            <button
+              onClick={() => setShowQrModal(true)}
+              className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-yellow-400 font-bold rounded-xl text-sm transition-colors border border-yellow-500/20"
+            >
+              📋 Generate QR Table Card
+            </button>
+          </Section>
+        )}
 
         {/* Pinned notice */}
         <Section title="📌 Pinned Notice">
@@ -639,6 +853,9 @@ export default function LeagueAdminClient({ league: initialLeague, members: init
         </div>
 
       </div>
+
+      {/* QR Card Modal */}
+      {showQrModal && <QRCardModal league={league} onClose={() => setShowQrModal(false)} />}
 
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium z-50
