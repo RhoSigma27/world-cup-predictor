@@ -14,7 +14,7 @@ export async function GET(request) {
 
   let payload
   try {
-    payload = JSON.parse(Buffer.from(d, 'base64').toString('utf8'))
+    payload = JSON.parse(atob(d))
   } catch {
     return new Response('Invalid data', { status: 400 })
   }
