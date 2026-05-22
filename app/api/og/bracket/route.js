@@ -2,7 +2,7 @@
 // Resolves a user's predicted KO bracket and renders it as a shareable image.
 // Shows R16 → QF → SF → Final → Champion, 8 teams per side.
 
-import { ImageResponse } from '@vercel/og'
+import { ImageResponse } from 'next/og'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COUNTRY_CODES } from '@/lib/worldcup'
 import {
@@ -12,7 +12,7 @@ import {
   normalisePred,
 } from '@/lib/bracketEngine'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
 function flagUrl(team) {
   const code = COUNTRY_CODES[team]
