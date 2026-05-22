@@ -33,9 +33,11 @@ This is by design. In the Round of 32, 8 of the 32 fixtures involve third-placed
 
 You set a different Star Pick for each round — Group Stage, Round of 32, Round of 16, Quarter-Finals, Semi-Finals, and the Final. The Bronze Final uses the same Star Pick as the Final.
 
+Unlike match score predictions, Star Picks have **rolling deadlines** — each round's Star Pick locks when the first match of that round kicks off. So your Group Stage Star Pick must be set before 11 June, but you have until the first Round of 32 match (late June) to set that pick, and so on through the tournament. This means you can watch the group stage unfold and pick the team that looks sharpest before committing.
+
 Your Star Pick is private — other players cannot see which team you have chosen. Choose wisely!
 
-To set your Star Pick, go to your Predictions page and tap "Star pick" at the top of each round section.`
+To set or change your Star Pick, go to your Predictions page and tap "Star pick" at the top of each round section.`
       },
       {
         q: 'What are the Extras predictions?',
@@ -87,17 +89,17 @@ To let them in, upgrade your league to the next tier — this takes effect immed
     items: [
       {
         q: 'When is the deadline to enter predictions?',
-        a: `The tournament begins on **11 June 2026**. You should aim to have all your group stage predictions in before then.
+        a: `All predictions — group stage and knockout stage — must be entered before the tournament begins on **11 June 2026**. Once the first match kicks off, the predictions page locks and no further score predictions can be made.
 
-For knockout stage predictions, you can enter them any time before the relevant round starts. However we recommend entering all predictions early — it's more fun to have everything locked in before the tournament begins.`
+We recommend getting everything in well before then. It's much more fun to have your full bracket locked in before a ball is kicked.`
       },
       {
         q: 'Can I change my predictions after submitting?',
-        a: `Yes — predictions are saved automatically as you enter them and you can change them at any time before the relevant match kicks off. Once a match has started, predictions for that match are locked.`
+        a: `Yes — predictions are saved automatically as you enter them and you can change them at any time before the tournament begins on **11 June 2026**. Once the first match kicks off, all predictions lock and cannot be changed.`
       },
       {
         q: 'Can I change my knockout stage predictions?',
-        a: `Yes — you can overwrite your knockout predictions at any time before the relevant match kicks off. Simply go to your Predictions page, navigate to the knockout round, and enter new scores. Your latest entry is always saved automatically.`
+        a: `Yes — you can overwrite your knockout predictions at any time before the tournament begins on **11 June 2026**. Simply go to your Predictions page, navigate to the knockout round, and enter new scores. Your latest entry is always saved automatically.`
       },
       {
         q: 'Where do I enter my Star Pick?',
