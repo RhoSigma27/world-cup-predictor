@@ -298,7 +298,7 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
   const koFixtures = fixtures.filter(f => f.round !== 'group')
 
   const resolveSlot = (slotCode, matchNum) =>
-    resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum)
+    resolveFixtureTeam(slotCode, matchNum, tables, annexMap, groupPredictions, koPredictions, fixturesByMatchNum, fixtures)
 
   const getWinner = (f) => {
     const pred = koPredictions[f.id]
