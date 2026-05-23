@@ -1,25 +1,16 @@
 // app/api/og/bracket/route.js
-// Resolves a user's predicted KO bracket and renders it as a shareable image.
-// Shows R16 → QF → SF → Final → Champion, 8 teams per side.
-
 import { ImageResponse } from 'next/og'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COUNTRY_CODES } from '@/lib/worldcup'
-import {
-  calcGroupTables,
-  buildAnnexMap,
-  resolveSlot,
-  normalisePred,
-} from '@/lib/bracketEngine'
+import { calcGroupTables, buildAnnexMap, resolveSlot, normalisePred } from '@/lib/bracketEngine'
 
 export const runtime = 'edge'
 
-function flagUrl(team) {
-  const code = COUNTRY_CODES[team]
+const flagUrl = (team) => {
+  const code = COUNTRY_CODES?.[team]
   return code ? `https://flagcdn.com/20x15/${code}.png` : null
 }
 
-// Resolve a winner from a prediction + two slot teams
 function getWinner(pred, t1, t2) {
   if (!pred || pred.home == null || pred.away == null) return null
   if (pred.home > pred.away) return t1
@@ -29,279 +20,313 @@ function getWinner(pred, t1, t2) {
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
-  const userId = searchParams.get('userId')
+  const userId   = searchParams.get('userId')
   const leagueId = searchParams.get('leagueId')
   if (!userId || !leagueId) return new Response('Missing params', { status: 400 })
 
   const admin = createAdminClient()
 
-  // Fetch user display name
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('display_name')
-    .eq('id', userId)
-    .single()
-
-  // Check for nickname in this league
-  const { data: membership } = await admin
-    .from('league_members')
-    .select('nickname')
-    .eq('league_id', leagueId)
-    .eq('user_id', userId)
-    .single()
+  const [
+    { data: profile },
+    { data: membership },
+    { data: fixtures },
+    { data: predictions },
+  ] = await Promise.all([
+    admin.from('profiles').select('display_name').eq('id', userId).single(),
+    admin.from('league_members').select('nickname').eq('league_id', leagueId).eq('user_id', userId).single(),
+    admin.from('fixtures').select('*').order('match_number', { ascending: true }),
+    admin.from('predictions').select('fixture_id, predicted_home, predicted_away').eq('user_id', userId).eq('league_id', leagueId),
+  ])
 
   const displayName = membership?.nickname || profile?.display_name || 'Player'
 
-  // Fetch all fixtures
-  const { data: fixtures } = await admin
-    .from('fixtures')
-    .select('*')
-    .order('match_number', { ascending: true })
-
-  if (!fixtures?.length) return new Response('No fixtures', { status: 500 })
-
-  // Fetch user predictions for this league
-  const { data: predictions } = await admin
-    .from('predictions')
-    .select('fixture_id, predicted_home, predicted_away')
-    .eq('user_id', userId)
-    .eq('league_id', leagueId)
-
-  // Build pred map (server format: predicted_home/predicted_away)
   const predMap = {}
   for (const p of (predictions || [])) predMap[p.fixture_id] = p
 
-  // Build fixture index by match number
   const byMatchNum = {}
-  for (const f of fixtures) if (f.match_number) byMatchNum[f.match_number] = f
+  for (const f of (fixtures || [])) if (f.match_number) byMatchNum[f.match_number] = f
 
-  // Resolve bracket
-  const tables = calcGroupTables(predMap, fixtures)
+  const tables   = calcGroupTables(predMap, fixtures || [])
   const annexMap = buildAnnexMap(tables)
 
   const resolve = (slotCode, matchNum) =>
     resolveSlot(slotCode, matchNum, tables, annexMap, predMap, byMatchNum)
 
-  // Build R16 through Final
+  // Build R16 → Final bracket
   const rounds = ['R16', 'QF', 'SF', 'FINAL']
   const bracketByRound = {}
   for (const round of rounds) {
-    bracketByRound[round] = fixtures
+    bracketByRound[round] = (fixtures || [])
       .filter(f => f.round === round)
       .sort((a, b) => a.match_number - b.match_number)
       .map(f => {
-        const t1 = resolve(f.slot1, f.match_number)
-        const t2 = resolve(f.slot2, f.match_number)
-        const pred = normalisePred(predMap[f.id])
+        const t1     = resolve(f.slot1, f.match_number)
+        const t2     = resolve(f.slot2, f.match_number)
+        const pred   = normalisePred(predMap[f.id])
         const winner = getWinner(pred, t1, t2)
         return { t1, t2, winner }
       })
   }
 
-  // Split R16 into left (first 8) and right (last 8) — 16 R16 fixtures total
   const r16 = bracketByRound['R16'] || []
-  const leftR16  = r16.slice(0, 8)
-  const rightR16 = r16.slice(8)
+  const mid  = Math.floor(r16.length / 2)
+
+  const leftR16  = r16.slice(0, mid)   // 8 matches
+  const rightR16 = r16.slice(mid)      // 8 matches
   const leftQF   = (bracketByRound['QF']    || []).slice(0, 4)
   const rightQF  = (bracketByRound['QF']    || []).slice(4)
   const leftSF   = (bracketByRound['SF']    || []).slice(0, 2)
   const rightSF  = (bracketByRound['SF']    || []).slice(2)
-  const finalMatch = (bracketByRound['FINAL'] || [])[0]
-  const champion = finalMatch?.winner ?? null
+  const finalMatch = (bracketByRound['FINAL'] || [])[0] ?? null
+  const champion   = finalMatch?.winner ?? null
+  const champFlag  = champion ? flagUrl(champion) : null
 
-  // ─── Render helpers ──────────────────────────────────────────────────────
+  // ── Layout constants ───────────────────────────────────────────────────────
+  const W = 1200, H = 630
+  const HEADER_H = 72
+  const FOOTER_H = 24
+  const BODY_H   = H - HEADER_H - FOOTER_H  // 534
 
-  const COL_W = { r16: 170, qf: 140, sf: 120, fin: 110 }
-  const BODY_H = 510
-  const GAP = 8
+  // Column widths
+  const CW = { r16: 168, qf: 136, sf: 112, fin: 96, center: 104 }
+  // Total: 168+136+112+96+104+96+112+136+168 = 1128, padded by 36px each side = 1200 ✓
 
-  // A single team row inside the bracket
-  const TeamRow = ({ team, isWinner, height }) => {
+  // Row heights for each round (match height = 2 rows + gap for R16)
+  const ROW_H  = { r16: 24, qf: 26, sf: 30, fin: 36 }
+  const GAP_H  = 3   // gap between the two team rows in a match
+  const MATCH_H = (round) => ROW_H[round] * 2 + GAP_H
+
+  // ── Team row component ─────────────────────────────────────────────────────
+  const TeamBox = ({ team, isWinner, h }) => {
     const flag = team ? flagUrl(team) : null
+    const resolved = team && team !== 'TBD'
     return (
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        background: isWinner ? '#1c2a0e' : '#1a1f2e',
-        borderLeft: `3px solid ${isWinner ? '#eab308' : '#2d3748'}`,
-        borderRadius: '4px',
-        padding: '0 10px',
-        height: `${height}px`,
-        overflow: 'hidden',
-        flexShrink: 0,
+        display:        'flex',
+        alignItems:     'center',
+        gap:            '5px',
+        height:         `${h}px`,
+        padding:        '0 8px',
+        background:     isWinner ? '#14532d' : resolved ? '#1e2535' : '#141824',
+        borderLeft:     `2px solid ${isWinner ? '#eab308' : resolved ? '#374151' : '#1f2937'}`,
+        borderRadius:   '3px',
+        overflow:       'hidden',
+        flexShrink:     0,
       }}>
-        {flag && team && (
-          <img src={flag} style={{ width: '20px', height: '15px', objectFit: 'cover', flexShrink: 0 }} />
+        {flag && resolved && (
+          <img src={flag} width={16} height={12} style={{ objectFit: 'cover', flexShrink: 0 }} />
         )}
         <span style={{
-          fontSize: '13px',
+          fontSize:   '11px',
           fontWeight: isWinner ? 700 : 400,
-          color: isWinner ? '#f0fdf4' : team ? '#d1d5db' : '#4b5563',
+          color:      isWinner ? '#86efac' : resolved ? '#d1d5db' : '#374151',
           whiteSpace: 'nowrap',
-          overflow: 'hidden',
+          overflow:   'hidden',
         }}>
-          {team ?? 'TBD'}
+          {resolved ? team : '·'}
         </span>
       </div>
     )
   }
 
-  // A column of match slots for one round, one side
-  // matches: [{t1, t2, winner}]
-  // teamFn: which team to show (t1 for left side teams advancing right, t2 for right side)
-  const BracketColumn = ({ matches, width, rowH, gap, showBoth = true }) => (
+  // A match = 2 TeamBox rows
+  const Match = ({ m, round, showBoth = true }) => {
+    const h = ROW_H[round]
+    const w = m.winner
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${GAP_H}px` }}>
+        {showBoth
+          ? <>
+              <TeamBox team={m.t1} isWinner={w === m.t1 && !!m.t1} h={h} />
+              <TeamBox team={m.t2} isWinner={w === m.t2 && !!m.t2} h={h} />
+            </>
+          : <TeamBox team={m.winner ?? m.t1} isWinner={!!m.winner} h={h} />
+        }
+      </div>
+    )
+  }
+
+  // A column: evenly spaced matches over the full body height
+  const Col = ({ matches, round, width, showBoth = true }) => (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
+      display:        'flex',
+      flexDirection:  'column',
       justifyContent: 'space-around',
-      width: `${width}px`,
-      height: `${BODY_H}px`,
-      flexShrink: 0,
+      width:          `${width}px`,
+      height:         `${BODY_H}px`,
+      flexShrink:     0,
     }}>
       {matches.map((m, i) => (
-        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: `${gap}px` }}>
-          {showBoth ? (
-            <>
-              <TeamRow team={m.t1} isWinner={m.winner === m.t1 && !!m.t1} height={rowH} />
-              <TeamRow team={m.t2} isWinner={m.winner === m.t2 && !!m.t2} height={rowH} />
-            </>
-          ) : (
-            <TeamRow team={m.winner ?? m.t1} isWinner={!!m.winner} height={rowH} />
-          )}
-        </div>
+        <Match key={i} m={m} round={round} showBoth={showBoth} />
       ))}
     </div>
   )
 
-  const champFlag = champion ? flagUrl(champion) : null
+  // Single-winner column (Final entrant)
+  const FinCol = ({ team, side }) => {
+    const h   = ROW_H.fin
+    const flag = team ? flagUrl(team) : null
+    const resolved = team && team !== 'TBD'
+    return (
+      <div style={{
+        display:        'flex',
+        flexDirection:  'column',
+        justifyContent: 'center',
+        width:          `${CW.fin}px`,
+        height:         `${BODY_H}px`,
+        flexShrink:     0,
+      }}>
+        <div style={{
+          display:    'flex',
+          alignItems: 'center',
+          gap:        '5px',
+          height:     `${h}px`,
+          padding:    '0 8px',
+          background: resolved ? '#14532d' : '#141824',
+          borderLeft: `2px solid ${resolved ? '#eab308' : '#1f2937'}`,
+          borderRadius: '3px',
+          overflow:   'hidden',
+        }}>
+          {flag && resolved && (
+            <img src={flag} width={16} height={12} style={{ objectFit: 'cover', flexShrink: 0 }} />
+          )}
+          <span style={{
+            fontSize:   '12px',
+            fontWeight: 700,
+            color:      resolved ? '#86efac' : '#374151',
+            whiteSpace: 'nowrap',
+          }}>
+            {resolved ? team : '·'}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  const leftFinalist  = leftSF[0]?.winner  ?? leftSF[1]?.winner  ?? null
+  const rightFinalist = rightSF[0]?.winner ?? rightSF[1]?.winner ?? null
 
   return new ImageResponse(
     (
       <div style={{
-        width: '1200px',
-        height: '630px',
-        background: '#0f1117',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: 'system-ui, sans-serif',
+        width:       `${W}px`,
+        height:      `${H}px`,
+        background:  '#0d1117',
+        display:     'flex',
+        flexDirection:'column',
+        fontFamily:  'system-ui, sans-serif',
       }}>
         {/* Header */}
         <div style={{
-          background: '#1a1f2e',
-          borderBottom: '3px solid #eab308',
-          height: '80px',
-          padding: '0 36px',
-          display: 'flex',
-          alignItems: 'center',
+          height:         `${HEADER_H}px`,
+          background:     '#161b27',
+          borderBottom:   '2px solid #eab308',
+          padding:        '0 36px',
+          display:        'flex',
+          alignItems:     'center',
           justifyContent: 'space-between',
-          flexShrink: 0,
+          flexShrink:     0,
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '26px', fontWeight: 800, color: 'white' }}>{displayName}</span>
-            <span style={{ fontSize: '14px', color: '#9ca3af', marginTop: '2px' }}>
-              My predicted bracket · FIFA World Cup 2026
-            </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span style={{ fontSize: '22px', fontWeight: 800, color: 'white' }}>{displayName}</span>
+            <span style={{ fontSize: '12px', color: '#6b7280' }}>My predicted bracket · FIFA World Cup 2026</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span style={{ fontSize: '13px', color: '#6b7280' }}>Play free at</span>
-            <span style={{ fontSize: '18px', fontWeight: 700, color: '#eab308' }}>thematchpredictor.com</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+            <span style={{ fontSize: '11px', color: '#4b5563' }}>Play free at</span>
+            <span style={{ fontSize: '16px', fontWeight: 700, color: '#eab308' }}>thematchpredictor.com</span>
           </div>
         </div>
 
         {/* Bracket body */}
         <div style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'stretch',
-          padding: '10px 8px',
-          gap: '4px',
+          flex:     1,
+          display:  'flex',
+          padding:  '8px 36px 0',
+          gap:      '3px',
           overflow: 'hidden',
         }}>
-          {/* LEFT SIDE: R16 → QF → SF → Final */}
-          <BracketColumn matches={leftR16} width={COL_W.r16} rowH={28} gap={3} showBoth />
-          <BracketColumn matches={leftQF}  width={COL_W.qf}  rowH={29} gap={3} showBoth />
-          <BracketColumn matches={leftSF}  width={COL_W.sf}  rowH={32} gap={4} showBoth />
-          <BracketColumn
-            matches={[{ t1: finalMatch?.t1, t2: null, winner: finalMatch?.t1 && (finalMatch?.winner === finalMatch?.t1 || !finalMatch?.winner) ? finalMatch?.t1 : null }].map(() => ({ t1: leftSF[0]?.winner ?? null, t2: null, winner: leftSF[0]?.winner ?? null }))}
-            width={COL_W.fin} rowH={36} gap={0} showBoth={false}
-          />
+          {/* LEFT: R16 → QF → SF → Final */}
+          <Col matches={leftR16} round="r16" width={CW.r16} />
+          <Col matches={leftQF}  round="qf"  width={CW.qf}  />
+          <Col matches={leftSF}  round="sf"  width={CW.sf}  />
+          <FinCol team={leftFinalist} side="left" />
 
           {/* CENTER: champion */}
           <div style={{
-            width: '120px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+            width:          `${CW.center}px`,
+            flexShrink:     0,
+            display:        'flex',
+            flexDirection:  'column',
+            alignItems:     'center',
             justifyContent: 'center',
-            gap: '8px',
-            flexShrink: 0,
+            gap:            '8px',
           }}>
-            <span style={{ fontSize: '36px' }}>🏆</span>
+            <span style={{ fontSize: '28px' }}>🏆</span>
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              background: champion ? '#451a03' : '#1a1f2e',
-              border: `2px solid ${champion ? '#eab308' : '#374151'}`,
-              borderRadius: '10px',
-              padding: '10px 12px',
-              gap: '6px',
-              minWidth: '90px',
+              display:        'flex',
+              flexDirection:  'column',
+              alignItems:     'center',
+              justifyContent: 'center',
+              background:     champion ? '#431407' : '#161b27',
+              border:         `1.5px solid ${champion ? '#eab308' : '#374151'}`,
+              borderRadius:   '8px',
+              padding:        '10px 8px',
+              gap:            '6px',
+              width:          '88px',
             }}>
               {champFlag && (
-                <img src={champFlag} style={{ width: '28px', height: '21px', objectFit: 'cover' }} />
+                <img src={champFlag} width={24} height={18} style={{ objectFit: 'cover' }} />
               )}
               <span style={{
-                fontSize: '14px',
-                fontWeight: 800,
-                color: champion ? '#fde68a' : '#6b7280',
+                fontSize:  '12px',
+                fontWeight:800,
+                color:     champion ? '#fde68a' : '#374151',
                 textAlign: 'center',
-                whiteSpace: 'nowrap',
+                whiteSpace:'nowrap',
               }}>
                 {champion ?? '?'}
               </span>
             </div>
-            <span style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center' }}>predicted champion</span>
+            <span style={{ fontSize: '9px', color: '#4b5563', textAlign: 'center', lineHeight: 1.2 }}>
+              predicted{'\n'}champion
+            </span>
           </div>
 
-          {/* RIGHT SIDE: Final → SF → QF → R16 */}
-          <BracketColumn
-            matches={[{ t1: rightSF[0]?.winner ?? null, t2: null, winner: rightSF[0]?.winner ?? null }]}
-            width={COL_W.fin} rowH={36} gap={0} showBoth={false}
-          />
-          <BracketColumn matches={rightSF}  width={COL_W.sf}  rowH={32} gap={4} showBoth />
-          <BracketColumn matches={rightQF}  width={COL_W.qf}  rowH={29} gap={3} showBoth />
-          <BracketColumn matches={rightR16} width={COL_W.r16} rowH={28} gap={3} showBoth />
+          {/* RIGHT: Final → SF → QF → R16 */}
+          <FinCol team={rightFinalist} side="right" />
+          <Col matches={rightSF}  round="sf"  width={CW.sf}  />
+          <Col matches={rightQF}  round="qf"  width={CW.qf}  />
+          <Col matches={rightR16} round="r16" width={CW.r16} />
         </div>
 
-        {/* Round labels at bottom */}
+        {/* Round labels footer */}
         <div style={{
-          display: 'flex',
-          padding: '0 8px 8px',
-          gap: '4px',
-          flexShrink: 0,
+          height:   `${FOOTER_H}px`,
+          display:  'flex',
+          padding:  '0 36px',
+          gap:      '3px',
+          alignItems:'center',
+          flexShrink:0,
         }}>
           {[
-            { w: COL_W.r16, label: 'Round of 16' },
-            { w: COL_W.qf,  label: 'Quarter-Finals' },
-            { w: COL_W.sf,  label: 'Semi-Finals' },
-            { w: COL_W.fin, label: 'Final' },
-            { w: 120,       label: '' },
-            { w: COL_W.fin, label: 'Final' },
-            { w: COL_W.sf,  label: 'Semi-Finals' },
-            { w: COL_W.qf,  label: 'Quarter-Finals' },
-            { w: COL_W.r16, label: 'Round of 16' },
+            { w: CW.r16,    label: 'ROUND OF 16' },
+            { w: CW.qf,     label: 'QUARTER-FINALS' },
+            { w: CW.sf,     label: 'SEMI-FINALS' },
+            { w: CW.fin,    label: 'FINAL' },
+            { w: CW.center, label: '' },
+            { w: CW.fin,    label: 'FINAL' },
+            { w: CW.sf,     label: 'SEMI-FINALS' },
+            { w: CW.qf,     label: 'QUARTER-FINALS' },
+            { w: CW.r16,    label: 'ROUND OF 16' },
           ].map(({ w, label }, i) => (
             <div key={i} style={{
-              width: `${w}px`,
+              width:      `${w}px`,
               flexShrink: 0,
-              textAlign: 'center',
-              fontSize: '10px',
-              color: '#4b5563',
+              textAlign:  'center',
+              fontSize:   '8px',
+              color:      '#374151',
               fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
+              letterSpacing: '0.3px',
             }}>
               {label}
             </div>
@@ -309,6 +334,6 @@ export async function GET(request) {
         </div>
       </div>
     ),
-    { width: 1200, height: 630 }
+    { width: W, height: H }
   )
 }
