@@ -65,7 +65,15 @@ export default function StandingsShareButton({ ogImageUrl, pageUrl, leagueName }
             </div>
             {ogImageUrl && (
               <div className="p-4 bg-gray-950">
-                <img src={ogImageUrl} alt="Standings card preview" className="w-full rounded-lg border border-gray-800" style={{ aspectRatio: '1200/630', objectFit: 'cover' }} />
+                <img  
+                  src={(() => {
+                    try { const u = new URL(ogImageUrl); return u.pathname + u.search }
+                    catch { return ogImageUrl }
+                  })()}
+                  alt="Standings card preview"
+                  className="w-full rounded-lg border border-gray-800"
+                  style={{ aspectRatio: '1200/630', objectFit: 'cover' }}
+                />
               </div>
             )}
             <div className="flex items-center gap-3 px-5 py-4 border-t border-gray-800">

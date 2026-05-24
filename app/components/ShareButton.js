@@ -103,7 +103,10 @@ export default function ShareButton({
             {imageUrl && (
               <div className="p-4 bg-gray-950">
                 <img
-                  src={imageUrl}
+                  src={(() => {
+                    try { const u = new URL(imageUrl); return u.pathname + u.search }
+                    catch { return imageUrl }
+                  })()}
                   alt="Share card preview"
                   className="w-full rounded-lg border border-gray-800"
                   style={{ aspectRatio: '1200/630', objectFit: 'cover' }}
