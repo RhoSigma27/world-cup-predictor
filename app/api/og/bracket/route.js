@@ -1,5 +1,5 @@
 // app/api/og/bracket/route.js
-// final5 base — only changes: wider columns, round labels row, champion enlarged
+// final5 with ZERO structural changes — labels added inside each column header only
 import { ImageResponse } from 'next/og'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COUNTRY_CODES } from '@/lib/worldcup'
@@ -71,105 +71,105 @@ export async function GET(request) {
   const champ = fin.w || '?'
   const champEmoji = flagEmoji(champ)
 
+  // ── IDENTICAL outer structure to final5 ──────────────────────────────────
   return new ImageResponse((
-    <div style={{ width: '1200px', height: '630px', background: '#060e1f', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif' }}>
+    <div style={{ width: '1200px', height: '630px', background: '#060e1f', display: 'flex', flexDirection: 'column', padding: '28px 36px 20px 36px', fontFamily: 'sans-serif' }}>
 
       {/* Header — same as final5 */}
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '0 36px', borderBottom: '2px solid #ca8a04', height: '68px', background: '#0d1628', flexShrink: 0 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', paddingBottom: '10px', borderBottom: '2px solid #ca8a04' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           <span style={{ fontSize: '22px', fontWeight: 800, color: 'white' }}>{name}</span>
           <span style={{ fontSize: '11px', color: '#64748b' }}>My predicted bracket · FIFA World Cup 2026</span>
         </div>
         <span style={{ fontSize: '13px', color: '#ca8a04', fontWeight: 700 }}>thematchpredictor.com</span>
       </div>
 
-      {/* Round labels — new, uses same style patterns as working elements */}
-      <div style={{ display: 'flex', flexDirection: 'row', padding: '0 36px', height: '20px', alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ width: '230px', flexShrink: 0, textAlign: 'center' }}><span style={{ fontSize: '7px', fontWeight: 600, color: '#2e4a68', letterSpacing: '0.5px' }}>ROUND OF 16</span></div>
-        <div style={{ width: '20px', flexShrink: 0 }} />
-        <div style={{ width: '195px', flexShrink: 0, textAlign: 'center' }}><span style={{ fontSize: '7px', fontWeight: 600, color: '#2e4a68', letterSpacing: '0.5px' }}>QUARTER-FINALS</span></div>
-        <div style={{ width: '20px', flexShrink: 0 }} />
-        <div style={{ width: '158px', flexShrink: 0, textAlign: 'center' }}><span style={{ fontSize: '7px', fontWeight: 600, color: '#2e4a68', letterSpacing: '0.5px' }}>SEMI-FINALS</span></div>
-        <div style={{ width: '20px', flexShrink: 0 }} />
-        <div style={{ width: '140px', flexShrink: 0, textAlign: 'center' }}><span style={{ fontSize: '7px', fontWeight: 600, color: '#2e4a68', letterSpacing: '0.5px' }}>FINAL</span></div>
-      </div>
+      {/* Body — each column is now a flex column: label on top, matches below */}
+      <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', flex: 1 }}>
 
-      {/* Body — same structure as final5, wider columns */}
-      <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', padding: '6px 36px 0 36px', flex: 1 }}>
-
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: '230px' }}>
-          {r16.map((m, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '20px', padding: '0 4px 0 6px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '12px' }}>{m.e1}</span>
-                <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '10px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
+        {/* R16 */}
+        <div style={{ display: 'flex', flexDirection: 'column', width: '215px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '4px' }}><span style={{ fontSize: '7px', fontWeight: 600, color: '#2e4a68', letterSpacing: '0.5px' }}>ROUND OF 16</span></div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', flex: 1 }}>
+            {r16.map((m, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '20px', padding: '0 4px 0 6px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '3px' }}>
+                  <span style={{ fontSize: '12px' }}>{m.e1}</span>
+                  <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '10px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
+                </div>
+                <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '20px', padding: '0 4px 0 6px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '3px' }}>
+                  <span style={{ fontSize: '12px' }}>{m.e2}</span>
+                  <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '10px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
+                </div>
               </div>
-              <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '20px', padding: '0 4px 0 6px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '12px' }}>{m.e2}</span>
-                <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '10px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: '195px' }}>
-          {qf.map((m, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '28px', padding: '0 4px 0 7px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '14px' }}>{m.e1}</span>
-                <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '11px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
-              </div>
-              <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '28px', padding: '0 4px 0 7px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '14px' }}>{m.e2}</span>
-                <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '11px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: '158px' }}>
-          {sf.map((m, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '38px', padding: '0 4px 0 8px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '18px' }}>{m.e1}</span>
-                <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '13px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
-              </div>
-              <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '38px', padding: '0 4px 0 8px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '18px' }}>{m.e2}</span>
-                <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '13px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '140px', gap: '4px' }}>
-          <div style={{ background: '#1c1400', borderLeft: '3px solid #ca8a04', height: '50px', padding: '0 4px 0 9px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '4px' }}>
-            <span style={{ fontSize: '22px' }}>{fin.e1}</span>
-            <span style={{ color: '#fde68a', fontSize: '14px', fontWeight: 700, whiteSpace: 'nowrap' }}>{fin.t1}</span>
-          </div>
-          <div style={{ background: fin.t2 === champ ? '#1c1400' : '#0e1e35', borderLeft: fin.t2 === champ ? '3px solid #ca8a04' : '2px solid #2a5080', height: '50px', padding: '0 4px 0 9px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '4px' }}>
-            <span style={{ fontSize: '22px' }}>{fin.e2}</span>
-            <span style={{ color: fin.t2 === champ ? '#fde68a' : '#88aed0', fontSize: '14px', whiteSpace: 'nowrap' }}>{fin.t2}</span>
+            ))}
           </div>
         </div>
 
+        {/* QF */}
+        <div style={{ display: 'flex', flexDirection: 'column', width: '185px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '4px' }}><span style={{ fontSize: '7px', fontWeight: 600, color: '#2e4a68', letterSpacing: '0.5px' }}>QUARTER-FINALS</span></div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', flex: 1 }}>
+            {qf.map((m, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '28px', padding: '0 4px 0 7px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '3px' }}>
+                  <span style={{ fontSize: '14px' }}>{m.e1}</span>
+                  <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '11px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
+                </div>
+                <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '28px', padding: '0 4px 0 7px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '3px' }}>
+                  <span style={{ fontSize: '14px' }}>{m.e2}</span>
+                  <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '11px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* SF */}
+        <div style={{ display: 'flex', flexDirection: 'column', width: '155px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '4px' }}><span style={{ fontSize: '7px', fontWeight: 600, color: '#2e4a68', letterSpacing: '0.5px' }}>SEMI-FINALS</span></div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', flex: 1 }}>
+            {sf.map((m, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '38px', padding: '0 4px 0 8px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '3px' }}>
+                  <span style={{ fontSize: '18px' }}>{m.e1}</span>
+                  <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '13px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
+                </div>
+                <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '38px', padding: '0 4px 0 8px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '3px' }}>
+                  <span style={{ fontSize: '18px' }}>{m.e2}</span>
+                  <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '13px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Final */}
+        <div style={{ display: 'flex', flexDirection: 'column', width: '135px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '4px' }}><span style={{ fontSize: '7px', fontWeight: 600, color: '#2e4a68', letterSpacing: '0.5px' }}>FINAL</span></div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, gap: '4px' }}>
+            <div style={{ background: '#1c1400', borderLeft: '3px solid #ca8a04', height: '50px', padding: '0 4px 0 9px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '4px' }}>
+              <span style={{ fontSize: '22px' }}>{fin.e1}</span>
+              <span style={{ color: '#fde68a', fontSize: '14px', fontWeight: 700, whiteSpace: 'nowrap' }}>{fin.t1}</span>
+            </div>
+            <div style={{ background: fin.t2 === champ ? '#1c1400' : '#0e1e35', borderLeft: fin.t2 === champ ? '3px solid #ca8a04' : '2px solid #2a5080', height: '50px', padding: '0 4px 0 9px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '4px' }}>
+              <span style={{ fontSize: '22px' }}>{fin.e2}</span>
+              <span style={{ color: fin.t2 === champ ? '#fde68a' : '#88aed0', fontSize: '14px', whiteSpace: 'nowrap' }}>{fin.t2}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Champion */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', borderLeft: '1px solid #1a2a3a' }}>
-          <span style={{ fontSize: '34px' }}>🏆</span>
-          <div style={{ background: '#1c1400', border: '2px solid #ca8a04', borderRadius: '12px', padding: '14px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '30px' }}>{champEmoji}</span>
+          <span style={{ fontSize: '32px' }}>🏆</span>
+          <div style={{ background: '#1c1400', border: '2px solid #ca8a04', borderRadius: '12px', padding: '14px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '28px' }}>{champEmoji}</span>
             <span style={{ fontSize: '20px', fontWeight: 800, color: '#fde68a', whiteSpace: 'nowrap' }}>{champ}</span>
           </div>
           <span style={{ fontSize: '8px', color: '#4b5563', letterSpacing: '0.8px' }}>PREDICTED CHAMPION</span>
         </div>
 
       </div>
-
-      {/* Footer */}
-      <div style={{ height: '26px', borderTop: '1px solid #0f1e30', padding: '0 36px', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontSize: '10px', color: '#2e4a68' }}>World Cup 2026 Predictor</span>
-        <span style={{ fontSize: '11px', color: '#ca8a04', fontWeight: 700 }}>thematchpredictor.com</span>
-      </div>
-
     </div>
   ), { width: 1200, height: 630 })
 }
