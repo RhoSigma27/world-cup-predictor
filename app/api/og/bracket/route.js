@@ -87,7 +87,7 @@ export async function GET(request) {
     return new ImageResponse((
       <div style={{ width: '1200px', height: '630px', background: '#060e1f', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif' }}>
 
-        <div style={{ height: '80px', background: '#0d1628', borderBottomWidth: '2.5px', borderBottomStyle: 'solid', borderBottomColor: '#ca8a04', paddingLeft: '36px', paddingRight: '36px', flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ height: '80px', background: '#0d1628', borderBottom: "2.5px solid #ca8a04", paddingLeft: '36px', paddingRight: '36px', flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontSize: '22px', fontWeight: 800, color: 'white' }}>{name}</span>
             <span style={{ fontSize: '11px', color: '#64748b' }}>My predicted bracket · FIFA World Cup 2026</span>
@@ -113,14 +113,14 @@ export async function GET(request) {
           <div style={{ width: '205px', height: '496px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-around' }}>
             {pills16.map((p, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '18px', paddingLeft: '6px', paddingRight: '6px', background: bg(p.v1), borderLeftWidth: bdrW(p.v1), borderLeftStyle: 'solid', borderLeftColor: bdrC(p.v1), borderRadius: '3px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '18px', paddingLeft: '6px', paddingRight: '6px', background: bg(p.v1), borderLeft: bdrW(p.v1) + "px solid " + bdrC(p.v1), borderRadius: '3px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '4px' }}>
                     {p.f1 ? <img src={p.f1} width={14} height={10} style={{ objectFit: 'cover' }} /> : null}
                     <span style={{ fontSize: '10px', fontWeight: fw(p.v1), color: color(p.v1), whiteSpace: 'nowrap' }}>{p.t1 || 'TBD'}</span>
                   </div>
                   {p.tick1 ? <span style={{ fontSize: '8px', color: tC(p.v1) }}>v</span> : null}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '18px', paddingLeft: '6px', paddingRight: '6px', background: bg(p.v2), borderLeftWidth: bdrW(p.v2), borderLeftStyle: 'solid', borderLeftColor: bdrC(p.v2), borderRadius: '3px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '18px', paddingLeft: '6px', paddingRight: '6px', background: bg(p.v2), borderLeft: bdrW(p.v2) + "px solid " + bdrC(p.v2), borderRadius: '3px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '4px' }}>
                     {p.f2 ? <img src={p.f2} width={14} height={10} style={{ objectFit: 'cover' }} /> : null}
                     <span style={{ fontSize: '10px', fontWeight: fw(p.v2), color: color(p.v2), whiteSpace: 'nowrap' }}>{p.t2 || 'TBD'}</span>
@@ -136,14 +136,14 @@ export async function GET(request) {
           <div style={{ width: '178px', height: '496px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-around' }}>
             {pillsQF.map((p, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '26px', paddingLeft: '7px', paddingRight: '7px', background: bg(p.v1), borderLeftWidth: bdrW(p.v1), borderLeftStyle: 'solid', borderLeftColor: bdrC(p.v1), borderRadius: '3px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '26px', paddingLeft: '7px', paddingRight: '7px', background: bg(p.v1), borderLeft: bdrW(p.v1) + "px solid " + bdrC(p.v1), borderRadius: '3px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '5px' }}>
                     {p.f1 ? <img src={p.f1} width={16} height={12} style={{ objectFit: 'cover' }} /> : null}
                     <span style={{ fontSize: '11px', fontWeight: fw(p.v1), color: color(p.v1), whiteSpace: 'nowrap' }}>{p.t1 || 'TBD'}</span>
                   </div>
                   {p.tick1 ? <span style={{ fontSize: '9px', color: tC(p.v1) }}>v</span> : null}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '26px', paddingLeft: '7px', paddingRight: '7px', background: bg(p.v2), borderLeftWidth: bdrW(p.v2), borderLeftStyle: 'solid', borderLeftColor: bdrC(p.v2), borderRadius: '3px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '26px', paddingLeft: '7px', paddingRight: '7px', background: bg(p.v2), borderLeft: bdrW(p.v2) + "px solid " + bdrC(p.v2), borderRadius: '3px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '5px' }}>
                     {p.f2 ? <img src={p.f2} width={16} height={12} style={{ objectFit: 'cover' }} /> : null}
                     <span style={{ fontSize: '11px', fontWeight: fw(p.v2), color: color(p.v2), whiteSpace: 'nowrap' }}>{p.t2 || 'TBD'}</span>
@@ -159,14 +159,14 @@ export async function GET(request) {
           <div style={{ width: '142px', height: '496px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-around' }}>
             {pillsSF.map((p, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '35px', paddingLeft: '8px', paddingRight: '8px', background: bg(p.v1), borderLeftWidth: bdrW(p.v1), borderLeftStyle: 'solid', borderLeftColor: bdrC(p.v1), borderRadius: '3px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '35px', paddingLeft: '8px', paddingRight: '8px', background: bg(p.v1), borderLeft: bdrW(p.v1) + "px solid " + bdrC(p.v1), borderRadius: '3px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '5px' }}>
                     {p.f1 ? <img src={p.f1} width={18} height={13} style={{ objectFit: 'cover' }} /> : null}
                     <span style={{ fontSize: '13px', fontWeight: fw(p.v1), color: color(p.v1), whiteSpace: 'nowrap' }}>{p.t1 || 'TBD'}</span>
                   </div>
                   {p.tick1 ? <span style={{ fontSize: '10px', color: tC(p.v1) }}>v</span> : null}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '35px', paddingLeft: '8px', paddingRight: '8px', background: bg(p.v2), borderLeftWidth: bdrW(p.v2), borderLeftStyle: 'solid', borderLeftColor: bdrC(p.v2), borderRadius: '3px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '35px', paddingLeft: '8px', paddingRight: '8px', background: bg(p.v2), borderLeft: bdrW(p.v2) + "px solid " + bdrC(p.v2), borderRadius: '3px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '5px' }}>
                     {p.f2 ? <img src={p.f2} width={18} height={13} style={{ objectFit: 'cover' }} /> : null}
                     <span style={{ fontSize: '13px', fontWeight: fw(p.v2), color: color(p.v2), whiteSpace: 'nowrap' }}>{p.t2 || 'TBD'}</span>
@@ -182,14 +182,14 @@ export async function GET(request) {
           <div style={{ width: '118px', height: '496px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             {pillsFin.map((p, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '47px', paddingLeft: '9px', paddingRight: '9px', background: bg(p.v1), borderLeftWidth: bdrW(p.v1), borderLeftStyle: 'solid', borderLeftColor: bdrC(p.v1), borderRadius: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '47px', paddingLeft: '9px', paddingRight: '9px', background: bg(p.v1), borderLeft: bdrW(p.v1) + "px solid " + bdrC(p.v1), borderRadius: '4px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px' }}>
                     {p.f1 ? <img src={p.f1} width={20} height={15} style={{ objectFit: 'cover' }} /> : null}
                     <span style={{ fontSize: '14px', fontWeight: fw(p.v1), color: color(p.v1), whiteSpace: 'nowrap' }}>{p.t1 || 'TBD'}</span>
                   </div>
                   {p.tick1 ? <span style={{ fontSize: '11px', color: tC(p.v1) }}>v</span> : null}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '47px', paddingLeft: '9px', paddingRight: '9px', background: bg(p.v2), borderLeftWidth: bdrW(p.v2), borderLeftStyle: 'solid', borderLeftColor: bdrC(p.v2), borderRadius: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: '47px', paddingLeft: '9px', paddingRight: '9px', background: bg(p.v2), borderLeft: bdrW(p.v2) + "px solid " + bdrC(p.v2), borderRadius: '4px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px' }}>
                     {p.f2 ? <img src={p.f2} width={20} height={15} style={{ objectFit: 'cover' }} /> : null}
                     <span style={{ fontSize: '14px', fontWeight: fw(p.v2), color: color(p.v2), whiteSpace: 'nowrap' }}>{p.t2 || 'TBD'}</span>
@@ -202,8 +202,8 @@ export async function GET(request) {
 
           <div style={{ width: '28px', flexShrink: 0 }} />
 
-          <div style={{ width: '373px', height: '496px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#111f33', paddingLeft: '16px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1c1400', borderWidth: 2, borderStyle: 'solid', borderColor: '#ca8a04', borderRadius: '10px', padding: '16px', gap: '8px' }}>
+          <div style={{ width: '373px', height: '496px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', borderLeft: "1px solid #111f33", paddingLeft: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1c1400', border: "2px solid #ca8a04", borderRadius: '10px', padding: '16px', gap: '8px' }}>
               {cf ? <img src={cf} width={32} height={24} style={{ objectFit: 'cover' }} /> : null}
               <span style={{ fontSize: '20px', fontWeight: 800, color: '#fde68a', whiteSpace: 'nowrap' }}>{champ || '?'}</span>
             </div>
@@ -212,7 +212,7 @@ export async function GET(request) {
 
         </div>
 
-        <div style={{ height: '30px', flexShrink: 0, borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#0f1e30', paddingLeft: '36px', paddingRight: '36px', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ height: '30px', flexShrink: 0, borderTop: "1px solid #0f1e30", paddingLeft: '36px', paddingRight: '36px', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '10px', color: '#2e4a68' }}>World Cup 2026 Predictor</span>
           <span style={{ fontSize: '11px', color: '#ca8a04', fontWeight: 700 }}>thematchpredictor.com</span>
         </div>
