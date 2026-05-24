@@ -10,7 +10,8 @@ export const runtime = 'edge'
 // Convert ISO country code to flag emoji
 const toFlagEmoji = (code) => {
   if (!code) return ''
-  return code.toUpperCase().split('').map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))).join('')
+  const cc = code.substring(0, 2).toUpperCase()
+  return cc.split('').map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))).join('')
 }
 
 const flagEmoji = (team) => {
