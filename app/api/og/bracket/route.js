@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { COUNTRY_CODES } from '@/lib/worldcup'
 import { calcGroupTables, buildAnnexMap, resolveSlot, normalisePred } from '@/lib/bracketEngine'
 
-export const runtime = 'edge'
+export const runtime = "nodejs"
 
 const flagSrc = (team) => {
   const code = COUNTRY_CODES?.[team]
@@ -209,7 +209,7 @@ export async function GET(request) {
 
         <div style={{ width: '28px', flexShrink: 0 }} />
 
-        <div style={{ width: `${champW}px`, height: '496px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#111f33', paddingLeft: '16px' }}>
+        <div style={{ width: '373px', height: '496px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#111f33', paddingLeft: '16px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1c1400', borderWidth: '1.5px', borderStyle: 'solid', borderColor: '#ca8a04', borderRadius: '10px', padding: '16px', gap: '8px' }}>
             {cf ? <img src={cf} width={32} height={24} style={{ objectFit: 'cover' }} /> : null}
             <span style={{ fontSize: '20px', fontWeight: 800, color: '#fde68a', whiteSpace: 'nowrap' }}>{champ || '?'}</span>
