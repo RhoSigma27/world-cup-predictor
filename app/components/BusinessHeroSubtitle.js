@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 
 const LINES = [
-  "Prove you saw it coming.",
-  "Your mates think they know football.",
-  "Free to play. Hard to win.",
-  "104 matches. One winner. Zero mercy.",
+  "Give your regulars something to shout about.",
+  "The office sweepstake, done properly.",
+  "104 matches. One champion. Endless bragging rights.",
+  "Set up in 2 minutes. Runs for 6 weeks.",
 ]
 
-export default function HeroSubtitle() {
+export default function BusinessHeroSubtitle() {
   const [index, setIndex] = useState(0)
   const [visible, setVisible] = useState(true)
 
@@ -26,7 +26,7 @@ export default function HeroSubtitle() {
 
   return (
     <p
-      className="text-sm font-semibold text-yellow-400 uppercase tracking-widest mb-4"
+      className="text-sm font-semibold text-yellow-400 uppercase tracking-widest mb-6"
       style={{
         opacity: visible ? 1 : 0,
         transition: 'opacity 400ms ease-in-out',

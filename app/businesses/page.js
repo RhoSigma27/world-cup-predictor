@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import BusinessHeroSubtitle from '@/app/components/BusinessHeroSubtitle'
 
 export const metadata = {
   title: 'Business Leagues — The Match Predictor',
@@ -106,10 +107,11 @@ export default function BusinessesPage() {
         <div className="inline-block text-xs font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-full uppercase tracking-wider mb-6">
           Pubs · Offices · Sports Clubs
         </div>
+        <BusinessHeroSubtitle />
         <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-          Give your regulars
+          The prediction league
           <br />
-          <span className="text-yellow-400">something to shout about.</span>
+          <span className="text-yellow-400">for your pub, office or club.</span>
         </h1>
         <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
           Run a World Cup 2026 prediction league for your pub, office or club.
@@ -168,7 +170,8 @@ export default function BusinessesPage() {
         <div className="bg-gray-900 border border-yellow-500/30 rounded-2xl p-8 text-center">
           <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3">Business League</div>
           <div className="text-6xl font-bold text-white mb-2">£100</div>
-          <div className="text-gray-500 mb-6">One-time · Full tournament · No subscription</div>
+          <div className="text-gray-500 mb-2">One-time · Full tournament · No subscription</div>
+          <p className="text-sm text-gray-500 mb-6">Less than £1 per person for a venue of 100.</p>
           <ul className="text-sm text-gray-400 space-y-2 mb-8 text-left">
             {[
               'Unlimited members',
