@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import HeroSubtitle from '@/app/components/HeroSubtitle'
 
 export const viewport = {
   themeColor: '#e8c96b',
@@ -24,6 +25,7 @@ export default function Home() {
       {/* Hero */}
       <div className="max-w-4xl mx-auto px-6 py-24 text-center">
         <div className="text-7xl mb-6">🏆</div>
+        <HeroSubtitle />
         <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
           Predict with mates.
           <span className="text-yellow-400"> No fluff.</span>
