@@ -1,11 +1,25 @@
 import Link from 'next/link'
 import HeroSubtitle from '@/app/components/HeroSubtitle'
+import { createAdminClient } from '@/lib/supabase-admin'
+
+export const revalidate = 21600 // revalidate every 6 hours
 
 export const viewport = {
   themeColor: '#e8c96b',
 }
 
-export default function Home() {
+export default async function Home() {
+  let leagueCount = null
+  try {
+    const supabase = createAdminClient()
+    const { count } = await supabase
+      .from('leagues')
+      .select('*', { count: 'exact', head: true })
+    leagueCount = count
+  } catch {
+    // fail silently — counter just won't render
+  }
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       {/* Navigation */}
@@ -49,6 +63,11 @@ export default function Home() {
             Join a League
           </Link>
         </div>
+        {leagueCount !== null && (
+          <p className="text-gray-500 text-sm mt-5">
+            🏟️ {leagueCount} league{leagueCount === 1 ? '' : 's'} already set up
+          </p>
+        )}
       </div>
 
       {/* How it works */}
