@@ -1,6 +1,5 @@
 // app/api/og/bracket/route.js
-// Tested locally with satori. Rules: every div has display:flex, no space-evenly.
-// Ticks: always rendered, transparent for losers. Flags: emoji via unicode codepoint.
+// Tested locally with satori. Every div has display:flex. No ticks — colour coding is sufficient.
 import { ImageResponse } from 'next/og'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COUNTRY_CODES } from '@/lib/worldcup'
@@ -72,19 +71,14 @@ export async function GET(request) {
   const bl  = (t, w) => t === champ ? '3px solid #ca8a04' : (w === t && t !== 'TBD') ? '2px solid #2a5080' : '2px solid #1a3050'
   const col = (t, w) => t === champ ? '#fde68a' : (w === t && t !== 'TBD') ? '#88aed0' : '#607a95'
   const fw  = (t, w) => (t === champ || (w === t && t !== 'TBD')) ? 700 : 400
-  const tc  = (t, w) => t === champ ? '#ca8a04' : (w === t && t !== 'TBD') ? '#4a80b8' : 'transparent'
 
-  // pill — always renders tick (transparent when not winner) — every div has display:flex
   const pill = (t, e, w, h, fs) => ({
     type: 'div',
     props: {
-      style: { display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', background:bg(t,w), borderLeft:bl(t,w), height:`${h}px`, paddingLeft:'6px', paddingRight:'6px', borderRadius:'3px' },
+      style: { display:'flex', flexDirection:'row', alignItems:'center', gap:'5px', background:bg(t,w), borderLeft:bl(t,w), height:`${h}px`, paddingLeft:'6px', paddingRight:'6px', borderRadius:'3px' },
       children: [
-        { type:'div', props:{ style:{ display:'flex', flexDirection:'row', alignItems:'center', gap:'5px' }, children:[
-          { type:'span', props:{ style:{ fontSize:`${fs+2}px` }, children: e||'' } },
-          { type:'span', props:{ style:{ color:col(t,w), fontSize:`${fs}px`, whiteSpace:'nowrap', fontWeight:fw(t,w) }, children: t } },
-        ]}},
-        { type:'span', props:{ style:{ fontSize:`${Math.round(fs*0.85)}px`, color:tc(t,w), marginLeft:'4px' }, children:'\u2713' } },
+        { type:'span', props:{ style:{ fontSize:`${fs+2}px` }, children: e||'' } },
+        { type:'span', props:{ style:{ color:col(t,w), fontSize:`${fs}px`, whiteSpace:'nowrap', fontWeight:fw(t,w) }, children: t } },
       ]
     }
   })
@@ -101,7 +95,7 @@ export async function GET(request) {
         <span style={{ fontSize:'13px', fontWeight:700, color:'#ca8a04' }}>thematchpredictor.com</span>
       </div>
 
-      {/* Labels — every div has display:flex */}
+      {/* Labels */}
       <div style={{ display:'flex', flexDirection:'row', gap:'16px', marginBottom:'4px' }}>
         <div style={{ width:'220px', display:'flex', justifyContent:'center' }}><span style={{ fontSize:'7px', fontWeight:700, color:'#2e4a68', letterSpacing:'0.5px' }}>ROUND OF 16</span></div>
         <div style={{ width:'185px', display:'flex', justifyContent:'center' }}><span style={{ fontSize:'7px', fontWeight:700, color:'#2e4a68', letterSpacing:'0.5px' }}>QUARTER-FINALS</span></div>
@@ -113,7 +107,6 @@ export async function GET(request) {
       {/* Body */}
       <div style={{ display:'flex', flexDirection:'row', gap:'16px', flex:1 }}>
 
-        {/* R16 */}
         <div style={{ display:'flex', flexDirection:'column', justifyContent:'space-around', width:'220px' }}>
           {r16.map((m, i) => (
             <div key={i} style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
@@ -123,7 +116,6 @@ export async function GET(request) {
           ))}
         </div>
 
-        {/* QF */}
         <div style={{ display:'flex', flexDirection:'column', justifyContent:'space-around', width:'185px' }}>
           {qf.map((m, i) => (
             <div key={i} style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
@@ -133,7 +125,6 @@ export async function GET(request) {
           ))}
         </div>
 
-        {/* SF */}
         <div style={{ display:'flex', flexDirection:'column', justifyContent:'space-around', width:'155px' }}>
           {sf.map((m, i) => (
             <div key={i} style={{ display:'flex', flexDirection:'column', gap:'3px' }}>
@@ -143,13 +134,11 @@ export async function GET(request) {
           ))}
         </div>
 
-        {/* Final */}
         <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', width:'130px', gap:'4px' }}>
           {pill(fin.t1, fin.e1, fin.w, 52, 14)}
           {pill(fin.t2, fin.e2, fin.w, 52, 14)}
         </div>
 
-        {/* Champion */}
         <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'10px', borderLeft:'1px solid #1a2a3a' }}>
           <span style={{ fontSize:'36px' }}>🏆</span>
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', background:'#1c1400', border:'2px solid #ca8a04', borderRadius:'12px', padding:'16px 28px' }}>
