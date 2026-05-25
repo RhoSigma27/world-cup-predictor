@@ -1,5 +1,6 @@
 // app/api/og/bracket/route.js
-// TESTED locally with satori — every div has display:flex, proven to render
+// Tested locally with satori. Rules: every div has display:flex, no space-evenly.
+// Ticks: always rendered, transparent for losers. Flags: emoji via unicode codepoint.
 import { ImageResponse } from 'next/og'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COUNTRY_CODES } from '@/lib/worldcup'
@@ -56,39 +57,35 @@ export async function GET(request) {
         const t1 = String(res(f.slot1, f.match_number) || 'TBD')
         const t2 = String(res(f.slot2, f.match_number) || 'TBD')
         const pred = normalisePred(predMap[f.id])
-        return { t1, t2, w: String(pickWinner(pred, res(f.slot1, f.match_number), res(f.slot2, f.match_number)) || ''), e1: fe(t1), e2: fe(t2) }
+        const w = String(pickWinner(pred, res(f.slot1, f.match_number), res(f.slot2, f.match_number)) || '')
+        return { t1, t2, w, e1: fe(t1), e2: fe(t2) }
       })
 
-  const r16 = buildRound('R16')
-  const qf  = buildRound('QF')
-  const sf  = buildRound('SF')
-  const fin = buildRound('FINAL')[0] ?? { t1:'TBD', t2:'TBD', w:'', e1:'', e2:'' }
+  const r16  = buildRound('R16')
+  const qf   = buildRound('QF')
+  const sf   = buildRound('SF')
+  const fin  = buildRound('FINAL')[0] ?? { t1:'TBD', t2:'TBD', w:'', e1:'', e2:'' }
   const champ = fin.w || '?'
-  const ce = fe(champ)
+  const ce    = fe(champ)
 
-  // bg/border helpers — return strings only
   const bg  = (t, w) => t === champ ? '#1c1400' : (w === t && t !== 'TBD') ? '#0e1e35' : '#0b1525'
   const bl  = (t, w) => t === champ ? '3px solid #ca8a04' : (w === t && t !== 'TBD') ? '2px solid #2a5080' : '2px solid #1a3050'
   const col = (t, w) => t === champ ? '#fde68a' : (w === t && t !== 'TBD') ? '#88aed0' : '#607a95'
   const fw  = (t, w) => (t === champ || (w === t && t !== 'TBD')) ? 700 : 400
+  const tc  = (t, w) => t === champ ? '#ca8a04' : (w === t && t !== 'TBD') ? '#4a80b8' : 'transparent'
 
-  // pill JSX — all divs have display:flex
+  // pill — always renders tick (transparent when not winner) — every div has display:flex
   const pill = (t, e, w, h, fs) => ({
     type: 'div',
     props: {
-      style: { display:'flex', flexDirection:'row', alignItems:'center', gap:'4px', background:bg(t,w), borderLeft:bl(t,w), height:`${h}px`, paddingLeft:'6px', paddingRight:'4px', borderRadius:'3px' },
+      style: { display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', background:bg(t,w), borderLeft:bl(t,w), height:`${h}px`, paddingLeft:'6px', paddingRight:'6px', borderRadius:'3px' },
       children: [
-        { type:'span', props:{ style:{ fontSize:`${fs+2}px` }, children: e||'' } },
-        { type:'span', props:{ style:{ color:col(t,w), fontSize:`${fs}px`, whiteSpace:'nowrap', fontWeight:fw(t,w) }, children: t } },
+        { type:'div', props:{ style:{ display:'flex', flexDirection:'row', alignItems:'center', gap:'5px' }, children:[
+          { type:'span', props:{ style:{ fontSize:`${fs+2}px` }, children: e||'' } },
+          { type:'span', props:{ style:{ color:col(t,w), fontSize:`${fs}px`, whiteSpace:'nowrap', fontWeight:fw(t,w) }, children: t } },
+        ]}},
+        { type:'span', props:{ style:{ fontSize:`${Math.round(fs*0.85)}px`, color:tc(t,w), marginLeft:'4px' }, children:'\u2713' } },
       ]
-    }
-  })
-
-  const match = (m, h, fs) => ({
-    type:'div',
-    props: {
-      style: { display:'flex', flexDirection:'column', gap:'2px' },
-      children: [ pill(m.t1, m.e1, m.w, h, fs), pill(m.t2, m.e2, m.w, h, fs) ]
     }
   })
 
@@ -148,18 +145,18 @@ export async function GET(request) {
 
         {/* Final */}
         <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', width:'130px', gap:'4px' }}>
-          {pill(fin.t1, fin.e1, fin.w, 50, 14)}
-          {pill(fin.t2, fin.e2, fin.w, 50, 14)}
+          {pill(fin.t1, fin.e1, fin.w, 52, 14)}
+          {pill(fin.t2, fin.e2, fin.w, 52, 14)}
         </div>
 
         {/* Champion */}
         <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'10px', borderLeft:'1px solid #1a2a3a' }}>
-          <span style={{ fontSize:'32px' }}>🏆</span>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'6px', background:'#1c1400', border:'2px solid #ca8a04', borderRadius:'12px', padding:'14px 22px' }}>
-            <span style={{ fontSize:'28px' }}>{ce}</span>
-            <span style={{ fontSize:'20px', fontWeight:800, color:'#fde68a', whiteSpace:'nowrap' }}>{champ}</span>
+          <span style={{ fontSize:'36px' }}>🏆</span>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', background:'#1c1400', border:'2px solid #ca8a04', borderRadius:'12px', padding:'16px 28px' }}>
+            <span style={{ fontSize:'32px' }}>{ce}</span>
+            <span style={{ fontSize:'22px', fontWeight:800, color:'#fde68a', whiteSpace:'nowrap' }}>{champ}</span>
           </div>
-          <span style={{ fontSize:'8px', color:'#4b5563', letterSpacing:'0.8px' }}>PREDICTED CHAMPION</span>
+          <span style={{ fontSize:'9px', color:'#4b5563', letterSpacing:'0.8px' }}>PREDICTED CHAMPION</span>
         </div>
 
       </div>
