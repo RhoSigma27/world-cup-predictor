@@ -124,12 +124,15 @@ export default function BusinessesPage() {
           >
             Get started — £100 →
           </Link>
-          <a
-            href="mailto:support@thematchpredictor.com?subject=Business league enquiry"
-            className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-lg transition-colors border border-gray-700"
-          >
-            Questions? Get in touch
-          </a>
+          <div className="flex flex-col items-center gap-1">
+            <a
+              href="mailto:support@thematchpredictor.com?subject=Business league enquiry"
+              className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-lg transition-colors border border-gray-700"
+            >
+              Questions? Get in touch
+            </a>
+            <span className="text-gray-500 text-xs">support@thematchpredictor.com</span>
+          </div>
         </div>
         <p className="text-gray-600 text-sm mt-4">One-time payment · No subscription · Tournament starts 11 June 2026</p>
       </div>
@@ -227,12 +230,15 @@ export default function BusinessesPage() {
           >
             Get started — £100 →
           </Link>
-          <a
-            href="mailto:support@thematchpredictor.com?subject=Business league enquiry"
-            className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-lg transition-colors border border-gray-700"
-          >
-            Get in touch
-          </a>
+          <div className="flex flex-col items-center gap-1">
+            <a
+              href="mailto:support@thematchpredictor.com?subject=Business league enquiry"
+              className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-lg transition-colors border border-gray-700"
+            >
+              Get in touch
+            </a>
+            <span className="text-gray-500 text-xs">support@thematchpredictor.com</span>
+          </div>
         </div>
       </div>
 
