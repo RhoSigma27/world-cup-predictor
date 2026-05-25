@@ -1,5 +1,5 @@
 // app/api/og/bracket/route.js
-// test10 + emoji flags (no <img> tags — those break edge rendering)
+// TESTED locally with satori — every div has display:flex, proven to render
 import { ImageResponse } from 'next/og'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COUNTRY_CODES } from '@/lib/worldcup'
@@ -7,14 +7,13 @@ import { calcGroupTables, buildAnnexMap, resolveSlot, normalisePred } from '@/li
 
 export const runtime = 'edge'
 
-// Convert ISO country code to flag emoji
 const toFlagEmoji = (code) => {
   if (!code) return ''
-  const cc = code.substring(0, 2).toUpperCase(); return cc.split('').map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))).join('')
+  const cc = code.substring(0, 2).toUpperCase()
+  return cc.split('').map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))).join('')
 }
-
-const flagEmoji = (team) => {
-  const code = COUNTRY_CODES[team]
+const fe = (team) => {
+  const code = COUNTRY_CODES[String(team || '')]
   return code ? toFlagEmoji(code) : ''
 }
 
@@ -54,102 +53,116 @@ export async function GET(request) {
   const buildRound = (code) =>
     (fixtures || []).filter(f => f.round === code).sort((a, b) => a.match_number - b.match_number)
       .map(f => {
-        const t1 = res(f.slot1, f.match_number)
-        const t2 = res(f.slot2, f.match_number)
+        const t1 = String(res(f.slot1, f.match_number) || 'TBD')
+        const t2 = String(res(f.slot2, f.match_number) || 'TBD')
         const pred = normalisePred(predMap[f.id])
-        return {
-          t1: String(t1 || 'TBD'), t2: String(t2 || 'TBD'),
-          w: String(pickWinner(pred, t1, t2) || ''),
-          e1: flagEmoji(String(t1 || '')),
-          e2: flagEmoji(String(t2 || '')),
-        }
+        return { t1, t2, w: String(pickWinner(pred, res(f.slot1, f.match_number), res(f.slot2, f.match_number)) || ''), e1: fe(t1), e2: fe(t2) }
       })
 
   const r16 = buildRound('R16')
   const qf  = buildRound('QF')
   const sf  = buildRound('SF')
-  const fin = buildRound('FINAL')[0] ?? { t1: 'TBD', t2: 'TBD', w: '', e1: '', e2: '' }
+  const fin = buildRound('FINAL')[0] ?? { t1:'TBD', t2:'TBD', w:'', e1:'', e2:'' }
   const champ = fin.w || '?'
-  const champEmoji = flagEmoji(champ)
+  const ce = fe(champ)
+
+  // bg/border helpers — return strings only
+  const bg  = (t, w) => t === champ ? '#1c1400' : (w === t && t !== 'TBD') ? '#0e1e35' : '#0b1525'
+  const bl  = (t, w) => t === champ ? '3px solid #ca8a04' : (w === t && t !== 'TBD') ? '2px solid #2a5080' : '2px solid #1a3050'
+  const col = (t, w) => t === champ ? '#fde68a' : (w === t && t !== 'TBD') ? '#88aed0' : '#607a95'
+  const fw  = (t, w) => (t === champ || (w === t && t !== 'TBD')) ? 700 : 400
+
+  // pill JSX — all divs have display:flex
+  const pill = (t, e, w, h, fs) => ({
+    type: 'div',
+    props: {
+      style: { display:'flex', flexDirection:'row', alignItems:'center', gap:'4px', background:bg(t,w), borderLeft:bl(t,w), height:`${h}px`, paddingLeft:'6px', paddingRight:'4px', borderRadius:'3px' },
+      children: [
+        { type:'span', props:{ style:{ fontSize:`${fs+2}px` }, children: e||'' } },
+        { type:'span', props:{ style:{ color:col(t,w), fontSize:`${fs}px`, whiteSpace:'nowrap', fontWeight:fw(t,w) }, children: t } },
+      ]
+    }
+  })
+
+  const match = (m, h, fs) => ({
+    type:'div',
+    props: {
+      style: { display:'flex', flexDirection:'column', gap:'2px' },
+      children: [ pill(m.t1, m.e1, m.w, h, fs), pill(m.t2, m.e2, m.w, h, fs) ]
+    }
+  })
 
   return new ImageResponse((
-    <div style={{ width: '1200px', height: '630px', background: '#060e1f', display: 'flex', flexDirection: 'column', padding: '36px', fontFamily: 'sans-serif' }}>
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid #ca8a04' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: 'white' }}>{name}</span>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>My predicted bracket · FIFA World Cup 2026</span>
+    <div style={{ width:'1200px', height:'630px', background:'#060e1f', display:'flex', flexDirection:'column', padding:'36px', fontFamily:'sans-serif' }}>
+
+      {/* Header */}
+      <div style={{ display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:'8px', paddingBottom:'10px', borderBottom:'2px solid #ca8a04' }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:'3px' }}>
+          <span style={{ fontSize:'22px', fontWeight:800, color:'white' }}>{name}</span>
+          <span style={{ fontSize:'11px', color:'#64748b' }}>My predicted bracket · FIFA World Cup 2026</span>
         </div>
-        <span style={{ fontSize: '13px', color: '#ca8a04', fontWeight: 700 }}>thematchpredictor.com</span>
+        <span style={{ fontSize:'13px', fontWeight:700, color:'#ca8a04' }}>thematchpredictor.com</span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', flex: 1 }}>
+      {/* Labels — every div has display:flex */}
+      <div style={{ display:'flex', flexDirection:'row', gap:'16px', marginBottom:'4px' }}>
+        <div style={{ width:'220px', display:'flex', justifyContent:'center' }}><span style={{ fontSize:'7px', fontWeight:700, color:'#2e4a68', letterSpacing:'0.5px' }}>ROUND OF 16</span></div>
+        <div style={{ width:'185px', display:'flex', justifyContent:'center' }}><span style={{ fontSize:'7px', fontWeight:700, color:'#2e4a68', letterSpacing:'0.5px' }}>QUARTER-FINALS</span></div>
+        <div style={{ width:'155px', display:'flex', justifyContent:'center' }}><span style={{ fontSize:'7px', fontWeight:700, color:'#2e4a68', letterSpacing:'0.5px' }}>SEMI-FINALS</span></div>
+        <div style={{ width:'130px', display:'flex', justifyContent:'center' }}><span style={{ fontSize:'7px', fontWeight:700, color:'#2e4a68', letterSpacing:'0.5px' }}>FINAL</span></div>
+        <div style={{ flex:1, display:'flex' }}><span style={{ fontSize:'1px', color:'transparent' }}> </span></div>
+      </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: '195px' }}>
+      {/* Body */}
+      <div style={{ display:'flex', flexDirection:'row', gap:'16px', flex:1 }}>
+
+        {/* R16 */}
+        <div style={{ display:'flex', flexDirection:'column', justifyContent:'space-around', width:'220px' }}>
           {r16.map((m, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '20px', paddingLeft: '6px', paddingRight: '4px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '11px' }}>{m.e1}</span>
-                <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '10px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
-              </div>
-              <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '20px', paddingLeft: '6px', paddingRight: '4px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '11px' }}>{m.e2}</span>
-                <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '10px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
-              </div>
+            <div key={i} style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+              {pill(m.t1, m.e1, m.w, 20, 10)}
+              {pill(m.t2, m.e2, m.w, 20, 10)}
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: '170px' }}>
+        {/* QF */}
+        <div style={{ display:'flex', flexDirection:'column', justifyContent:'space-around', width:'185px' }}>
           {qf.map((m, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '28px', paddingLeft: '7px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '13px' }}>{m.e1}</span>
-                <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '11px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
-              </div>
-              <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '28px', paddingLeft: '7px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '13px' }}>{m.e2}</span>
-                <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '11px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
-              </div>
+            <div key={i} style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+              {pill(m.t1, m.e1, m.w, 28, 11)}
+              {pill(m.t2, m.e2, m.w, 28, 11)}
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: '150px' }}>
+        {/* SF */}
+        <div style={{ display:'flex', flexDirection:'column', justifyContent:'space-around', width:'155px' }}>
           {sf.map((m, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <div style={{ background: m.t1 === champ ? '#1c1400' : m.w === m.t1 && m.t1 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t1 === champ ? '3px solid #ca8a04' : m.w === m.t1 && m.t1 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '38px', paddingLeft: '8px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '16px' }}>{m.e1}</span>
-                <span style={{ color: m.t1 === champ ? '#fde68a' : m.w === m.t1 && m.t1 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '13px', whiteSpace: 'nowrap', fontWeight: m.t1 === champ ? 700 : 400 }}>{m.t1}</span>
-              </div>
-              <div style={{ background: m.t2 === champ ? '#1c1400' : m.w === m.t2 && m.t2 !== 'TBD' ? '#0e1e35' : '#0b1525', borderLeft: m.t2 === champ ? '3px solid #ca8a04' : m.w === m.t2 && m.t2 !== 'TBD' ? '2px solid #2a5080' : '2px solid #1a3050', height: '38px', paddingLeft: '8px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '3px' }}>
-                <span style={{ fontSize: '16px' }}>{m.e2}</span>
-                <span style={{ color: m.t2 === champ ? '#fde68a' : m.w === m.t2 && m.t2 !== 'TBD' ? '#88aed0' : '#607a95', fontSize: '13px', whiteSpace: 'nowrap', fontWeight: m.t2 === champ ? 700 : 400 }}>{m.t2}</span>
-              </div>
+            <div key={i} style={{ display:'flex', flexDirection:'column', gap:'3px' }}>
+              {pill(m.t1, m.e1, m.w, 38, 13)}
+              {pill(m.t2, m.e2, m.w, 38, 13)}
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '130px', gap: '4px' }}>
-          <div style={{ background: '#1c1400', borderLeft: '3px solid #ca8a04', height: '50px', paddingLeft: '9px', display: 'flex', alignItems: 'center', gap: '7px', borderRadius: '4px' }}>
-            <span style={{ fontSize: '18px' }}>{fin.e1}</span>
-            <span style={{ color: '#fde68a', fontSize: '14px', fontWeight: 700, whiteSpace: 'nowrap' }}>{fin.t1}</span>
-          </div>
-          <div style={{ background: fin.t2 === champ ? '#1c1400' : '#0e1e35', borderLeft: fin.t2 === champ ? '3px solid #ca8a04' : '2px solid #2a5080', height: '50px', paddingLeft: '9px', display: 'flex', alignItems: 'center', gap: '7px', borderRadius: '4px' }}>
-            <span style={{ fontSize: '18px' }}>{fin.e2}</span>
-            <span style={{ color: fin.t2 === champ ? '#fde68a' : '#88aed0', fontSize: '14px', whiteSpace: 'nowrap' }}>{fin.t2}</span>
-          </div>
+        {/* Final */}
+        <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', width:'130px', gap:'4px' }}>
+          {pill(fin.t1, fin.e1, fin.w, 50, 14)}
+          {pill(fin.t2, fin.e2, fin.w, 50, 14)}
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', borderLeft: '1px solid #111f33' }}>
-          <span style={{ fontSize: '32px' }}>🏆</span>
-          <div style={{ background: '#1c1400', border: '2px solid #ca8a04', borderRadius: '10px', padding: '14px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '28px' }}>{champEmoji}</span>
-            <span style={{ fontSize: '18px', fontWeight: 800, color: '#fde68a', whiteSpace: 'nowrap' }}>{champ}</span>
+        {/* Champion */}
+        <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'10px', borderLeft:'1px solid #1a2a3a' }}>
+          <span style={{ fontSize:'32px' }}>🏆</span>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'6px', background:'#1c1400', border:'2px solid #ca8a04', borderRadius:'12px', padding:'14px 22px' }}>
+            <span style={{ fontSize:'28px' }}>{ce}</span>
+            <span style={{ fontSize:'20px', fontWeight:800, color:'#fde68a', whiteSpace:'nowrap' }}>{champ}</span>
           </div>
-          <span style={{ fontSize: '8px', color: '#4b5563', letterSpacing: '0.8px' }}>PREDICTED CHAMPION</span>
+          <span style={{ fontSize:'8px', color:'#4b5563', letterSpacing:'0.8px' }}>PREDICTED CHAMPION</span>
         </div>
 
       </div>
     </div>
-  ), { width: 1200, height: 630 })
+  ), { width:1200, height:630 })
 }
