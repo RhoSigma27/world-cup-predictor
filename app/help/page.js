@@ -358,6 +358,7 @@ export default function HelpPage() {
           ))}
         </div>
 
+
         <div className="mt-10 p-4 bg-gray-900 border border-gray-800 rounded-xl text-sm text-gray-500 text-center">
           Still stuck? Ask your league admin or{' '}
           <a href="mailto:support@thematchpredictor.com" className="text-yellow-400 hover:underline">
