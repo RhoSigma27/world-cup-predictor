@@ -2,6 +2,14 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
+// Maps the target_tier value the client sends → the LS variant ID env var
+const VARIANT_MAP = {
+  enthusiast: process.env.LEMONSQUEEZY_VARIANT_ENTHUSIAST, // hobby → enthusiast £12
+  fanatic:    process.env.LEMONSQUEEZY_VARIANT_FANATIC,    // hobby → fanatic £20
+  upgrade:    process.env.LEMONSQUEEZY_VARIANT_UPGRADE,    // enthusiast → fanatic £10
+  business:   process.env.LEMONSQUEEZY_VARIANT_BUSINESS,   // any → business £100
+}
+
 // Which upgrades are valid from each current tier
 const VALID_UPGRADES = {
   hobby:      ['enthusiast', 'fanatic', 'business'],
@@ -20,26 +28,8 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Missing league_id or target_tier' }, { status: 400 })
   }
 
-  // Read env vars fresh on every request (avoids module-level caching issues)
-  const VARIANT_MAP = {
-    enthusiast: process.env.LEMONSQUEEZY_VARIANT_ENTHUSIAST,
-    fanatic:    process.env.LEMONSQUEEZY_VARIANT_FANATIC,
-    upgrade:    process.env.LEMONSQUEEZY_VARIANT_UPGRADE,
-    business:   process.env.LEMONSQUEEZY_VARIANT_BUSINESS,
-  }
-
-  // Log all variant env vars so we can debug
-  console.log('Checkout request: target_tier=', target_tier)
-  console.log('VARIANT_MAP:', JSON.stringify({
-    enthusiast: VARIANT_MAP.enthusiast ? `set(${VARIANT_MAP.enthusiast})` : 'MISSING',
-    fanatic:    VARIANT_MAP.fanatic    ? `set(${VARIANT_MAP.fanatic})`    : 'MISSING',
-    upgrade:    VARIANT_MAP.upgrade    ? `set(${VARIANT_MAP.upgrade})`    : 'MISSING',
-    business:   VARIANT_MAP.business   ? `set(${VARIANT_MAP.business})`   : 'MISSING',
-  }))
-
   const variantId = VARIANT_MAP[target_tier]
   if (!variantId) {
-    console.error(`Invalid tier: "${target_tier}" — variantId resolved to: ${variantId}`)
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
   }
 
