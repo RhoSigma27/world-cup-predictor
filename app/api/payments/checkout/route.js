@@ -22,10 +22,10 @@ export async function POST(request) {
 
   // Read env vars fresh on every request (avoids module-level caching issues)
   const VARIANT_MAP = {
-    enthusiast: process.env.LEMONSQUEEZY_VARIANT_ENTHUSIAST,
-    fanatic:    process.env.LEMONSQUEEZY_VARIANT_FANATIC,
-    upgrade:    process.env.LEMONSQUEEZY_VARIANT_UPGRADE,
-    business:   process.env.LEMONSQUEEZY_VARIANT_BUSINESS,
+    enthusiast: process.env.LEMONSQUEEZY_VARIANT_ENTHUSIAST ?? '1706290',
+    fanatic:    process.env.LEMONSQUEEZY_VARIANT_FANATIC    ?? '1706300',
+    upgrade:    process.env.LEMONSQUEEZY_VARIANT_UPGRADE    ?? '1706302',
+    business:   process.env.LEMONSQUEEZY_VARIANT_BUSINESS   ?? '1680006',
   }
 
   // Log all variant env vars so we can debug

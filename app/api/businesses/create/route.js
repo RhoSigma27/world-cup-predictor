@@ -59,6 +59,9 @@ export async function POST(request) {
     .insert({ league_id: league.id, user_id: user.id })
 
   // Create Lemon Squeezy checkout for Business tier
+  const variantId = String(process.env.LEMONSQUEEZY_VARIANT_BUSINESS ?? '1089088')
+  const storeId = String(process.env.LEMONSQUEEZY_STORE_ID ?? '375543')
+  console.log('LS checkout: storeId=' + storeId + ' variantId=' + variantId)
   const lsResponse = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
     method: 'POST',
     headers: {
