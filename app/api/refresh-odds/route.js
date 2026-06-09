@@ -23,6 +23,7 @@ const TEAM_NAME_MAP = {
   'Turkey': 'Türkiye',
   'Korea Republic': 'South Korea',
   'United States': 'USA',
+  'Czech Republic': 'Czechia',
 }
 
 function normaliseTeam(name) {
