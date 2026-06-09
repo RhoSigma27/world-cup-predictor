@@ -8,7 +8,7 @@ import Link from 'next/link'
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LOCK_DATE = new Date('2026-06-11T19:00:00Z')
+const LOCK_DATE = new Date('2026-06-11T19:59:00Z')
 const isLocked = () => new Date() >= LOCK_DATE
 
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']

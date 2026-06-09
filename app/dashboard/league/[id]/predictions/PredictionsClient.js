@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import ShareButton from '@/app/components/ShareButton'
 
-const LOCK_DATE = new Date('2026-06-11T19:00:00Z')
+const LOCK_DATE = new Date('2026-06-11T19:59:00Z')
 const isLocked = () => new Date() >= LOCK_DATE
 
 function calcGroupTables(predictions, fixtures) {
