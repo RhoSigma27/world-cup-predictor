@@ -8,6 +8,19 @@ export const viewport = {
   themeColor: '#e8c96b',
 }
 
+export const metadata = {
+  title: 'World Cup 2026 Prediction League — Free to Play',
+  description: 'Create a free World Cup 2026 prediction league and compete with friends. Predict all 104 matches from group stage to the final. Free to play, no faff.',
+  alternates: {
+    canonical: 'https://thematchpredictor.com',
+  },
+  openGraph: {
+    title: 'The Match Predictor — World Cup 2026 Prediction League',
+    description: 'Predict every match of the 2026 World Cup and compete with friends. Free to play.',
+    url: 'https://thematchpredictor.com',
+  },
+}
+
 export default async function Home() {
   let leagueCount = null
   try {
