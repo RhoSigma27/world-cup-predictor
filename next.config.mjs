@@ -29,7 +29,8 @@ const cspHeader = [
   "font-src 'self'",
 
   // Frames — Lemon Squeezy checkout may open in a frame/popup
-  "frame-src https://*.lemonsqueezy.com",
+  // www.loom.com       — Loom video embed on /businesses page
+  "frame-src https://*.lemonsqueezy.com https://www.loom.com",
 
   // Prevent your site being embedded in iframes elsewhere (clickjacking defence)
   "frame-ancestors 'none'",
