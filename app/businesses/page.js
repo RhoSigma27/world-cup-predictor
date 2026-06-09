@@ -137,6 +137,21 @@ export default function BusinessesPage() {
         <p className="text-gray-600 text-sm mt-4">One-time payment · No subscription · Tournament starts 11 June 2026</p>
       </div>
 
+      {/* Loom Video */}
+      <div className="max-w-3xl mx-auto px-6 pb-16">
+        <p className="text-center text-gray-400 text-sm mb-4 uppercase tracking-wider font-semibold">See it in action</p>
+        <div className="relative w-full rounded-2xl overflow-hidden border border-gray-800" style={{ paddingBottom: '56.25%' }}>
+          <iframe
+            src="https://www.loom.com/embed/aa475990676043bcb7c41b5929dfce4c"
+            frameBorder="0"
+            webkitallowfullscreen="true"
+            mozallowfullscreen="true"
+            allowFullScreen
+            className="absolute top-0 left-0 w-full h-full"
+          />
+        </div>
+      </div>
+
       {/* Features */}
       <div className="max-w-5xl mx-auto px-6 py-16">
         <h2 className="text-3xl font-bold text-center mb-3">Everything you need</h2>
