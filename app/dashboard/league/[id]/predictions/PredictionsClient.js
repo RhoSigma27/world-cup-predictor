@@ -242,15 +242,15 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
                 <td className="px-3 py-2 font-medium text-white">
                   <span className="flex items-center gap-1">
                     <FlagImg team={row.team} />
-                    <span className="truncate max-w-24">{row.team}</span>
+                    <span className="truncate max-w-[60px]">{row.team}</span>
                     {i < 2 && <span className="text-green-400 text-xs">✓</span>}
                   </span>
                 </td>
-                <td className="px-2 py-2 text-center text-gray-400">{row.played}</td>
-                <td className={`px-2 py-2 text-center ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                <td className="px-1 py-2 text-center text-gray-400">{row.played}</td>
+                <td className={`px-1 py-2 text-center ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
                   {row.gd > 0 ? '+' : ''}{row.gd}
                 </td>
-                <td className="px-2 py-2 text-center font-bold text-yellow-400">{row.pts}</td>
+                <td className="px-1 py-2 text-center font-bold text-yellow-400">{row.pts}</td>
               </tr>
             ))}
           </tbody>
@@ -277,14 +277,14 @@ function GroupTablePanel({ predictions, fixtures, activeGroup }) {
                 <td className="px-3 py-2 font-medium text-white">
                   <span className="flex items-center gap-1">
                     <FlagImg team={row.team} />
-                    <span className="truncate max-w-20">{row.team}</span>
+                    <span className="truncate max-w-[55px]">{row.team}</span>
                   </span>
                 </td>
                 <td className="px-2 py-2 text-center text-yellow-400 font-bold">{row.group}</td>
-                <td className={`px-2 py-2 text-center ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                <td className={`px-1 py-2 text-center ${row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
                   {row.gd > 0 ? '+' : ''}{row.gd}
                 </td>
-                <td className="px-2 py-2 text-center font-bold text-yellow-400">{row.pts}</td>
+                <td className="px-1 py-2 text-center font-bold text-yellow-400">{row.pts}</td>
               </tr>
             ))}
           </tbody>
