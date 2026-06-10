@@ -84,7 +84,11 @@ export default async function AdminLeaguesPage() {
     if (fixtureRoundMap[p.fixture_id] === 'group') predMap[key].group++
     else predMap[key].ko++
   }
-
+  
+  console.log('predMap keys:', Object.keys(predMap).length)
+  console.log('Champanzees Rahul key:', predMap['607c8d37-4fc5-4614-90a2-56708c6c7c1e_e5cb6992-9921-4c8f-960b-b7af362c71ef'])
+  console.log('BigKickers Rahul key:', predMap['607c8d37-4fc5-4614-90a2-56708c6c7c1e_86d777c2-5e38-43dc-a5eb-499aaabc93f5'])
+  
   const leaguesData = (leagues || []).map(l => ({
     ...l,
     profiles: profileMap[l.admin_id] || null,
