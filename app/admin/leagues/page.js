@@ -18,7 +18,7 @@ export default async function AdminLeaguesPage() {
 
   const adminSupabase = createAdminClient()
 
-  // Get all leagues — added tier and is_comped
+  // Get all leagues
   const { data: leagues } = await adminSupabase
     .from('leagues')
     .select('id, league_name, invite_code, created_at, admin_id, logo_url, tier, is_comped')
@@ -58,37 +58,23 @@ export default async function AdminLeaguesPage() {
     })
   }
 
-  // Fetch fixture round map so we can split group vs KO
-  const { data: fixtures } = await adminSupabase
-    .from('fixtures')
-    .select('id, round')
+  // Fetch prediction counts via RPC (avoids PostgREST 1000-row limit)
+  const { data: predCounts, error: predError } = await adminSupabase
+    .rpc('get_prediction_counts')
 
-  const fixtureRoundMap = {}
-  for (const f of fixtures || []) {
-    fixtureRoundMap[f.id] = f.round
-  }
+  console.log('predCounts fetched:', predCounts?.length, 'error:', predError?.message)
 
-  // Fetch all predictions where both scores are filled
-  const { data: predictions,error: predictionsError} = await adminSupabase
-    .from('predictions')
-    .select('user_id, league_id, fixture_id, predicted_home, predicted_away')
-    .not('predicted_home', 'is', null)
-    .not('predicted_away', 'is', null)
-    .range(0, 49999)
-
-  // Build map: `${userId}_${leagueId}` → { group, ko }
   const predMap = {}
-  for (const p of predictions || []) {
-    const key = `${p.user_id}_${p.league_id}`
-    if (!predMap[key]) predMap[key] = { group: 0, ko: 0 }
-    if (fixtureRoundMap[p.fixture_id] === 'group') predMap[key].group++
-    else predMap[key].ko++
+  for (const row of predCounts || []) {
+    predMap[`${row.user_id}_${row.league_id}`] = {
+      group: Number(row.group_count),
+      ko: Number(row.ko_count),
+    }
   }
-  
+
   console.log('predMap keys:', Object.keys(predMap).length)
   console.log('Champanzees Rahul key:', predMap['607c8d37-4fc5-4614-90a2-56708c6c7c1e_e5cb6992-9921-4c8f-960b-b7af362c71ef'])
   console.log('BigKickers Rahul key:', predMap['607c8d37-4fc5-4614-90a2-56708c6c7c1e_86d777c2-5e38-43dc-a5eb-499aaabc93f5'])
-  console.log('predictions fetched:', predictions?.length, 'error:', predictionsError?.message)
 
   const leaguesData = (leagues || []).map(l => ({
     ...l,
