@@ -59,10 +59,8 @@ export default async function AdminLeaguesPage() {
   }
 
   // Fetch prediction counts via RPC (avoids PostgREST 1000-row limit)
-  const { data: predCounts, error: predError } = await adminSupabase
+  const { data: predCounts } = await adminSupabase
     .rpc('get_prediction_counts')
-
-  console.log('predCounts fetched:', predCounts?.length, 'error:', predError?.message)
 
   const predMap = {}
   for (const row of predCounts || []) {
@@ -71,10 +69,6 @@ export default async function AdminLeaguesPage() {
       ko: Number(row.ko_count),
     }
   }
-
-  console.log('predMap keys:', Object.keys(predMap).length)
-  console.log('Champanzees Rahul key:', predMap['607c8d37-4fc5-4614-90a2-56708c6c7c1e_e5cb6992-9921-4c8f-960b-b7af362c71ef'])
-  console.log('BigKickers Rahul key:', predMap['607c8d37-4fc5-4614-90a2-56708c6c7c1e_86d777c2-5e38-43dc-a5eb-499aaabc93f5'])
 
   const leaguesData = (leagues || []).map(l => ({
     ...l,
