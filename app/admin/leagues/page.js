@@ -69,7 +69,7 @@ export default async function AdminLeaguesPage() {
   }
 
   // Fetch all predictions where both scores are filled
-  const { data: predictions } = await adminSupabase
+  const { data: predictions,error: predictionsError} = await adminSupabase
     .from('predictions')
     .select('user_id, league_id, fixture_id, predicted_home, predicted_away')
     .not('predicted_home', 'is', null)
@@ -88,7 +88,8 @@ export default async function AdminLeaguesPage() {
   console.log('predMap keys:', Object.keys(predMap).length)
   console.log('Champanzees Rahul key:', predMap['607c8d37-4fc5-4614-90a2-56708c6c7c1e_e5cb6992-9921-4c8f-960b-b7af362c71ef'])
   console.log('BigKickers Rahul key:', predMap['607c8d37-4fc5-4614-90a2-56708c6c7c1e_86d777c2-5e38-43dc-a5eb-499aaabc93f5'])
-  
+  console.log('predictions fetched:', predictions?.length, 'error:', predictionsError?.message)
+
   const leaguesData = (leagues || []).map(l => ({
     ...l,
     profiles: profileMap[l.admin_id] || null,
