@@ -74,6 +74,7 @@ export default async function AdminLeaguesPage() {
     .select('user_id, league_id, fixture_id, predicted_home, predicted_away')
     .not('predicted_home', 'is', null)
     .not('predicted_away', 'is', null)
+    .limit(10000)
 
   // Build map: `${userId}_${leagueId}` → { group, ko }
   const predMap = {}
