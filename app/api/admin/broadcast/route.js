@@ -153,17 +153,26 @@ export async function POST(request) {
     const recipientEmails = recipients.map(r => r.email)
     const html = buildBroadcastHtml({ subject: subject.trim(), message: message.trim() })
 
-    const { error: sendError } = await resend.emails.send({
-      from: 'The Match Predictor <noreply@thematchpredictor.com>',
-      to: 'noreply@thematchpredictor.com',
-      bcc: recipientEmails,
-      subject: subject.trim(),
-      html,
-    })
+    // ── Send in batches of 50 (Resend BCC limit) ──────────────────────────────
+    const chunkSize = 50
+    const chunks = []
+    for (let i = 0; i < recipientEmails.length; i += chunkSize) {
+      chunks.push(recipientEmails.slice(i, i + chunkSize))
+    }
 
-    if (sendError) {
-      console.error('Resend broadcast error:', sendError)
-      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    for (const chunk of chunks) {
+      const { error: sendError } = await resend.emails.send({
+        from: 'The Match Predictor <noreply@thematchpredictor.com>',
+        to: 'noreply@thematchpredictor.com',
+        bcc: chunk,
+        subject: subject.trim(),
+        html,
+      })
+
+      if (sendError) {
+        console.error('Resend broadcast error:', sendError)
+        return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+      }
     }
 
     return NextResponse.json({ success: true, recipientCount: recipientEmails.length })
