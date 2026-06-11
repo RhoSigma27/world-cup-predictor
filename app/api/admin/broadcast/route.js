@@ -154,7 +154,7 @@ export async function POST(request) {
     const html = buildBroadcastHtml({ subject: subject.trim(), message: message.trim() })
 
     // ── Send in batches of 50 (Resend BCC limit) ──────────────────────────────
-    const chunkSize = 50
+    const chunkSize = 49
     const chunks = []
     for (let i = 0; i < recipientEmails.length; i += chunkSize) {
       chunks.push(recipientEmails.slice(i, i + chunkSize))
