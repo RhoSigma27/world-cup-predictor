@@ -133,6 +133,13 @@ export default async function Home() {
         </p>
       </div>
 
+      <p className="text-center text-gray-500 text-sm mt-2">
+        Questions about how scoring works?{' '}
+        <Link href="/help" className="text-yellow-400 hover:underline">
+          See the full scoring guide →
+        </Link>
+      </p>
+      
       {/* CTA */}
       <div className="max-w-2xl mx-auto px-6 py-16 text-center">
         <h2 className="text-3xl font-bold mb-4">Ready to play?</h2>
