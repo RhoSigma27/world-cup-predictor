@@ -173,13 +173,6 @@ export default async function StandingsPage({ params }) {
         FINAL: userExtras?.star_pick_final ?? null,
       },
       filled,
-      debugInfo: (member.user_id === '75b0e2f5-9551-4868-a2d4-e6010e647ec3' && user.id === '607c8d37-4fc5-4614-90a2-56708c6c7c1e')
-        ? JSON.stringify({ 
-            total: allPredictions?.length,
-            memberUserId: member.user_id,
-            sampleIds: [...new Set((allPredictions || []).map(p => p.user_id))],
-            score, userPredsCount: userPreds.length, hasExtras: !!userExtras })
-        : null,
       ...score,
     }
   }) || []
@@ -322,7 +315,6 @@ export default async function StandingsPage({ params }) {
                           {s.isAdmin && <span className="ml-1 text-xs text-gray-500">⭐</span>}
                         </p>
                       </div>
-                      {s.debugInfo && <pre className="text-xs text-red-400 mt-1">{s.debugInfo}</pre>}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className="text-xl font-bold text-yellow-400">{s.total}</span>
