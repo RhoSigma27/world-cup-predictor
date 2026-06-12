@@ -149,7 +149,13 @@ export default async function StandingsPage({ params }) {
   const standings = members?.filter(m => !m.profiles?.is_banned).map(member => {
     const userPreds  = allPredictions?.filter(p => p.user_id === member.user_id) || []
     const userExtras = allExtras?.find(e => e.user_id === member.user_id) || null
-    const score      = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras)
+    let score
+    try {
+      score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras)
+    } catch (err) {
+      console.log('SCORING ERROR for', member.nickname || member.profiles?.display_name, err.message, err.stack)
+      score = { total: 0, groupPts: 0, koPts: 0, extrasPts: 0 }
+    } //const score      = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras)
     const filled     = userPreds.filter(p => p.predicted_home != null && p.predicted_away != null).length
 
     return {
