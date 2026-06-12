@@ -174,7 +174,11 @@ export default async function StandingsPage({ params }) {
       },
       filled,
       debugInfo: (member.user_id === '75b0e2f5-9551-4868-a2d4-e6010e647ec3' && user.id === '607c8d37-4fc5-4614-90a2-56708c6c7c1e')
-        ? JSON.stringify({ score, userPredsCount: userPreds.length, hasExtras: !!userExtras })
+        ? JSON.stringify({ 
+            total: allPredictions?.length,
+            memberUserId: member.user_id,
+            sampleIds: [...new Set((allPredictions || []).map(p => p.user_id))],
+            score, userPredsCount: userPreds.length, hasExtras: !!userExtras })
         : null,
       ...score,
     }
