@@ -227,7 +227,7 @@ function ScoringAnswer() {
       <div>
         <p className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-1.5">Group Stage</p>
         <p className="leading-relaxed">
-          Predict the scoreline for each of the 48 group matches. For each match you earn:
+          Predict the scoreline for each of the 72 group matches. For each match you earn:
         </p>
         <ul className="mt-2 space-y-1">
           <li className="flex gap-2 items-start">
