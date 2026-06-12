@@ -140,6 +140,7 @@ export default async function StandingsPage({ params }) {
     .from('predictions')
     .select('*')
     .eq('league_id', id)
+    .range(0,9999)
 
   const { data: allExtras } = await adminSupabase
     .from('extras_predictions')
