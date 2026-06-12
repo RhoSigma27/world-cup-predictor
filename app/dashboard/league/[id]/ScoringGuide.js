@@ -3,13 +3,11 @@
 import { useState } from 'react'
 
 const ROUNDS = [
-  { label: 'Group Stage',    round: 'group', result: 10, score: 5,  matches: 72 },
-  { label: 'Round of 32',   round: 'R32',   result: 10, score: 5,  matches: 16 },
-  { label: 'Round of 16',   round: 'R16',   result: 20, score: 10, matches: 8  },
-  { label: 'Quarter Finals', round: 'QF',   result: 30, score: 15, matches: 4  },
-  { label: 'Semi Finals',   round: 'SF',    result: 50, score: 25, matches: 2  },
-  { label: 'Bronze Final',  round: '3RD',   result: 80, score: 40, matches: 1  },
-  { label: 'The Final',     round: 'FINAL', result: 80, score: 40, matches: 1  },
+  { label: 'Group Stage',            round: 'group', result: 10, score: 5  },
+  { label: 'Round of 32',            round: 'R32',   result: 10, score: 5  },
+  { label: 'Round of 16',            round: 'R16',   result: 20, score: 10 },
+  { label: 'Quarter-Finals / Semis', round: 'QF',    result: 30, score: 15 },
+  { label: 'Bronze Final / Final',   round: 'FINAL', result: 50, score: 25 },
 ]
 
 export default function ScoringGuide() {
@@ -32,10 +30,48 @@ export default function ScoringGuide() {
       </button>
 
       {open && (
-        <div className="px-6 pb-6 space-y-6 border-t border-gray-800">
+        <div className="px-6 pb-6 space-y-6 border-t border-gray-800 pt-5">
+
+          {/* Group stage */}
+          <div>
+            <p className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-1.5">Group Stage</p>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              Predict the scoreline for each of the 48 group matches. For each match you earn:
+            </p>
+            <ul className="mt-2 space-y-1 text-sm text-gray-400">
+              <li className="flex gap-2 items-start">
+                <span className="text-green-400 flex-shrink-0 mt-0.5">•</span>
+                <span><strong className="text-white">Correct result</strong> (win / draw / loss) — base points</span>
+              </li>
+              <li className="flex gap-2 items-start">
+                <span className="text-blue-400 flex-shrink-0 mt-0.5">•</span>
+                <span><strong className="text-white">Correct exact score</strong> — base points + bonus points</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Knockout rounds */}
+          <div>
+            <p className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-1.5">Knockout Rounds</p>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              Knockout scoring is <strong className="text-white">team-centric</strong>. For each real knockout result, the app evaluates both teams independently:
+            </p>
+            <ul className="mt-2 space-y-1.5 text-sm text-gray-400">
+              <li className="flex gap-2 items-start">
+                <span className="text-yellow-400 flex-shrink-0 mt-0.5">•</span>
+                <span>Did you predict this team to reach this round? If yes — did you call the right outcome (advance or exit)? You earn points regardless of who their opponent actually was.</span>
+              </li>
+              <li className="flex gap-2 items-start">
+                <span className="text-yellow-400 flex-shrink-0 mt-0.5">•</span>
+                <span>
+                  <strong className="text-white">Exact score bonus</strong> is compared from each team's own perspective (their goals for and against). Example: you predict Australia to lose 1–3. In the actual tournament Australia lose 1–3 to France — a different opponent. You still earn the exact score bonus.
+                </span>
+              </li>
+            </ul>
+          </div>
 
           {/* Points per round table */}
-          <div className="pt-5">
+          <div>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Points per match</h3>
             <div className="rounded-xl overflow-hidden border border-gray-800">
               <table className="w-full text-sm">
@@ -63,10 +99,12 @@ export default function ScoringGuide() {
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-gray-600 mt-2">
-              A correct result means getting the outcome right (win/draw/loss). An exact score gives you bonus points on top.
-            </p>
           </div>
+
+          {/* Penalties note */}
+          <p className="text-xs text-gray-500 leading-relaxed">
+            For penalty shootouts, the winning team gets +1 added to their score for exact score comparison purposes. A match finishing 2–2 aet with Germany winning on penalties is treated as a <strong className="text-gray-300">2–3 Germany win</strong>.
+          </p>
 
           {/* Star pick */}
           <div>
@@ -83,9 +121,9 @@ export default function ScoringGuide() {
               <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-1 border border-gray-800">
                 <p className="text-gray-400 font-medium mb-1">Example</p>
                 <p>You star pick <span className="text-white">England</span> for the Semi Finals.</p>
-                <p>England win and you predicted the correct result → <span className="text-yellow-400 font-bold">50 × 2 = 100 pts</span></p>
-                <p>You also got the exact score → bonus <span className="text-green-400 font-bold">+25 × 2 = 50 pts</span></p>
-                <p className="text-gray-500 pt-1">Total from that match: <span className="text-white font-bold">150 pts</span></p>
+                <p>England win and you predicted the correct result → <span className="text-yellow-400 font-bold">30 × 2 = 60 pts</span></p>
+                <p>You also got the exact score → bonus <span className="text-green-400 font-bold">+15 × 2 = 30 pts</span></p>
+                <p className="text-gray-500 pt-1">Total from that match: <span className="text-white font-bold">90 pts</span></p>
               </div>
               <p className="text-gray-500 text-xs">
                 High risk, high reward — if your star team loses or you get the result wrong, no points are doubled (or lost).
@@ -115,28 +153,6 @@ export default function ScoringGuide() {
               <p className="text-xs text-gray-500">
                 Points scale down from 50 based on how far off you are — so an answer close to the truth still earns something.
               </p>
-            </div>
-          </div>
-
-          {/* Max points summary */}
-          <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Max possible points</h3>
-            <div className="grid grid-cols-3 gap-3 text-center text-sm">
-              <div>
-                <p className="text-gray-500 text-xs mb-1">Group stage</p>
-                <p className="text-white font-bold">1,080</p>
-                <p className="text-gray-600 text-xs">72 × 15pts</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs mb-1">Knockout</p>
-                <p className="text-white font-bold">2,040</p>
-                <p className="text-gray-600 text-xs">incl. star picks</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs mb-1">Extras</p>
-                <p className="text-white font-bold">100</p>
-                <p className="text-gray-600 text-xs">2 × 50pts</p>
-              </div>
             </div>
           </div>
 
