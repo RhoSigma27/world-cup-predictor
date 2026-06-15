@@ -24,47 +24,25 @@ export default function JoinLeaguePage() {
       return
     }
 
-    // Find league by invite code
-    const { data: league, error: leagueError } = await supabase
-      .from('leagues')
-      .select('*')
-      .eq('invite_code', inviteCode.toUpperCase().trim())
-      .single()
-
-    if (leagueError || !league) {
-      setError('League not found. Check the invite code and try again.')
-      setLoading(false)
-      return
-    }
-
-    // Check if already a member
-    const { data: existing } = await supabase
-      .from('league_members')
-      .select('id')
-      .eq('league_id', league.id)
-      .eq('user_id', user.id)
-      .single()
-
-    if (existing) {
-      router.push(`/dashboard/league/${league.id}`)
-      return
-    }
-
-    // Join the league
-    const { error: joinError } = await supabase
-      .from('league_members')
-      .insert({
-        league_id: league.id,
-        user_id: user.id,
+    try {
+      const res = await fetch('/api/join-league', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode }),
       })
+      const data = await res.json()
 
-    if (joinError) {
-      setError(joinError.message)
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong')
+        setLoading(false)
+        return
+      }
+
+      router.push(`/dashboard/league/${data.leagueId}`)
+    } catch {
+      setError('Something went wrong — please try again')
       setLoading(false)
-      return
     }
-
-    router.push(`/dashboard/league/${league.id}`)
   }
 
   return (
