@@ -573,6 +573,11 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
               {overridingLeague === league.id && (
                 <div className="border-t border-gray-800 px-5 py-3 flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-gray-500">Extend predictions lock until:</span>
+                  {nextKickoff && (
+                    <span className="text-xs text-blue-400">
+                      (next kickoff: {new Date(nextKickoff).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})
+                    </span>
+                  )}
                   <input
                     type="datetime-local"
                     value={overrideValue}

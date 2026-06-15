@@ -913,11 +913,12 @@ export default function PredictionsClient({
 
           {overrideUntil && (
             <div className="mb-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-              <p className="text-sm text-yellow-300">
+               <p className="text-sm text-yellow-300">
                 📅 The prediction deadline for this league has been extended to{' '}
                 <strong>{overrideUntil.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</strong>,
                 either at the request of your league admin or because this league was created after the tournament started.
-                Please input predictions for all 104 matches before this new deadline.
+                All 104 matches need a prediction — matches already played have been filled in based on actual results,
+                so please enter your predictions for the remaining (future) matches before this deadline.
               </p>
               <p className="text-xs text-yellow-300/60 mt-1">
                 Note: matches that have already been played may be visible when you submit your predictions.
