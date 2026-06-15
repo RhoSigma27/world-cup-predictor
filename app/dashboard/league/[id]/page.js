@@ -242,6 +242,7 @@ export default async function LeaguePage({ params, searchParams }) {
             👥 Members ({memberCount}{isFinite(tierLimit) ? `/${tierLimit}` : ''})
           </h2>
           <MembersList
+            league={league}
             members={members}
             adminId={league.admin_id}
             currentUserId={user.id}

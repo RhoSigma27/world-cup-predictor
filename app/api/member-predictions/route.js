@@ -1,12 +1,12 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
+import { isPredictionsLocked } from '@/lib/predictionsLock'
 
 // GET /api/member-predictions?userId=xxx&leagueId=yyy
 // Returns predictions + ko_predictions for a target user in a league.
 // Caller must be a member of the same league and predictions must be locked.
 
-const LOCK_DATE = new Date('2026-06-11T19:59:00Z')
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
@@ -17,8 +17,16 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Missing userId or leagueId' }, { status: 400 })
   }
 
+  // Fetch league row to check for an override
+  const adminSupabase = createAdminClient()
+  const { data: leagueRow } = await adminSupabase
+    .from('leagues')
+    .select('predictions_override_until')
+    .eq('id', leagueId)
+    .single()
+
   // Only available after lock
-  if (new Date() < LOCK_DATE) {
+  if (!isPredictionsLocked(leagueRow)) {
     return NextResponse.json({ error: 'Predictions are not yet locked' }, { status: 403 })
   }
 
@@ -41,7 +49,6 @@ export async function GET(request) {
   }
 
   // Verify target user is also in this league
-  const adminSupabase = createAdminClient()
   const { data: targetMembership } = await adminSupabase
     .from('league_members')
     .select('id')

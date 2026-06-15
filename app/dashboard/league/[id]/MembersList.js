@@ -2,14 +2,13 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import { isPredictionsLocked } from '@/lib/predictionsLock'
 
 const MemberBracketModal = dynamic(() => import('./MemberBracketModal'), { ssr: false })
 
-const LOCK_DATE = new Date('2026-06-11T19:59:00Z')
-
-export default function MembersList({ members, adminId, currentUserId, fixtures, leagueId }) {
+export default function MembersList({ members, adminId, currentUserId, fixtures, leagueId, league }) {
   const [viewingMember, setViewingMember] = useState(null) // { userId, displayName }
-  const locked = new Date() >= LOCK_DATE
+  const locked = isPredictionsLocked(league)
 
   function handleClick(userId, displayName) {
     if (!locked) return

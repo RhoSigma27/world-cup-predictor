@@ -25,6 +25,21 @@ function TierBadge({ tier, isComped }) {
   )
 }
 
+function toLocalInputValue(isoString) {
+  const d = new Date(isoString)
+  const offset = d.getTimezoneOffset() * 60000
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16)
+}
+
+function OverrideBadge({ overrideUntil }) {
+  if (!overrideUntil || new Date(overrideUntil) <= new Date()) return null
+  return (
+    <span className="text-xs px-2 py-0.5 rounded-full border font-medium text-blue-400 bg-blue-500/10 border-blue-500/30">
+      ⏰ Extended to {new Date(overrideUntil).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
+    </span>
+  )
+}
+
 // ── Logo uploader ─────────────────────────────────────────────────────────────
 function LogoUploader({ league, onUploaded, onRemoved }) {
   const [preview, setPreview] = useState(league.logo_url || null)
@@ -293,6 +308,10 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
 
+  const [overridingLeague, setOverridingLeague] = useState(null)
+  const [overrideValue, setOverrideValue] = useState('')
+  const [savingOverride, setSavingOverride] = useState(false)
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
@@ -362,6 +381,26 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
       }
     } catch { showToast('Something went wrong', 'error') }
     finally { setTogglingComp(null) }
+  }
+
+  const handleSaveOverride = async (leagueId, value) => {
+    setSavingOverride(true)
+    try {
+      const overrideUntil = value ? new Date(value).toISOString() : null
+      const res = await fetch('/api/admin/set-override', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leagueId, overrideUntil }),
+      })
+      const data = await res.json()
+      if (!res.ok) showToast(data.error || 'Failed to update', 'error')
+      else {
+        setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, predictions_override_until: overrideUntil } : l))
+        showToast(overrideUntil ? 'Lock override saved ✓' : 'Lock override cleared')
+        setOverridingLeague(null)
+      }
+    } catch { showToast('Something went wrong', 'error') }
+    finally { setSavingOverride(false) }
   }
 
   const handleRename = async () => {
@@ -448,6 +487,7 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                     </code>
                     {/* ── Tier badge ── */}
                     <TierBadge tier={league.tier} isComped={league.is_comped} />
+                    <OverrideBadge overrideUntil={league.predictions_override_until} />
                   </div>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="text-xs text-gray-500">
@@ -491,6 +531,17 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                     {togglingComp === league.id ? '…' : league.is_comped ? '⭐ Comped' : 'Comp'}
                   </button>
 
+                  {/* ── Lock override toggle ── */}
+                  <button
+                    onClick={() => {
+                      setOverridingLeague(overridingLeague === league.id ? null : league.id)
+                      setOverrideValue(league.predictions_override_until ? toLocalInputValue(league.predictions_override_until) : '')
+                    }}
+                    className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-blue-500/10 text-gray-500 hover:text-blue-400 border border-gray-700 hover:border-blue-500/30 rounded-lg transition-colors"
+                  >
+                    ⏰ Lock override
+                  </button>
+
                   {confirmDelete === league.id ? (
                     <div className="flex items-center gap-2 relative z-50">
                       <span className="text-xs text-red-400">Sure?</span>
@@ -518,6 +569,41 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
                   )}
                 </div>
               </div>
+
+              {overridingLeague === league.id && (
+                <div className="border-t border-gray-800 px-5 py-3 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500">Extend predictions lock until:</span>
+                  <input
+                    type="datetime-local"
+                    value={overrideValue}
+                    onChange={e => setOverrideValue(e.target.value)}
+                    className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
+                  />
+                  <button
+                    onClick={() => handleSaveOverride(league.id, overrideValue)}
+                    disabled={savingOverride || !overrideValue}
+                    className="text-xs px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-950 font-bold rounded-lg transition-colors"
+                  >
+                    {savingOverride ? '…' : 'Save'}
+                  </button>
+                  {league.predictions_override_until && (
+                    <button
+                      onClick={() => handleSaveOverride(league.id, null)}
+                      disabled={savingOverride}
+                      className="text-xs px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setOverridingLeague(null)}
+                    className="text-xs px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <span className="text-xs text-gray-600 ml-auto">Times shown in your local timezone (UK)</span>
+                </div>
+              )}
 
               {expanded[league.id] && (
                 <div className="border-t border-gray-800 px-5 py-3">

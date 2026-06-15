@@ -9,9 +9,7 @@ import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import ShareButton from '@/app/components/ShareButton'
-
-const LOCK_DATE = new Date('2026-06-11T19:59:00Z')
-const isLocked = () => new Date() >= LOCK_DATE
+import { isPredictionsLocked, getOverrideUntil } from '@/lib/predictionsLock'
 
 function calcGroupTables(predictions, fixtures) {
   const tables = {}
@@ -629,7 +627,8 @@ export default function PredictionsClient({
   extrasPrediction, userId, profile, leagueId, fixtureOdds = {},
   importableLeagues = []
 }) {
-  const locked = isLocked()
+  const locked = isPredictionsLocked(league)
+  const overrideUntil = getOverrideUntil(league)
   const [activeGroup, setActiveGroup] = useState('A')
   const [saveStatus, setSaveStatus] = useState('saved')
   const [toast, setToast] = useState(null)
@@ -912,6 +911,20 @@ export default function PredictionsClient({
             </div>
           )}
 
+          {overrideUntil && (
+            <div className="mb-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+              <p className="text-sm text-yellow-300">
+                📅 The prediction deadline for this league has been extended to{' '}
+                <strong>{overrideUntil.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</strong>,
+                either at the request of your league admin or because this league was created after the tournament started.
+                Please input predictions for all 104 matches before this new deadline.
+              </p>
+              <p className="text-xs text-yellow-300/60 mt-1">
+                Note: matches that have already been played may be visible when you submit your predictions.
+              </p>
+            </div>
+          )}
+          
           {/* Import banner */}
           <ImportBanner importableLeagues={importableLeagues} leagueId={leagueId} onImported={handleImported} />
 

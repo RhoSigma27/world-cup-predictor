@@ -21,7 +21,7 @@ export default async function AdminLeaguesPage() {
   // Get all leagues
   const { data: leagues } = await adminSupabase
     .from('leagues')
-    .select('id, league_name, invite_code, created_at, admin_id, logo_url, tier, is_comped')
+    .select('id, league_name, invite_code, created_at, admin_id, logo_url, tier, is_comped', predictions_override_until) 
     .order('created_at', { ascending: false })
 
   // Get all members
