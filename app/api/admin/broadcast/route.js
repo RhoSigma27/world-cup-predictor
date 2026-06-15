@@ -8,6 +8,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { GLOBAL_LOCK_DATE } from '@/lib/predictionsLock'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -18,7 +19,9 @@ async function getRecipients(adminSupabase, tier) {
     .from('leagues')
     .select('admin_id')
 
-  if (tier && tier !== 'all') {
+  if (tier === 'post_lock') {
+    query = query.gt('created_at', GLOBAL_LOCK_DATE.toISOString())
+  } else if (tier && tier !== 'all') {
     query = query.eq('tier', tier)
   }
 

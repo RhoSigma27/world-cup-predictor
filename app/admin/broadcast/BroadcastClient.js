@@ -8,6 +8,7 @@ const TIER_OPTIONS = [
   { value: 'enthusiast', label: 'Enthusiast tier only' },
   { value: 'fanatic',    label: 'Fanatic tier only' },
   { value: 'business',   label: 'Business tier only' },
+  { value: 'post_lock',  label: 'Leagues created after prediction lock (11 Jun)' },
 ]
 
 export default function BroadcastClient() {
