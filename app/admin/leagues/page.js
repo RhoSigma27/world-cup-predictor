@@ -58,6 +58,17 @@ export default async function AdminLeaguesPage() {
     })
   }
 
+  // Next upcoming kickoff — shown as a guide when setting lock overrides
+  const { data: nextFixture } = await adminSupabase
+    .from('fixtures')
+    .select('kickoff_utc')
+    .gt('kickoff_utc', new Date().toISOString())
+    .order('kickoff_utc', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const nextKickoff = nextFixture?.kickoff_utc || null
+
   // Fetch prediction counts via RPC (avoids PostgREST 1000-row limit)
   const { data: predCounts } = await adminSupabase
     .rpc('get_prediction_counts')
@@ -83,6 +94,6 @@ export default async function AdminLeaguesPage() {
   }))
 
   return (
-    <LeaguesClient leagues={leaguesData} />
+    <LeaguesClient leagues={leaguesData} nextKickoff={nextKickoff} />
   )
 }

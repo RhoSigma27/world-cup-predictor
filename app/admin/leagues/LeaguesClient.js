@@ -295,7 +295,7 @@ function QRCardModal({ league, onClose }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function LeaguesClient({ leagues: initialLeagues }) {
+export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) {
   const [leagues, setLeagues] = useState(initialLeagues)
   const [expanded, setExpanded] = useState({})
   const [confirmDelete, setConfirmDelete] = useState(null)
@@ -396,7 +396,7 @@ export default function LeaguesClient({ leagues: initialLeagues }) {
       if (!res.ok) showToast(data.error || 'Failed to update', 'error')
       else {
         setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, predictions_override_until: overrideUntil } : l))
-        showToast(overrideUntil ? 'Lock override saved ✓' : 'Lock override cleared')
+        showToast(overrideUntil ? `Lock override saved ✓${data.seeded ? ` — ${data.seeded} predictions auto-filled` : ''}` : 'Lock override cleared')
         setOverridingLeague(null)
       }
     } catch { showToast('Something went wrong', 'error') }
