@@ -20,17 +20,19 @@ export default function PointsChart({ data, players }) {
     )
   }
 
+  const chartData = data.map((d, i) => ({ ...d, matchIndex: i + 1 }))
+
   return (
     <div className="mt-8 bg-gray-900 border border-gray-800 rounded-2xl p-6">
       <h2 className="text-xl font-bold mb-6">📈 Points Progression</h2>
       <ResponsiveContainer width="100%" height={350}>
-        <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/>
           <XAxis
-            dataKey="match"
+            dataKey="matchIndex"
             stroke="#6b7280"
             tick={{ fill: '#6b7280', fontSize: 11 }}
-            label={{ value: 'Match #', position: 'insideBottom', offset: -2, fill: '#6b7280', fontSize: 11 }}
+            label={{ value: 'Matches played', position: 'insideBottom', offset: -2, fill: '#6b7280', fontSize: 11 }}
           />
           <YAxis
             stroke="#6b7280"
@@ -44,7 +46,7 @@ export default function PointsChart({ data, players }) {
               borderRadius: '8px',
               color: '#f0f4ff',
             }}
-            labelFormatter={(label) => `Match ${label}`}
+            labelFormatter={(label) => `After match ${label}`}
           />
           <Legend
             wrapperStyle={{ color: '#9ca3af', fontSize: 12, paddingTop: 16 }}
