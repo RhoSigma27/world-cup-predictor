@@ -1,308 +1,310 @@
-// app/mini/league/[id]/page.js
-import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { createAdminClient } from '@/lib/supabase-admin'
-import { redirect } from 'next/navigation'
+// app/businesses/page.js
 import Link from 'next/link'
-import CopyButton from '@/app/dashboard/league/[id]/CopyButton'
-import MiniSemiPicks from './MiniSemiPicks'
-import { MINI_LOCK_TIME } from '@/lib/worldcup'
 
-export const revalidate = 0
+export const metadata = {
+  title: 'Business Leagues — The Match Predictor',
+  description: 'Run a World Cup 2026 knockout prediction league for your pub, office or sports club. Unlimited members, QR table cards, and results handled for you.',
+}
 
-const TIER_LIMITS = { hobby: 6, enthusiast: 11, fanatic: Infinity, business: Infinity }
-const TIER_LABELS = { hobby: 'Hobby', enthusiast: 'Enthusiast', fanatic: 'Fanatic', business: 'Business' }
+const FEATURES = [
+  {
+    icon: '🥊',
+    title: 'Knockout bracket only',
+    desc: 'No 104 scorelines. Members just pick the winner of each knockout match — simple enough to fill in at the bar in under 5 minutes.',
+  },
+  {
+    icon: '👥',
+    title: 'Unlimited members',
+    desc: 'No cap on how many people join. Whether you have 20 regulars or 200, everyone gets a spot.',
+  },
+  {
+    icon: '📋',
+    title: 'QR table card',
+    desc: 'We generate a print-ready A5 PDF with your league\'s QR code. Put one on every table and watch people join instantly.',
+  },
+  {
+    icon: '📧',
+    title: 'Standings updates',
+    desc: 'Email the latest leaderboard to every member at the tap of a button. Stir up the competition between matches.',
+  },
+  {
+    icon: '📌',
+    title: 'Matchday announcements',
+    desc: 'Pin notices directly to your league page — daily specials, match screenings, or promotions. Members see them every time they check in.',
+  },
+  {
+    icon: '⚽',
+    title: 'Results entered for you',
+    desc: 'You don\'t need to do a thing during the tournament. We enter every result as it happens so scores update in real time.',
+  },
+]
 
-const KO_ROUNDS = ['R32', 'R16', 'QF', 'SF', '3RD', 'FINAL']
+const STEPS = [
+  {
+    n: '1',
+    title: 'Create your league',
+    desc: 'Sign up, name your league, and get your unique invite code and QR card in under two minutes.',
+  },
+  {
+    n: '2',
+    title: 'Print the QR card',
+    desc: 'Download your A5 QR table card and print it. Leave one on every table, the bar, or the office noticeboard.',
+  },
+  {
+    n: '3',
+    title: 'Watch your people compete',
+    desc: 'Members scan, join, and pick their winners. Check the standings, send updates, and let the banter do the rest.',
+  },
+]
 
-export default async function MiniLeaguePage({ params, searchParams }) {
-  const { id } = await params
-  const sp = await searchParams
-  const isNew = sp?.new === 'true'
+const FAQS = [
+  {
+    q: 'How does the mini-game work?',
+    a: 'Members pick the winner of every knockout match — from the Round of 32 all the way to the Final. No scorelines, no group stage faff. Just pick who goes through. Higher rounds are worth more points.',
+  },
+  {
+    q: 'How many people can join?',
+    a: 'Unlimited. There\'s no cap on the Business tier — whether it\'s 20 regulars or 200, everyone gets a spot.',
+  },
+  {
+    q: 'When can members start playing?',
+    a: 'Straight away. Before the knockout draw is confirmed, members pick their four semi-finalists for a bonus points round. Once the R32 draw is set (around June 28), they fill in the full bracket.',
+  },
+  {
+    q: 'Do I need to enter match results myself?',
+    a: 'No. We enter every result throughout the tournament so your league\'s scores and standings update automatically.',
+  },
+  {
+    q: 'Can I customise the league with my branding?',
+    a: 'Yes — you can upload a league logo and a header banner photo. It takes about 30 seconds.',
+  },
+  {
+    q: 'Is it a subscription?',
+    a: 'No. It\'s a single one-time payment of £100 for the remainder of the 2026 World Cup. No recurring charges.',
+  },
+  {
+    q: 'What if I need help?',
+    a: 'Email us at support@thematchpredictor.com. Business league customers get priority responses throughout the tournament.',
+  },
+]
 
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/signin')
-
-  const adminSupabase = createAdminClient()
-
-  const { data: league, error } = await adminSupabase
-    .from('mini_leagues')
-    .select('*')
-    .eq('id', id)
-    .single()
-
-  if (error || !league) redirect('/mini/dashboard')
-
-  const { data: membersRaw } = await adminSupabase
-    .from('mini_league_members')
-    .select(`
-      user_id,
-      joined_at,
-      nickname,
-      profiles (
-        display_name,
-        is_banned
-      )
-    `)
-    .eq('league_id', id)
-
-  const members = (membersRaw || []).filter(m => !m.profiles?.is_banned)
-
-  const isMember = members.some(m => m.user_id === user.id)
-  if (!isMember) redirect(`/mini/join/${league.invite_code}`)
-
-  const isAdmin = league.admin_id === user.id
-  const tier = league.tier ?? 'hobby'
-  const isComped = league.is_comped === true
-  const tierLimit = isComped ? Infinity : (TIER_LIMITS[tier] ?? 6)
-  const memberCount = members.length
-  const atLimit = isFinite(tierLimit) && memberCount >= tierLimit
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://thematchpredictor.com'
-  const inviteUrl = `${siteUrl}/mini/join/${league.invite_code}`
-
-  const semiPicksOpen = new Date() < MINI_LOCK_TIME
-
-  const { data: userSemiPicks } = await adminSupabase
-    .from('mini_semi_picks')
-    .select('team')
-    .eq('user_id', user.id)
-    .eq('mini_league_id', id)
-
-  const pickedTeams = (userSemiPicks || []).map(p => p.team)
-  const hasSemiPicks = pickedTeams.length === 4
-
-  const { data: koFixtures } = await adminSupabase
-    .from('fixtures')
-    .select('*')
-    .in('round', KO_ROUNDS)
-    .order('match_number', { ascending: true })
-
-  const predictableFixtures = (koFixtures || []).filter(
-    f => f.home_team && f.away_team
-  )
-
-  const { data: userKoPreds } = await adminSupabase
-    .from('mini_ko_predictions')
-    .select('fixture_id, predicted_winner')
-    .eq('user_id', user.id)
-    .eq('mini_league_id', id)
-
-  const koPredMap = Object.fromEntries(
-    (userKoPreds || []).map(p => [p.fixture_id, p.predicted_winner])
-  )
-
-  const totalPredictable = predictableFixtures.length
-  const totalPredicted   = predictableFixtures.filter(f => koPredMap[f.id]).length
-
+export default function BusinessesPage() {
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      <nav className="border-b border-gray-800 px-6 py-4 flex items-center gap-4">
-        <Link href="/mini/dashboard" className="text-gray-400 hover:text-white transition-colors">
-          ← Dashboard
+
+      {/* Nav */}
+      <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-2xl">⚽</span>
+          <span className="font-bold text-xl text-yellow-400">The Match Predictor</span>
         </Link>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🥊</span>
-          <span className="font-bold text-yellow-400">{league.league_name}</span>
-        </div>
-        {isAdmin && (
-          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
-            Admin
-          </span>
-        )}
+        <Link
+          href="/auth/signin"
+          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg transition-colors text-sm"
+        >
+          Sign In
+        </Link>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-10">
-
-        {/* New league banner */}
-        {isNew && (
-          <div className="bg-green-900/30 border border-green-700 rounded-2xl p-6 mb-8 text-center">
-            <div className="text-4xl mb-2">🎉</div>
-            <h2 className="text-xl font-bold text-green-400 mb-1">League Created!</h2>
-            <p className="text-gray-400 text-sm mb-4">
-              Share the invite link below with your friends
-            </p>
-            <div className="bg-black/20 rounded-xl px-4 py-3 text-sm text-gray-400">
-              You're on the <span className="text-white font-medium">Hobby</span> plan — free, up to 6 members.
-              Expecting a bigger group?{' '}
-              <Link href={`/mini/league/${id}/admin`} className="text-yellow-400 hover:text-yellow-300 font-medium">
-                Upgrade in League Admin →
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* Notice board */}
-        {league.notice && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-5 mb-6">
-            <div className="flex items-start gap-2">
-              <span className="text-yellow-400 flex-shrink-0">📌</span>
-              <div className="text-sm text-gray-300 whitespace-pre-wrap break-words">
-                {league.notice.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
-                  /^https?:\/\//.test(part)
-                    ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-yellow-400 underline hover:text-yellow-300">{part}</a>
-                    : part
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Semi-finalist picks */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-lg">🏆 Semi-Finalist Picks</h2>
-            {!semiPicksOpen && (
-              <span className="text-xs bg-gray-700 text-gray-400 px-2 py-1 rounded-full">Locked</span>
-            )}
-          </div>
-
-          {semiPicksOpen ? (
-            <>
-              <p className="text-sm text-gray-400 mb-4">
-                Pick 4 teams you think will reach the semi-finals.
-                Bonus points: 1 correct = 20pts, 2 = 44pts, 3 = 70pts, 4 = 100pts.
-                Locks at half-time of the first knockout match on June 28.
-              </p>
-              <MiniSemiPicks
-                miniLeagueId={id}
-                userId={user.id}
-                initialPicks={pickedTeams}
-                locked={false}
-              />
-            </>
-          ) : hasSemiPicks ? (
-            <>
-              <p className="text-sm text-gray-500 mb-3">Your picks:</p>
-              <div className="flex flex-wrap gap-2">
-                {pickedTeams.map(team => (
-                  <span
-                    key={team}
-                    className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-sm px-3 py-1.5 rounded-full"
-                  >
-                    {team}
-                  </span>
-                ))}
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-gray-500">
-              Semi-finalist picks are now locked. You didn't submit picks for this league.
-            </p>
-          )}
+      {/* Hero */}
+      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+        <div className="inline-block text-xs font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-full uppercase tracking-wider mb-6">
+          Pubs · Offices · Sports Clubs
         </div>
-
-        {/* KO Predictions */}
-        <div className="mb-6">
-          {!semiPicksOpen && totalPredictable > 0 ? (
-            <Link
-              href={`/mini/league/${id}/predictions`}
-              className="block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg text-center transition-colors"
-            >
-              📋 Knockout Predictions
-              <span className="ml-2 text-sm font-normal opacity-75">
-                ({totalPredicted}/{totalPredictable} filled)
-              </span>
-            </Link>
-          ) : !semiPicksOpen ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 text-center">
-              <p className="text-gray-400 text-sm">
-                Knockout fixtures will appear here as teams are confirmed through the bracket.
-              </p>
-            </div>
-          ) : (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 text-center">
-              <p className="text-gray-500 text-sm">
-                🔒 Knockout predictions open after semi-finalist picks lock on June 28.
-                Submit your picks above in the meantime.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Standings */}
-        <Link
-          href={`/mini/league/${id}/standings`}
-          className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-center transition-colors mb-3"
-        >
-          🏅 League Standings
-        </Link>
-
-        {/* Admin */}
-        {isAdmin && (
+        <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+          The knockout predictor
+          <br />
+          <span className="text-yellow-400">for your pub, office or club.</span>
+        </h1>
+        <p className="text-xl text-gray-400 mb-4 max-w-2xl mx-auto">
+          Run a World Cup 2026 knockout prediction league for your venue or group.
+          Members pick the winner of each match — no scorelines, no faff.
+          Simple enough to fill in at the bar.
+        </p>
+        <p className="text-gray-500 mb-10 max-w-xl mx-auto text-sm">
+          Unlimited members, QR table cards, standings emails, and results handled for you throughout the tournament.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href={`/mini/league/${id}/admin`}
-            className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-yellow-400 font-bold rounded-xl text-center transition-colors mb-6 border border-yellow-500/20"
+            href="/businesses/setup"
+            className="px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors"
           >
-            ⚙️ League Admin
+            Get started — £100 →
           </Link>
-        )}
-
-        {/* Members */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
-          <h2 className="font-bold text-lg mb-3">
-            👥 Members ({memberCount}{isFinite(tierLimit) ? `/${tierLimit}` : ''})
-          </h2>
-          <div className="space-y-2">
-            {members.map(m => (
-              <div
-                key={m.user_id}
-                className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0"
-              >
-                <span className="text-sm text-gray-300">
-                  {m.nickname || m.profiles?.display_name || '?'}
-                  {m.user_id === league.admin_id && (
-                    <span className="ml-2 text-xs text-yellow-400">Admin</span>
-                  )}
-                  {m.user_id === user.id && (
-                    <span className="ml-2 text-xs text-gray-500">(you)</span>
-                  )}
-                </span>
-              </div>
-            ))}
+          <div className="flex flex-col items-center gap-1">
+            <a
+              href="mailto:support@thematchpredictor.com?subject=Business league enquiry"
+              className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-lg transition-colors border border-gray-700"
+            >
+              Questions? Get in touch
+            </a>
+            <span className="text-gray-500 text-xs">support@thematchpredictor.com</span>
           </div>
         </div>
-
-        {/* Invite */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-          <h2 className="font-bold text-lg mb-4">🔗 Invite Friends</h2>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-gray-500 uppercase tracking-wider">Invite Code</label>
-              <div className="mt-1">
-                <code className="text-2xl font-mono font-bold text-yellow-400 tracking-widest">
-                  {league.invite_code}
-                </code>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 uppercase tracking-wider">Invite Link</label>
-              <div className="flex items-center gap-2 mt-1">
-                <code className="text-sm text-gray-300 bg-gray-800 px-3 py-2 rounded-lg flex-1 truncate">
-                  {inviteUrl}
-                </code>
-                <CopyButton text={inviteUrl} />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800 gap-3 flex-wrap">
-            <span className="text-sm text-gray-500">
-              {memberCount} member{memberCount !== 1 ? 's' : ''} · {TIER_LABELS[tier]} tier
-              {isFinite(tierLimit) ? ` (max ${tierLimit})` : ' (unlimited)'}
-              {atLimit && <span className="text-red-400 ml-1 font-medium">· full</span>}
-            </span>
-            {isAdmin && isFinite(tierLimit) && (
-              <Link
-                href={`/mini/league/${id}/admin`}
-                className="text-xs text-yellow-400 hover:text-yellow-300 font-medium transition-colors flex-shrink-0"
-              >
-                Want more members? Upgrade →
-              </Link>
-            )}
-          </div>
-        </div>
-
+        <p className="text-gray-600 text-sm mt-4">One-time payment · No subscription · Knockout stage starts ~June 28</p>
       </div>
+
+      {/* How it works */}
+      <div className="max-w-4xl mx-auto px-6 py-16">
+        <h2 className="text-3xl font-bold text-center mb-4">Simple enough for a casual fan</h2>
+        <p className="text-gray-500 text-center mb-12 max-w-xl mx-auto">
+          The main World Cup prediction game asks you to fill in 104 scorelines. This isn't that.
+          Members just pick a winner for each knockout match — 32 matches in total.
+        </p>
+        <div className="grid md:grid-cols-3 gap-8">
+          {STEPS.map(s => (
+            <div key={s.n} className="text-center">
+              <div className="w-12 h-12 bg-yellow-500 text-gray-950 font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">
+                {s.n}
+              </div>
+              <h3 className="font-bold text-lg mb-2">{s.title}</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Scoring */}
+      <div className="max-w-3xl mx-auto px-6 py-16">
+        <h2 className="text-3xl font-bold text-center mb-4">How scoring works</h2>
+        <p className="text-center text-gray-400 mb-10">
+          Correct winner picks earn points — higher rounds are worth more.
+        </p>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden mb-6">
+          <div className="px-6 py-3 border-b border-gray-700 bg-yellow-500/10">
+            <h3 className="text-sm font-bold text-yellow-400 uppercase tracking-wider">📋 Knockout Predictions</h3>
+          </div>
+          {[
+            { round: 'Round of 32',            pts: '10 pts' },
+            { round: 'Round of 16',            pts: '20 pts' },
+            { round: 'Quarter-Finals / Semis', pts: '30 pts' },
+            { round: 'Bronze Final / Final',   pts: '50 pts' },
+          ].map((row, i) => (
+            <div
+              key={row.round}
+              className={`flex items-center justify-between px-6 py-4 ${i < 3 ? 'border-b border-gray-800' : ''}`}
+            >
+              <span className="font-medium text-white">{row.round}</span>
+              <span className="text-yellow-400 font-bold text-sm">{row.pts}</span>
+            </div>
+          ))}
+        </div>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🏆</span>
+            <div>
+              <p className="font-bold text-white mb-1">Semi-finalist bonus round</p>
+              <p className="text-sm text-gray-400">
+                Before the knockout draw is confirmed, members pick their 4 semi-finalists.
+                Bonus points awarded based on how many they get right — up to 100 points.
+                Something to engage with from day one.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Features */}
+      <div className="max-w-5xl mx-auto px-6 py-16">
+        <h2 className="text-3xl font-bold text-center mb-3">Everything you need</h2>
+        <p className="text-gray-500 text-center mb-12">One payment covers the full knockout tournament.</p>
+        <div className="grid md:grid-cols-3 gap-6">
+          {FEATURES.map(f => (
+            <div key={f.title} className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+              <div className="text-3xl mb-3">{f.icon}</div>
+              <h3 className="font-bold text-lg mb-2">{f.title}</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Pricing */}
+      <div className="max-w-lg mx-auto px-6 py-16">
+        <div className="bg-gray-900 border border-yellow-500/30 rounded-2xl p-8 text-center">
+          <div className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3">Business League</div>
+          <div className="text-6xl font-bold text-white mb-2">£100</div>
+          <div className="text-gray-500 mb-2">One-time · Full knockout tournament · No subscription</div>
+          <p className="text-sm text-gray-500 mb-6">Less than £1 per person for a venue of 100.</p>
+          <ul className="text-sm text-gray-400 space-y-2 mb-8 text-left">
+            {[
+              'Unlimited members',
+              'QR code table card (A5 PDF)',
+              'Custom logo and banner photo',
+              'Matchday announcements and notices',
+              'Standings email updates to all members',
+              'Results entered throughout the tournament',
+              'Priority support',
+            ].map(item => (
+              <li key={item} className="flex items-center gap-2">
+                <span className="text-yellow-400 flex-shrink-0">✓</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/businesses/setup"
+            className="block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors"
+          >
+            Get Started →
+          </Link>
+          <p className="text-xs text-gray-600 mt-3">
+            Already have an account?{' '}
+            <Link href="/mini/dashboard" className="text-yellow-400 hover:underline">Go to your dashboard</Link>
+          </p>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="max-w-2xl mx-auto px-6 py-16">
+        <h2 className="text-3xl font-bold text-center mb-10">Common questions</h2>
+        <div className="space-y-4">
+          {FAQS.map(({ q, a }) => (
+            <div key={q} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h3 className="font-bold text-white mb-2">{q}</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">{a}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom CTA */}
+      <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+        <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
+        <p className="text-gray-400 mb-8">
+          The knockout stage begins around June 28. Get your league set up now so members
+          can pick their semi-finalists straight away.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            href="/businesses/setup"
+            className="px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors"
+          >
+            Get started — £100 →
+          </Link>
+          <div className="flex flex-col items-center gap-1">
+            <a
+              href="mailto:support@thematchpredictor.com?subject=Business league enquiry"
+              className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-lg transition-colors border border-gray-700"
+            >
+              Get in touch
+            </a>
+            <span className="text-gray-500 text-xs">support@thematchpredictor.com</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-800 px-6 py-8 text-center text-gray-500 text-sm">
+        <div className="flex items-center justify-center gap-6 mb-3">
+          <Link href="/" className="hover:text-gray-300 transition-colors">Home</Link>
+          <Link href="/terms" className="hover:text-gray-300 transition-colors">Terms</Link>
+          <Link href="/privacy" className="hover:text-gray-300 transition-colors">Privacy</Link>
+          <a href="mailto:support@thematchpredictor.com" className="hover:text-gray-300 transition-colors">Support</a>
+        </div>
+        ⚽ The Match Predictor · NostraGamus Limited
+      </footer>
+
     </main>
   )
 }
