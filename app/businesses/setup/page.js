@@ -1,3 +1,4 @@
+// app/businesses/setup/page.js
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import SetupClient from './SetupClient'
@@ -10,7 +11,6 @@ export default async function BusinessSetupPage() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Redirect to sign in, returning here after auth
   if (!user) {
     redirect('/auth/signin?next=/businesses/setup')
   }

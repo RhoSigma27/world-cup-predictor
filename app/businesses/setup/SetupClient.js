@@ -1,4 +1,5 @@
 'use client'
+// app/businesses/setup/SetupClient.js
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -13,7 +14,7 @@ export default function SetupClient({ userId, displayName }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/businesses/create', {
+      const res = await fetch('/api/mini/businesses/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ league_name: leagueName.trim() }),
@@ -53,7 +54,7 @@ export default function SetupClient({ userId, displayName }) {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="inline-block text-xs font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-full uppercase tracking-wider mb-4">
-              Business League
+              Business League · Knockout Mini-Game
             </div>
             <h1 className="text-3xl font-bold mb-3">Name your league</h1>
             <p className="text-gray-400 text-sm">
@@ -86,6 +87,8 @@ export default function SetupClient({ userId, displayName }) {
             <ul className="space-y-1.5 text-sm text-gray-400">
               {[
                 'Unlimited members',
+                'Knockout bracket predictions (R32 → Final)',
+                'Semi-finalist bonus round',
                 'QR code table card (A5 PDF)',
                 'Custom banner photo',
                 'Matchday announcements & notices',
@@ -122,7 +125,7 @@ export default function SetupClient({ userId, displayName }) {
 
           <p className="text-center text-xs text-gray-600 mt-4">
             Not a business?{' '}
-            <Link href="/dashboard" className="text-yellow-400 hover:underline">
+            <Link href="/mini/dashboard" className="text-yellow-400 hover:underline">
               Back to your dashboard
             </Link>
           </p>

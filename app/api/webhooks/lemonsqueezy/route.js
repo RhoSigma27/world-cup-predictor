@@ -14,7 +14,6 @@ const TIER_RESULT_MAP = {
 function verifyWebhookSignature(rawBody, signature, secret) {
   const hmac = crypto.createHmac('sha256', secret)
   const digest = hmac.update(rawBody).digest('hex')
-  // timingSafeEqual prevents timing attacks
   return crypto.timingSafeEqual(
     Buffer.from(digest, 'hex'),
     Buffer.from(signature, 'hex')
@@ -22,7 +21,6 @@ function verifyWebhookSignature(rawBody, signature, secret) {
 }
 
 export async function POST(request) {
-  // Read raw body for signature verification — must happen before any .json() call
   const rawBody = await request.text()
   const signature = request.headers.get('x-signature')
 
@@ -30,7 +28,6 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
   }
 
-  // Verify the webhook came from Lemon Squeezy
   try {
     const isValid = verifyWebhookSignature(
       rawBody,
@@ -49,16 +46,14 @@ export async function POST(request) {
   const payload = JSON.parse(rawBody)
   const eventName = payload.meta?.event_name
 
-  // We only care about order_created — acknowledge everything else silently
   if (eventName !== 'order_created') {
     return NextResponse.json({ received: true })
   }
 
-  const orderStatus  = payload.data?.attributes?.status
-  const orderId      = String(payload.data?.id ?? '')
-  const customData   = payload.meta?.custom_data
+  const orderStatus = payload.data?.attributes?.status
+  const orderId     = String(payload.data?.id ?? '')
+  const customData  = payload.meta?.custom_data
 
-  // Only activate on paid orders (not pending/failed)
   if (orderStatus !== 'paid') {
     return NextResponse.json({ received: true })
   }
@@ -74,10 +69,17 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Unknown tier' }, { status: 400 })
   }
 
-  // Update the league — use admin client to bypass RLS
   const adminSupabase = createAdminClient()
+
+  // Route to the correct table based on league_type in custom_data.
+  // Mini-game business leagues set league_type: 'mini' at checkout creation.
+  // All existing main-game checkouts have no league_type field, so they
+  // fall through to the original leagues table as before.
+  const isMini = customData.league_type === 'mini'
+  const table  = isMini ? 'mini_leagues' : 'leagues'
+
   const { error } = await adminSupabase
-    .from('leagues')
+    .from(table)
     .update({
       tier: newTier,
       lemon_order_id: orderId,
@@ -85,11 +87,10 @@ export async function POST(request) {
     .eq('id', customData.league_id)
 
   if (error) {
-    console.error('LS webhook: DB update failed', error)
-    // Return 500 so LS retries the webhook
+    console.error(`LS webhook: DB update failed on ${table}`, error)
     return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
   }
 
-  console.log(`✓ League ${customData.league_id} upgraded to ${newTier} (LS order ${orderId})`)
+  console.log(`✓ ${table} ${customData.league_id} upgraded to ${newTier} (LS order ${orderId})`)
   return NextResponse.json({ received: true })
 }

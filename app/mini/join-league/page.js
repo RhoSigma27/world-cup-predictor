@@ -1,0 +1,107 @@
+'use client'
+// app/mini/join-league/page.js
+
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+export default function MiniJoinLeaguePage() {
+  const [inviteCode, setInviteCode] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const router = useRouter()
+
+  const handleJoin = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      router.push('/auth/signin?next=/mini/join-league')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/mini/join-league', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong')
+        setLoading(false)
+        return
+      }
+
+      router.push(`/mini/league/${data.leagueId}`)
+    } catch {
+      setError('Something went wrong — please try again')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-gray-950 text-white">
+      <nav className="border-b border-gray-800 px-6 py-4 flex items-center gap-4">
+        <Link href="/mini/dashboard" className="text-gray-400 hover:text-white transition-colors">
+          ← Back
+        </Link>
+        <span className="font-bold text-yellow-400">Join a Mini-Game League</span>
+      </nav>
+
+      <div className="max-w-lg mx-auto px-6 py-12">
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-4">🤝</div>
+          <h1 className="text-3xl font-bold mb-2">Join a League</h1>
+          <p className="text-gray-400">
+            Enter the invite code your friend shared with you
+          </p>
+        </div>
+
+        <form onSubmit={handleJoin} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Invite Code
+            </label>
+            <input
+              type="text"
+              value={inviteCode}
+              onChange={e => setInviteCode(e.target.value.toUpperCase())}
+              placeholder="e.g. 274AF7UW"
+              required
+              maxLength={8}
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 font-mono text-xl tracking-widest text-center uppercase"
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || inviteCode.length < 6}
+            className="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Joining…' : 'Join League →'}
+          </button>
+
+          <p className="text-center text-sm text-gray-500">
+            Don't have a code?{' '}
+            <Link href="/mini/create-league" className="text-yellow-400 hover:text-yellow-300 transition-colors">
+              Create your own league →
+            </Link>
+          </p>
+        </form>
+      </div>
+    </main>
+  )
+}
