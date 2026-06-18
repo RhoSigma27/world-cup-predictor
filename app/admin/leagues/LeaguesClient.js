@@ -1,9 +1,9 @@
 'use client'
+// app/admin/leagues/LeaguesClient.js
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
-// ── Tier config ───────────────────────────────────────────────────────────────
 const TIER_CONFIG = {
   hobby:      { label: 'Hobby',      cls: 'text-gray-400 bg-gray-800 border-gray-600' },
   enthusiast: { label: 'Enthusiast', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
@@ -40,7 +40,6 @@ function OverrideBadge({ overrideUntil }) {
   )
 }
 
-// ── Logo uploader ─────────────────────────────────────────────────────────────
 function LogoUploader({ league, onUploaded, onRemoved }) {
   const [preview, setPreview] = useState(league.logo_url || null)
   const [uploading, setUploading] = useState(false)
@@ -69,8 +68,7 @@ function LogoUploader({ league, onUploaded, onRemoved }) {
   }
 
   const handleRemove = async () => {
-    setRemoving(true)
-    setError(null)
+    setRemoving(true); setError(null)
     try {
       const res = await fetch('/api/league-admin/remove-logo', {
         method: 'POST',
@@ -78,7 +76,7 @@ function LogoUploader({ league, onUploaded, onRemoved }) {
         body: JSON.stringify({ leagueId: league.id }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Failed to remove') }
+      if (!res.ok) setError(data.error || 'Failed to remove')
       else { setPreview(null); onRemoved(league.id) }
     } catch { setError('Failed to remove') }
     finally { setRemoving(false) }
@@ -110,18 +108,72 @@ function LogoUploader({ league, onUploaded, onRemoved }) {
   )
 }
 
-// ── Prediction count badge ────────────────────────────────────────────────────
 function PredBadge({ group, ko }) {
   const total = group + ko
   const color = total === 104 ? 'text-green-400' : total >= 52 ? 'text-yellow-500' : 'text-gray-600'
   return (
-    <span className={`text-xs font-mono tabular-nums flex-shrink-0 ${color}`} title={`${group} group stage · ${ko} knockout · ${total}/104 total`}>
+    <span className={`text-xs font-mono tabular-nums flex-shrink-0 ${color}`} title={`${group} group · ${ko} KO · ${total}/104`}>
       {group}·{ko}
     </span>
   )
 }
 
-// ── Canvas helpers ────────────────────────────────────────────────────────────
+// ── Score adjustment input ────────────────────────────────────────────────────
+// Inline number input per member. Debounced save on change.
+// Shows a coloured ± badge when non-zero.
+function ScoreAdjustInput({ leagueId, userId, initialValue, onSaved, onError }) {
+  const [value, setValue] = useState(initialValue ?? 0)
+  const timerRef = useRef(null)
+  const [saving, setSaving] = useState(false)
+
+  const handleChange = (e) => {
+    const raw = e.target.value
+    // Allow empty string while typing, treat as 0
+    const parsed = raw === '' || raw === '-' ? raw : parseInt(raw, 10)
+    setValue(parsed)
+
+    const numeric = parseInt(raw, 10)
+    if (isNaN(numeric)) return
+
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(async () => {
+      setSaving(true)
+      try {
+        const res = await fetch('/api/admin/set-score-adjustment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leagueId, userId, adjustment: numeric }),
+        })
+        const data = await res.json()
+        if (!res.ok) onError(data.error || 'Failed to save')
+        else onSaved(userId, leagueId, numeric)
+      } catch { onError('Save failed') }
+      finally { setSaving(false) }
+    }, 800)
+  }
+
+  const numericValue = parseInt(value, 10)
+  const isNonZero = !isNaN(numericValue) && numericValue !== 0
+
+  return (
+    <div className="flex items-center gap-1.5 flex-shrink-0" title="Score adjustment (superadmin only) — added to engine total in standings">
+      <span className="text-xs text-gray-600">adj</span>
+      <input
+        type="number"
+        value={value}
+        onChange={handleChange}
+        className="w-16 px-2 py-1 bg-gray-800 border border-gray-700 rounded-lg text-white text-xs text-center font-mono focus:outline-none focus:border-yellow-500 transition-colors"
+      />
+      {saving && <span className="text-xs text-gray-600">…</span>}
+      {isNonZero && !saving && (
+        <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${numericValue > 0 ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
+          {numericValue > 0 ? `+${numericValue}` : numericValue}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function drawInitialCircle(ctx, name, cx, cy, r) {
   const colours = ['#b45309','#1d4ed8','#15803d','#7e22ce','#be123c','#0e7490','#c2410c','#0f766e']
   const bg = colours[(name?.charCodeAt(0) || 0) % colours.length]
@@ -149,7 +201,6 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
-// ── QR Card Modal ─────────────────────────────────────────────────────────────
 function QRCardModal({ league, onClose }) {
   const canvasRef = useRef(null)
   const [generating, setGenerating] = useState(true)
@@ -166,33 +217,20 @@ function QRCardModal({ league, onClose }) {
         if (!canvas || cancelled) return
         canvas.width = W; canvas.height = H
         const ctx = canvas.getContext('2d')
-
         const bgGrad = ctx.createLinearGradient(0, 0, 0, H)
-        bgGrad.addColorStop(0, '#0a0a0f')
-        bgGrad.addColorStop(1, '#111827')
-        ctx.fillStyle = bgGrad
-        ctx.fillRect(0, 0, W, H)
-
-        ctx.fillStyle = '#f59e0b'
-        ctx.fillRect(0, 0, W, 8)
-        ctx.fillRect(0, H - 8, W, 8)
-
-        ctx.fillStyle = '#f59e0b'
-        ctx.font = 'bold 28px sans-serif'
-        ctx.textAlign = 'center'
+        bgGrad.addColorStop(0, '#0a0a0f'); bgGrad.addColorStop(1, '#111827')
+        ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H)
+        ctx.fillStyle = '#f59e0b'; ctx.fillRect(0, 0, W, 8); ctx.fillRect(0, H - 8, W, 8)
+        ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 28px sans-serif'; ctx.textAlign = 'center'
         ctx.fillText('⚽ World Cup Predictor 2026', W / 2, 70)
-        ctx.fillStyle = '#9ca3af'
-        ctx.font = '18px sans-serif'
+        ctx.fillStyle = '#9ca3af'; ctx.font = '18px sans-serif'
         ctx.fillText('Predict every match. Compete with your mates.', W / 2, 105)
-
         ctx.strokeStyle = '#374151'; ctx.lineWidth = 1
         ctx.beginPath(); ctx.moveTo(60, 125); ctx.lineTo(W - 60, 125); ctx.stroke()
-
         const logoY = 155, logoSize = 140, logoCX = W / 2, logoCY = logoY + logoSize / 2
         if (league.logo_url) {
           try {
-            const img = new window.Image()
-            img.crossOrigin = 'anonymous'
+            const img = new window.Image(); img.crossOrigin = 'anonymous'
             await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = league.logo_url })
             ctx.save()
             ctx.beginPath(); ctx.arc(logoCX, logoCY, logoSize / 2, 0, Math.PI * 2); ctx.closePath(); ctx.clip()
@@ -201,45 +239,27 @@ function QRCardModal({ league, onClose }) {
             ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3
             ctx.beginPath(); ctx.arc(logoCX, logoCY, logoSize / 2, 0, Math.PI * 2); ctx.stroke()
           } catch { drawInitialCircle(ctx, league.league_name, logoCX, logoCY, logoSize / 2) }
-        } else {
-          drawInitialCircle(ctx, league.league_name, logoCX, logoCY, logoSize / 2)
-        }
-
-        ctx.fillStyle = '#ffffff'
-        ctx.font = 'bold 42px sans-serif'
-        ctx.textAlign = 'center'
+        } else { drawInitialCircle(ctx, league.league_name, logoCX, logoCY, logoSize / 2) }
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 42px sans-serif'; ctx.textAlign = 'center'
         ctx.fillText(league.league_name, W / 2, logoY + logoSize + 55)
-
         const qrSize = 300, qrX = (W - qrSize) / 2, qrY = logoY + logoSize + 85, pad = 16
         ctx.fillStyle = '#ffffff'
-        roundRect(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, 16)
-        ctx.fill()
+        roundRect(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, 16); ctx.fill()
         const qrDataUrl = await QRCode.toDataURL(joinUrl, { width: qrSize, margin: 1, color: { dark: '#000000', light: '#ffffff' } })
         const qrImg = new window.Image()
         await new Promise(res => { qrImg.onload = res; qrImg.src = qrDataUrl })
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
-
         const msgY = qrY + qrSize + pad + 50
-        ctx.fillStyle = '#f59e0b'
-        ctx.font = 'bold 26px sans-serif'
-        ctx.textAlign = 'center'
+        ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'
         ctx.fillText('Scan to join our league', W / 2, msgY)
-        ctx.fillStyle = '#d1d5db'
-        ctx.font = '20px sans-serif'
+        ctx.fillStyle = '#d1d5db'; ctx.font = '20px sans-serif'
         ctx.fillText('and make your World Cup predictions!', W / 2, msgY + 34)
-        ctx.fillStyle = '#6b7280'
-        ctx.font = '16px sans-serif'
+        ctx.fillStyle = '#6b7280'; ctx.font = '16px sans-serif'
         ctx.fillText(`Invite code: ${league.invite_code}`, W / 2, msgY + 70)
-
-        ctx.fillStyle = '#4b5563'
-        ctx.font = '14px sans-serif'
+        ctx.fillStyle = '#4b5563'; ctx.font = '14px sans-serif'
         ctx.fillText('thematchpredictor.com', W / 2, H - 25)
-
         if (!cancelled) setGenerating(false)
-      } catch (err) {
-        console.error(err)
-        if (!cancelled) setError('Failed to generate card')
-      }
+      } catch (err) { console.error(err); if (!cancelled) setError('Failed to generate card') }
     }
     generate()
     return () => { cancelled = true }
@@ -260,10 +280,7 @@ function QRCardModal({ league, onClose }) {
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="font-bold text-white">📋 QR Table Card</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{league.league_name}</p>
-          </div>
+          <div><h2 className="font-bold text-white">📋 QR Table Card</h2><p className="text-xs text-gray-500 mt-0.5">{league.league_name}</p></div>
           <button onClick={onClose} className="text-gray-500 hover:text-white text-xl px-2">✕</button>
         </div>
         <div className="relative bg-gray-800 rounded-xl overflow-hidden mb-4" style={{ minHeight: 200 }}>
@@ -280,12 +297,8 @@ function QRCardModal({ league, onClose }) {
         </div>
         {!generating && !error && (
           <div className="flex gap-3">
-            <button onClick={handleDownloadPDF} className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors">
-              ⬇ Download PDF (A5)
-            </button>
-            <button onClick={onClose} className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-xl text-sm transition-colors">
-              Close
-            </button>
+            <button onClick={handleDownloadPDF} className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors">⬇ Download PDF (A5)</button>
+            <button onClick={onClose} className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-xl text-sm transition-colors">Close</button>
           </div>
         )}
       </div>
@@ -307,7 +320,6 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
   const [renamingMember, setRenamingMember] = useState(null)
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
-
   const [overridingLeague, setOverridingLeague] = useState(null)
   const [overrideValue, setOverrideValue] = useState('')
   const [savingOverride, setSavingOverride] = useState(false)
@@ -319,13 +331,11 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
 
   const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
 
-  const handleLogoUploaded = (leagueId, logoUrl) => {
+  const handleLogoUploaded = (leagueId, logoUrl) =>
     setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, logo_url: logoUrl } : l))
-  }
 
-  const handleLogoRemoved = (leagueId) => {
+  const handleLogoRemoved = (leagueId) =>
     setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, logo_url: null } : l))
-  }
 
   const handleDelete = async (leagueId) => {
     setDeleting(leagueId)
@@ -410,34 +420,39 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
       const res = await fetch('/api/league-admin/rename-member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leagueId: renamingMember.leagueId,
-          userId: renamingMember.userId,
-          name: renameValue.trim(),
-        }),
+        body: JSON.stringify({ leagueId: renamingMember.leagueId, userId: renamingMember.userId, name: renameValue.trim() }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        showToast(data.error || 'Failed to rename', 'error')
-      } else {
+      if (!res.ok) showToast(data.error || 'Failed to rename', 'error')
+      else {
         setLeagues(prev => prev.map(l =>
-          l.id === renamingMember.leagueId
-            ? {
-                ...l,
-                members: l.members.map(m =>
-                  m.user_id === renamingMember.userId
-                    ? { ...m, display_name_effective: renameValue.trim(), nickname: renameValue.trim() }
-                    : m
-                )
-              }
-            : l
+          l.id === renamingMember.leagueId ? {
+            ...l,
+            members: l.members.map(m =>
+              m.user_id === renamingMember.userId
+                ? { ...m, display_name_effective: renameValue.trim(), nickname: renameValue.trim() }
+                : m
+            )
+          } : l
         ))
         showToast('Member renamed ✓')
-        setRenamingMember(null)
-        setRenameValue('')
+        setRenamingMember(null); setRenameValue('')
       }
     } catch { showToast('Something went wrong', 'error') }
     finally { setRenaming(false) }
+  }
+
+  // Called by ScoreAdjustInput when save succeeds — updates local state
+  const handleAdjustmentSaved = (userId, leagueId, adjustment) => {
+    setLeagues(prev => prev.map(l =>
+      l.id === leagueId ? {
+        ...l,
+        members: l.members.map(m =>
+          m.user_id === userId ? { ...m, score_adjustment: adjustment } : m
+        )
+      } : l
+    ))
+    showToast(`Score adjustment saved`)
   }
 
   const totalMembers = leagues.reduce((acc, l) => acc + l.memberCount, 0)
@@ -453,7 +468,6 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 py-10">
-        {/* Summary stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
             <div className="text-3xl font-bold text-yellow-400">{leagues.length}</div>
@@ -471,21 +485,16 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
           </div>
         </div>
 
-        {/* League list */}
         <div className="space-y-3">
           {leagues.map(league => (
             <div key={league.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
               <div className="p-5 flex items-center justify-between gap-4">
-
                 <LogoUploader league={league} onUploaded={handleLogoUploaded} onRemoved={handleLogoRemoved} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="font-bold text-white">{league.league_name}</h2>
-                    <code className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded font-mono">
-                      {league.invite_code}
-                    </code>
-                    {/* ── Tier badge ── */}
+                    <code className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded font-mono">{league.invite_code}</code>
                     <TierBadge tier={league.tier} isComped={league.is_comped} />
                     <OverrideBadge overrideUntil={league.predictions_override_until} />
                   </div>
@@ -513,12 +522,10 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                   <button
                     onClick={() => setQrLeague(league)}
                     className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 border border-gray-700 hover:border-yellow-500/30 rounded-lg transition-colors"
-                    title="Generate QR table card"
                   >
                     📋 QR
                   </button>
 
-                  {/* ── Comp toggle ── */}
                   <button
                     onClick={() => handleToggleComp(league.id, league.is_comped)}
                     disabled={togglingComp === league.id}
@@ -531,7 +538,6 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                     {togglingComp === league.id ? '…' : league.is_comped ? '⭐ Comped' : 'Comp'}
                   </button>
 
-                  {/* ── Lock override toggle ── */}
                   <button
                     onClick={() => {
                       setOverridingLeague(overridingLeague === league.id ? null : league.id)
@@ -552,12 +558,7 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                       >
                         {deleting === league.id ? 'Deleting…' : 'Yes, delete'}
                       </button>
-                      <button
-                        onClick={() => setConfirmDelete(null)}
-                        className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg transition-colors"
-                      >
-                        Cancel
-                      </button>
+                      <button onClick={() => setConfirmDelete(null)} className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg transition-colors">Cancel</button>
                     </div>
                   ) : (
                     <button
@@ -579,9 +580,7 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                     </span>
                   )}
                   <input
-                    type="datetime-local"
-                    value={overrideValue}
-                    onChange={e => setOverrideValue(e.target.value)}
+                    type="datetime-local" value={overrideValue} onChange={e => setOverrideValue(e.target.value)}
                     className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
                   />
                   <button
@@ -600,12 +599,7 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                       Clear
                     </button>
                   )}
-                  <button
-                    onClick={() => setOverridingLeague(null)}
-                    className="text-xs px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  <button onClick={() => setOverridingLeague(null)} className="text-xs px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg transition-colors">Cancel</button>
                   <span className="text-xs text-gray-600 ml-auto">Times shown in your local timezone (UK)</span>
                 </div>
               )}
@@ -617,12 +611,12 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                   ) : (
                     <div className="space-y-0">
                       {league.members.map(m => {
-                        const isBanned = m.profiles?.is_banned
+                        const isBanned   = m.profiles?.is_banned
                         const effectiveName = m.display_name_effective || m.profiles?.display_name
                         const isRenaming = renamingMember?.userId === m.user_id && renamingMember?.leagueId === league.id
                         return (
                           <div key={m.user_id} className={`py-2 border-b border-gray-800/50 last:border-0 ${isBanned ? 'opacity-50' : ''}`}>
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-xs flex-shrink-0">
                                   {effectiveName?.[0]?.toUpperCase()}
@@ -630,34 +624,35 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                                 <div>
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-sm font-medium text-white">{effectiveName}</span>
-                                    {m.user_id === league.admin_id && (
-                                      <span className="text-xs text-yellow-400">⭐ Admin</span>
-                                    )}
-                                    {isBanned && (
-                                      <span className="text-xs text-red-400">🚫 Banned</span>
-                                    )}
+                                    {m.user_id === league.admin_id && <span className="text-xs text-yellow-400">⭐ Admin</span>}
+                                    {isBanned && <span className="text-xs text-red-400">🚫 Banned</span>}
                                   </div>
                                   <div className="flex items-center gap-1.5">
-                                    {m.nickname && (
-                                      <span className="text-xs text-gray-600">{m.profiles?.display_name} ·</span>
-                                    )}
+                                    {m.nickname && <span className="text-xs text-gray-600">{m.profiles?.display_name} ·</span>}
                                     <span className="text-xs text-gray-600">{m.profiles?.email}</span>
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3">
+
+                              <div className="flex items-center gap-2 flex-wrap ml-auto">
                                 <span className="text-xs text-gray-600">
                                   Joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                 </span>
                                 <PredBadge group={m.predGroup ?? 0} ko={m.predKo ?? 0} />
+
+                                {/* ── Score adjustment ── */}
+                                <ScoreAdjustInput
+                                  leagueId={league.id}
+                                  userId={m.user_id}
+                                  initialValue={m.score_adjustment ?? 0}
+                                  onSaved={handleAdjustmentSaved}
+                                  onError={(msg) => showToast(msg, 'error')}
+                                />
+
                                 <button
                                   onClick={() => {
-                                    if (isRenaming) {
-                                      setRenamingMember(null); setRenameValue('')
-                                    } else {
-                                      setRenamingMember({ userId: m.user_id, leagueId: league.id })
-                                      setRenameValue(m.nickname || m.profiles?.display_name || '')
-                                    }
+                                    if (isRenaming) { setRenamingMember(null); setRenameValue('') }
+                                    else { setRenamingMember({ userId: m.user_id, leagueId: league.id }); setRenameValue(m.nickname || m.profiles?.display_name || '') }
                                   }}
                                   className="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-500 hover:text-gray-300 border border-gray-700 rounded-lg transition-colors"
                                 >
@@ -676,30 +671,21 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                                 </button>
                               </div>
                             </div>
+
                             {isRenaming && (
                               <div className="flex gap-2 mt-2 ml-9">
                                 <input
-                                  type="text"
-                                  value={renameValue}
-                                  onChange={e => setRenameValue(e.target.value)}
-                                  maxLength={40}
-                                  placeholder="Nickname for this league"
-                                  autoFocus
+                                  type="text" value={renameValue} onChange={e => setRenameValue(e.target.value)}
+                                  maxLength={40} placeholder="Nickname for this league" autoFocus
                                   className="flex-1 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
                                 />
                                 <button
-                                  onClick={handleRename}
-                                  disabled={renaming || !renameValue.trim()}
+                                  onClick={handleRename} disabled={renaming || !renameValue.trim()}
                                   className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-950 font-bold rounded-lg text-sm transition-colors"
                                 >
                                   {renaming ? '…' : 'Save'}
                                 </button>
-                                <button
-                                  onClick={() => { setRenamingMember(null); setRenameValue('') }}
-                                  className="px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg text-sm transition-colors"
-                                >
-                                  Cancel
-                                </button>
+                                <button onClick={() => { setRenamingMember(null); setRenameValue('') }} className="px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg text-sm transition-colors">Cancel</button>
                               </div>
                             )}
                           </div>
@@ -728,13 +714,8 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
         </div>
       )}
 
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setConfirmDelete(null)} />
-      )}
-
-      {qrLeague && (
-        <QRCardModal league={qrLeague} onClose={() => setQrLeague(null)} />
-      )}
+      {confirmDelete && <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setConfirmDelete(null)} />}
+      {qrLeague && <QRCardModal league={qrLeague} onClose={() => setQrLeague(null)} />}
     </main>
   )
 }

@@ -11,9 +11,7 @@ import { calcGroupTables, buildAnnexMap } from '@/lib/bracketEngine'
 
 export const revalidate = 0
 
-// ─── generateMetadata ────────────────────────────────────────────────────────
-// Provides OG image when the standings URL is pasted into WhatsApp / iMessage.
-// Lightweight: fetches league info + member names + scores, encodes into OG URL.
+// ─── generateMetadata ─────────────────────────────────────────────────────────
 
 export async function generateMetadata({ params }) {
   const { id } = await params
@@ -21,7 +19,7 @@ export async function generateMetadata({ params }) {
 
   try {
     const supabase = await createServerSupabaseClient()
-    const admin = createAdminClient()
+    const admin    = createAdminClient()
 
     const { data: league } = await supabase
       .from('leagues')
@@ -31,15 +29,13 @@ export async function generateMetadata({ params }) {
 
     if (!league) return {}
 
-    // Fetch members
     const { data: members } = await admin
       .from('league_members')
-      .select('user_id, nickname, profiles(display_name, is_banned)')
+      .select('user_id, nickname, score_adjustment, profiles(display_name, is_banned)')
       .eq('league_id', id)
 
     const activeMembers = (members || []).filter(m => !m.profiles?.is_banned)
 
-    // Fetch fixtures + predictions + extras + master extras for scoring
     const [{ data: fixtures }, { data: allPredictions }, { data: allExtras }, { data: masterExtras }] =
       await Promise.all([
         admin.from('fixtures').select('*').order('match_number', { ascending: true }),
@@ -48,45 +44,40 @@ export async function generateMetadata({ params }) {
         supabase.from('master_extras').select('*').eq('id', '00000000-0000-0000-0000-000000000001').maybeSingle(),
       ])
 
-    // Score each member
     const scored = activeMembers.map(member => {
       const userPreds  = (allPredictions || []).filter(p => p.user_id === member.user_id)
       const userExtras = (allExtras || []).find(e => e.user_id === member.user_id) || null
       const { total }  = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras?.data ?? masterExtras)
+      const adjustment = member.score_adjustment ?? 0
       return {
         name: member.nickname || member.profiles?.display_name || '?',
-        pts: total,
+        pts:  total + adjustment,
       }
     })
 
     scored.sort((a, b) => b.pts - a.pts)
 
-    const top5 = scored.slice(0, 5).map((s, i) => ({ rank: i + 1, name: s.name, pts: s.pts }))
-
     const payload = {
       leagueName: league.league_name,
-      bannerUrl: league.tier === 'business' && league.banner_url ? league.banner_url : null,
-      top5,
+      bannerUrl:  league.tier === 'business' && league.banner_url ? league.banner_url : null,
+      top5:  scored.slice(0, 5).map((s, i) => ({ rank: i + 1, name: s.name, pts: s.pts })),
       count: activeMembers.length,
     }
 
-    const d = Buffer.from(JSON.stringify(payload)).toString('base64')
+    const d          = Buffer.from(JSON.stringify(payload)).toString('base64')
     const ogImageUrl = `${siteUrl}/api/og/standings?d=${encodeURIComponent(d)}`
     const pageUrl    = `${siteUrl}/dashboard/league/${id}/standings`
 
     return {
-      title: `${league.league_name} — Standings`,
+      title:       `${league.league_name} — Standings`,
       description: `Leaderboard for ${league.league_name}. World Cup 2026 Predictor.`,
       openGraph: {
-        title: `${league.league_name} — Standings`,
+        title:       `${league.league_name} — Standings`,
         description: 'World Cup 2026 Predictor leaderboard',
         images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         url: pageUrl,
       },
-      twitter: {
-        card: 'summary_large_image',
-        images: [ogImageUrl],
-      },
+      twitter: { card: 'summary_large_image', images: [ogImageUrl] },
     }
   } catch {
     return {}
@@ -117,12 +108,14 @@ export default async function StandingsPage({ params }) {
     .select('*')
     .order('match_number', { ascending: true })
 
+  // Include score_adjustment in the members query
   const { data: members } = await adminSupabase
     .from('league_members')
     .select(`
       user_id,
       joined_at,
       nickname,
+      score_adjustment,
       profiles (
         display_name,
         is_banned
@@ -140,7 +133,7 @@ export default async function StandingsPage({ params }) {
     .from('predictions')
     .select('*')
     .eq('league_id', id)
-    .range(0,9999)
+    .range(0, 9999)
 
   const { data: allExtras } = await adminSupabase
     .from('extras_predictions')
@@ -150,20 +143,24 @@ export default async function StandingsPage({ params }) {
   const standings = members?.filter(m => !m.profiles?.is_banned).map(member => {
     const userPreds  = allPredictions?.filter(p => p.user_id === member.user_id) || []
     const userExtras = allExtras?.find(e => e.user_id === member.user_id) || null
+    const adjustment = member.score_adjustment ?? 0
+
     let score
     try {
       score = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras)
     } catch (err) {
-      console.log('SCORING ERROR for', member.nickname || member.profiles?.display_name, err.message, err.stack)
+      console.log('SCORING ERROR for', member.nickname || member.profiles?.display_name, err.message)
       score = { total: 0, groupPts: 0, koPts: 0, extrasPts: 0 }
-    } //const score      = scoreParticipant(userPreds, fixtures || [], userExtras, masterExtras)
-    const filled     = userPreds.filter(p => p.predicted_home != null && p.predicted_away != null).length
+    }
+
+    const filled = userPreds.filter(p => p.predicted_home != null && p.predicted_away != null).length
 
     return {
-      userId:      member.user_id,
-      displayName: member.nickname || member.profiles?.display_name,
-      isAdmin:     member.user_id === league.admin_id,
-      isCurrentUser: member.user_id === user.id,
+      userId:          member.user_id,
+      displayName:     member.nickname || member.profiles?.display_name,
+      isAdmin:         member.user_id === league.admin_id,
+      isCurrentUser:   member.user_id === user.id,
+      scoreAdjustment: adjustment,
       starPicks: {
         group: userExtras?.star_pick_group ?? null,
         R32:   userExtras?.star_pick_r32   ?? null,
@@ -174,6 +171,8 @@ export default async function StandingsPage({ params }) {
       },
       filled,
       ...score,
+      // Override total with adjustment applied
+      total: score.total + adjustment,
     }
   }) || []
 
@@ -188,6 +187,9 @@ export default async function StandingsPage({ params }) {
   const resultsEntered = fixtures?.filter(f => f.home_score != null && f.away_score != null).length || 0
 
   // ── Chart data ────────────────────────────────────────────────────────────
+  // Note: chart shows engine points only (not adjusted) to keep it accurate
+  // to actual match-by-match performance. The adjustment only affects the
+  // final standings table total.
 
   const completedFixtures = (fixtures || [])
     .filter(f => f.home_score != null && f.away_score != null)
@@ -216,8 +218,8 @@ export default async function StandingsPage({ params }) {
           if (f.penalty_winner === f.home_team) actualHome += 1
           else actualAway += 1
         }
-        const starRound = f.round === '3RD' ? 'FINAL' : f.round
-        const starPick  = s.starPicks?.[starRound] ?? null
+        const starRound  = f.round === '3RD' ? 'FINAL' : f.round
+        const starPick   = s.starPicks?.[starRound] ?? null
         const ukoResults = playerKOResults[s.userId] || {}
         point[s.displayName] = scoreKOFixture(f, actualHome, actualAway, ukoResults, starPick)
       }
@@ -225,17 +227,30 @@ export default async function StandingsPage({ params }) {
     return point
   })
 
+  // Build a lookup of adjustment by displayName for the chart
+  const adjustmentByName = {}
+  standings.forEach(s => { adjustmentByName[s.displayName] = s.scoreAdjustment ?? 0 })
+
   const cumulativeChart = []
   for (const point of chartData) {
     const cumPoint = { match: point.match }
     const prev = cumulativeChart[cumulativeChart.length - 1]
     standings.forEach(s => {
-      cumPoint[s.displayName] = (prev?.[s.displayName] || 0) + (point[s.displayName] || 0)
+      const engineCumulative = (prev?.[`_e_${s.displayName}`] || 0) + (point[s.displayName] || 0)
+      cumPoint[`_e_${s.displayName}`] = engineCumulative
+      cumPoint[s.displayName] = engineCumulative + adjustmentByName[s.displayName]
     })
     cumulativeChart.push(cumPoint)
   }
 
-  // ── OG payload for share button ───────────────────────────────────────────
+  // Strip internal _e_ keys before passing to chart component
+  const cleanCumulativeChart = cumulativeChart.map(point => {
+    const clean = { match: point.match }
+    standings.forEach(s => { clean[s.displayName] = point[s.displayName] })
+    return clean
+  })
+
+  // ── OG payload ────────────────────────────────────────────────────────────
 
   const siteUrl   = process.env.NEXT_PUBLIC_SITE_URL || 'https://thematchpredictor.com'
   const ogPayload = {
@@ -297,10 +312,12 @@ export default async function StandingsPage({ params }) {
               {standings.map((s) => {
                 const placeColor = s.place === 1 ? 'text-yellow-400' : s.place === 2 ? 'text-gray-300' : s.place === 3 ? 'text-amber-600' : 'text-gray-500'
                 return (
-                  <tr key={s.userId}
+                  <tr
+                    key={s.userId}
                     className={`border-b border-gray-800/50 transition-colors
                       ${s.isCurrentUser ? 'bg-yellow-500/5' : 'hover:bg-gray-800/30'}
-                      ${s.place === 1 ? 'bg-yellow-500/5' : ''}`}>
+                      ${s.place === 1 ? 'bg-yellow-500/5' : ''}`}
+                  >
                     <td className={`px-4 py-3 font-bold text-lg ${placeColor}`}>
                       {s.place === 1 ? '🥇' : s.place === 2 ? '🥈' : s.place === 3 ? '🥉' : s.place}
                     </td>
@@ -309,11 +326,20 @@ export default async function StandingsPage({ params }) {
                         <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 font-bold text-sm flex-shrink-0">
                           {s.displayName?.[0]?.toUpperCase()}
                         </div>
-                        <p className="font-medium text-sm">
-                          {s.displayName}
-                          {s.isCurrentUser && <span className="ml-1 text-xs text-yellow-400">(you)</span>}
-                          {s.isAdmin && <span className="ml-1 text-xs text-gray-500">⭐</span>}
-                        </p>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {s.displayName}
+                            {s.isCurrentUser && <span className="ml-1 text-xs text-yellow-400">(you)</span>}
+                            {s.isAdmin && <span className="ml-1 text-xs text-gray-500">⭐</span>}
+                          </p>
+                          {/* Show adjustment indicator if non-zero — visible to all,
+                              but no detail on what/why to avoid confusion */}
+                          {s.scoreAdjustment !== 0 && (
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              incl. {s.scoreAdjustment > 0 ? '+' : ''}{s.scoreAdjustment} pts adjustment
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -331,7 +357,7 @@ export default async function StandingsPage({ params }) {
         </div>
       </div>
 
-      <PointsChart data={cumulativeChart} players={standings.map(s => s.displayName)} />
+      <PointsChart data={cleanCumulativeChart} players={standings.map(s => s.displayName)} />
     </main>
   )
 }
