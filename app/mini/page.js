@@ -148,10 +148,10 @@ export default async function MiniLandingPage() {
             </p>
             <div className="grid grid-cols-4 gap-3">
               {[
-                { correct: '1', pts: '30' },
-                { correct: '2', pts: '66' },
-                { correct: '3', pts: '105' },
-                { correct: '4', pts: '150' },
+                { correct: '1', pts: '20' },
+                { correct: '2', pts: '44' },
+                { correct: '3', pts: '70' },
+                { correct: '4', pts: '100' },
               ].map(ex => (
                 <div key={ex.correct} className="bg-gray-800 rounded-xl p-3 text-center">
                   <div className="text-yellow-400 font-bold text-lg">{ex.pts} pts</div>

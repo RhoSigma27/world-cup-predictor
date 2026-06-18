@@ -161,7 +161,7 @@ export default async function MiniLeaguePage({ params, searchParams }) {
             <>
               <p className="text-sm text-gray-400 mb-4">
                 Pick 4 teams you think will reach the semi-finals.
-                Bonus points: 1 correct = 30pts, 2 = 66pts, 3 = 105pts, 4 = 150pts.
+                Bonus points: 1 correct = 20pts, 2 = 44pts, 3 = 70pts, 4 = 100pts.
                 Locks at half-time of the first knockout match on June 28.
               </p>
               <MiniSemiPicks
