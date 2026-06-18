@@ -1,72 +1,84 @@
 'use client'
+// app/dashboard/profile/ProfileClient.js
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
-export default function ProfileClient({ userId, email, currentDisplayName, memberships = [] }) {
+export default function ProfileClient({
+  userId,
+  email,
+  currentDisplayName,
+  memberships = [],
+  miniMemberships = [],
+}) {
   const [displayName, setDisplayName] = useState(currentDisplayName)
-  const [status, setStatus] = useState(null) // null | 'saving' | 'saved' | 'error'
+  const [status, setStatus] = useState(null)
   const [error, setError] = useState(null)
 
-  // ── NEW: per-league nickname state ─────────────────────────────────────────
+  // Main game nicknames
   const [nicknames, setNicknames] = useState(() => {
     const map = {}
-    for (const m of memberships) {
-      map[m.league_id] = m.nickname || ''
-    }
+    for (const m of memberships) map[m.league_id] = m.nickname || ''
     return map
   })
-  const [nicknameSaving, setNicknameSaving] = useState(null) // leagueId | null
-  const [nicknameSaved, setNicknameSaved] = useState(null)   // leagueId | null
+  const [nicknameSaving, setNicknameSaving] = useState(null)
+  const [nicknameSaved, setNicknameSaved] = useState(null)
   const [nicknameError, setNicknameError] = useState(null)
-  // ─────────────────────────────────────────────────────────────────────────
+
+  // Mini-game nicknames — separate state to avoid collision
+  const [miniNicknames, setMiniNicknames] = useState(() => {
+    const map = {}
+    for (const m of miniMemberships) map[m.league_id] = m.nickname || ''
+    return map
+  })
+  const [miniNicknameSaving, setMiniNicknameSaving] = useState(null)
+  const [miniNicknameSaved, setMiniNicknameSaved] = useState(null)
+  const [miniNicknameError, setMiniNicknameError] = useState(null)
 
   const handleSave = async (e) => {
     e.preventDefault()
     const trimmed = displayName.trim()
     if (!trimmed) return
-
     setStatus('saving')
     setError(null)
-
     const supabase = createClient()
     const { error } = await supabase
       .from('profiles')
       .update({ display_name: trimmed })
       .eq('id', userId)
-
-    if (error) {
-      setError(error.message)
-      setStatus('error')
-    } else {
-      setStatus('saved')
-      setTimeout(() => setStatus(null), 3000)
-    }
+    if (error) { setError(error.message); setStatus('error') }
+    else { setStatus('saved'); setTimeout(() => setStatus(null), 3000) }
   }
 
-  // ── NEW: save a single league nickname ────────────────────────────────────
   const handleSaveNickname = async (leagueId) => {
     setNicknameSaving(leagueId)
     setNicknameError(null)
-
     const supabase = createClient()
     const value = nicknames[leagueId]?.trim() || null
-
     const { error } = await supabase
       .from('league_members')
       .update({ nickname: value })
       .eq('user_id', userId)
       .eq('league_id', leagueId)
-
-    if (error) {
-      setNicknameError(error.message)
-    } else {
-      setNicknameSaved(leagueId)
-      setTimeout(() => setNicknameSaved(null), 3000)
-    }
+    if (error) setNicknameError(error.message)
+    else { setNicknameSaved(leagueId); setTimeout(() => setNicknameSaved(null), 3000) }
     setNicknameSaving(null)
   }
-  // ─────────────────────────────────────────────────────────────────────────
+
+  const handleSaveMiniNickname = async (leagueId) => {
+    setMiniNicknameSaving(leagueId)
+    setMiniNicknameError(null)
+    const supabase = createClient()
+    const value = miniNicknames[leagueId]?.trim() || null
+    const { error } = await supabase
+      .from('mini_league_members')
+      .update({ nickname: value })
+      .eq('user_id', userId)
+      .eq('league_id', leagueId)
+    if (error) setMiniNicknameError(error.message)
+    else { setMiniNicknameSaved(leagueId); setTimeout(() => setMiniNicknameSaved(null), 3000) }
+    setMiniNicknameSaving(null)
+  }
 
   const isDirty = displayName.trim() !== currentDisplayName
   const isEmpty = displayName.trim() === ''
@@ -91,7 +103,7 @@ export default function ProfileClient({ userId, email, currentDisplayName, membe
         </p>
       </div>
 
-      {/* Display name form — UNCHANGED */}
+      {/* Display name */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
         <form onSubmit={handleSave} className="space-y-4">
           <div>
@@ -115,9 +127,7 @@ export default function ProfileClient({ userId, email, currentDisplayName, membe
             </p>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-sm">{error}</p>}
 
           <button
             type="submit"
@@ -130,9 +140,7 @@ export default function ProfileClient({ userId, email, currentDisplayName, membe
                   : 'bg-gray-800 text-gray-600 cursor-not-allowed'
               }`}
           >
-            {status === 'saving' ? 'Saving…'
-              : status === 'saved' ? '✓ Name updated'
-              : 'Save changes'}
+            {status === 'saving' ? 'Saving…' : status === 'saved' ? '✓ Name updated' : 'Save changes'}
           </button>
         </form>
       </div>
@@ -143,7 +151,7 @@ export default function ProfileClient({ userId, email, currentDisplayName, membe
         </div>
       )}
 
-      {/* ── NEW: League nicknames ─────────────────────────────────────────── */}
+      {/* Main game league nicknames */}
       {memberships.length > 0 && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
@@ -152,22 +160,19 @@ export default function ProfileClient({ userId, email, currentDisplayName, membe
           <p className="text-gray-500 text-sm mb-4">
             Set a different name for each league. Leave blank to use your display name.
           </p>
-
           <div className="space-y-4">
             {memberships.map(m => {
               const leagueId = m.league_id
               const leagueName = m.leagues?.league_name || 'Unknown league'
               const value = nicknames[leagueId] ?? ''
               const isSaving = nicknameSaving === leagueId
-              const isSaved = nicknameSaved === leagueId
+              const isSaved  = nicknameSaved  === leagueId
               const originalNickname = m.nickname || ''
               const isDirtyNickname = value.trim() !== originalNickname
 
               return (
                 <div key={leagueId}>
-                  <label className="block text-xs text-gray-500 mb-1 truncate">
-                    {leagueName}
-                  </label>
+                  <label className="block text-xs text-gray-500 mb-1 truncate">{leagueName}</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -193,13 +198,60 @@ export default function ProfileClient({ userId, email, currentDisplayName, membe
               )
             })}
           </div>
-
-          {nicknameError && (
-            <p className="text-red-400 text-xs mt-3">{nicknameError}</p>
-          )}
+          {nicknameError && <p className="text-red-400 text-xs mt-3">{nicknameError}</p>}
         </div>
       )}
-      {/* ────────────────────────────────────────────────────────────────── */}
+
+      {/* Mini-game league nicknames */}
+      {miniMemberships.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+            🥊 Mini-Game Nicknames
+          </h2>
+          <p className="text-gray-500 text-sm mb-4">
+            Set a different name for each knockout mini-game league. Leave blank to use your display name.
+          </p>
+          <div className="space-y-4">
+            {miniMemberships.map(m => {
+              const leagueId = m.league_id
+              const leagueName = m.mini_leagues?.league_name || 'Unknown league'
+              const value = miniNicknames[leagueId] ?? ''
+              const isSaving = miniNicknameSaving === leagueId
+              const isSaved  = miniNicknameSaved  === leagueId
+              const originalNickname = m.nickname || ''
+              const isDirtyNickname = value.trim() !== originalNickname
+
+              return (
+                <div key={leagueId}>
+                  <label className="block text-xs text-gray-500 mb-1 truncate">{leagueName}</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={value}
+                      onChange={e => setMiniNicknames(prev => ({ ...prev, [leagueId]: e.target.value }))}
+                      placeholder={displayName || 'Enter nickname (optional)'}
+                      maxLength={30}
+                      className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+                    />
+                    <button
+                      onClick={() => handleSaveMiniNickname(leagueId)}
+                      disabled={isSaving || !isDirtyNickname}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-40 flex-shrink-0
+                        ${isSaved
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                          : 'bg-yellow-500 hover:bg-yellow-400 text-gray-950'
+                        }`}
+                    >
+                      {isSaving ? '…' : isSaved ? '✓' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {miniNicknameError && <p className="text-red-400 text-xs mt-3">{miniNicknameError}</p>}
+        </div>
+      )}
     </div>
   )
 }

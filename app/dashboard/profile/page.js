@@ -1,3 +1,4 @@
+// app/dashboard/profile/page.js
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -15,7 +16,7 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single()
 
-  // ── NEW: fetch league memberships with nicknames ───────────────────────────
+  // Main game league memberships with nicknames
   const { data: memberships } = await supabase
     .from('league_members')
     .select(`
@@ -28,7 +29,20 @@ export default async function ProfilePage() {
     `)
     .eq('user_id', user.id)
     .order('joined_at', { ascending: true })
-  // ─────────────────────────────────────────────────────────────────────────
+
+  // Mini-game league memberships with nicknames
+  const { data: miniMemberships } = await supabase
+    .from('mini_league_members')
+    .select(`
+      league_id,
+      nickname,
+      mini_leagues (
+        id,
+        league_name
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('joined_at', { ascending: true })
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -45,6 +59,7 @@ export default async function ProfilePage() {
           email={user.email}
           currentDisplayName={profile?.display_name ?? ''}
           memberships={memberships || []}
+          miniMemberships={miniMemberships || []}
         />
       </div>
     </main>

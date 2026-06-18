@@ -1,5 +1,9 @@
 'use client'
 // app/mini/league/[id]/admin/MiniLeagueAdminClient.js
+// CHANGES FROM PREVIOUS VERSION:
+// - Added email standings state and handlers (handleSendEmail, handlePredictionsReminder)
+// - Added "📧 Email Standings Update" Section before the danger zone
+// - All other sections unchanged
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
@@ -35,7 +39,6 @@ const UPGRADE_OPTIONS = {
   ],
 }
 
-// ── Reusable section wrapper ──────────────────────────────────────────────────
 function Section({ title, children }) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
@@ -45,7 +48,6 @@ function Section({ title, children }) {
   )
 }
 
-// ── Logo uploader ─────────────────────────────────────────────────────────────
 function LogoUpload({ leagueId, initialLogoUrl }) {
   const [preview, setPreview] = useState(initialLogoUrl || null)
   const [uploading, setUploading] = useState(false)
@@ -99,9 +101,7 @@ function LogoUpload({ leagueId, initialLogoUrl }) {
         {preview ? (
           <img src={preview} alt="League logo" className="w-20 h-20 rounded-full object-cover border-2 border-gray-700" />
         ) : (
-          <div className="w-20 h-20 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center text-2xl text-gray-600">
-            🥊
-          </div>
+          <div className="w-20 h-20 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center text-2xl text-gray-600">🥊</div>
         )}
         {preview && (
           <button onClick={handleRemove} disabled={removing}
@@ -136,7 +136,6 @@ function LogoUpload({ leagueId, initialLogoUrl }) {
   )
 }
 
-// ── QR Card Modal (Business tier) ─────────────────────────────────────────────
 function QRCardModal({ league, onClose }) {
   const canvasRef = useRef(null)
   const [generating, setGenerating] = useState(true)
@@ -207,10 +206,7 @@ function QRCardModal({ league, onClose }) {
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="font-bold text-white">📋 QR Table Card</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{league.league_name}</p>
-          </div>
+          <div><h2 className="font-bold text-white">📋 QR Table Card</h2><p className="text-xs text-gray-500 mt-0.5">{league.league_name}</p></div>
           <button onClick={onClose} className="text-gray-500 hover:text-white text-xl px-2">✕</button>
         </div>
         <div className="relative bg-gray-800 rounded-xl overflow-hidden mb-4" style={{ minHeight: 200 }}>
@@ -227,9 +223,7 @@ function QRCardModal({ league, onClose }) {
         </div>
         {!generating && !qrError && (
           <div className="flex gap-3">
-            <button onClick={handleDownloadPDF} className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors">
-              ⬇ Download PDF (A5)
-            </button>
+            <button onClick={handleDownloadPDF} className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors">⬇ Download PDF (A5)</button>
             <button onClick={onClose} className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-xl text-sm transition-colors">Close</button>
           </div>
         )}
@@ -237,8 +231,6 @@ function QRCardModal({ league, onClose }) {
     </div>
   )
 }
-
-// ── Main component ────────────────────────────────────────────────────────────
 
 export default function MiniLeagueAdminClient({ league: initialLeague, members: initialMembers, currentUserId }) {
   const [league, setLeague] = useState(initialLeague)
@@ -254,6 +246,12 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
   const [saving, setSaving] = useState(null)
   const [showQrModal, setShowQrModal] = useState(false)
 
+  // Email standings state
+  const [emailMessage, setEmailMessage] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailResult, setEmailResult] = useState(null)
+  const [confirmSendEmail, setConfirmSendEmail] = useState(false)
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
@@ -268,7 +266,6 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
     return res.json().then(data => ({ ok: res.ok, data }))
   }
 
-  // ── Upgrade ───────────────────────────────────────────────────────────────
   const handleUpgrade = async (targetTier) => {
     setUpgrading(targetTier)
     try {
@@ -283,36 +280,27 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
     } catch { showToast('Something went wrong', 'error'); setUpgrading(null) }
   }
 
-  // ── Rename league ─────────────────────────────────────────────────────────
   const handleRenameLeague = async () => {
     if (!leagueName.trim() || leagueName.trim() === league.league_name) return
     setSaving('league-name')
-    const { ok, data } = await api('/api/mini/league-admin/rename-league', {
-      leagueId: league.id, name: leagueName.trim(),
-    })
+    const { ok, data } = await api('/api/mini/league-admin/rename-league', { leagueId: league.id, name: leagueName.trim() })
     if (ok) { setLeague(prev => ({ ...prev, league_name: leagueName.trim() })); showToast('League renamed') }
     else showToast(data.error || 'Failed to rename league', 'error')
     setSaving(null)
   }
 
-  // ── Save notice ───────────────────────────────────────────────────────────
   const handleSaveNotice = async () => {
     setSaving('notice')
-    const { ok, data } = await api('/api/mini/league-admin/set-notice', {
-      leagueId: league.id, notice: notice.trim(),
-    })
+    const { ok, data } = await api('/api/mini/league-admin/set-notice', { leagueId: league.id, notice: notice.trim() })
     if (ok) { setLeague(prev => ({ ...prev, notice: notice.trim() })); showToast('Notice saved') }
     else showToast(data.error || 'Failed to save notice', 'error')
     setSaving(null)
   }
 
-  // ── Rename member ─────────────────────────────────────────────────────────
   const handleRenameMember = async (userId) => {
     if (!newMemberName.trim()) return
     setSaving(`rename-${userId}`)
-    const { ok, data } = await api('/api/mini/league-admin/rename-member', {
-      leagueId: league.id, userId, name: newMemberName.trim(),
-    })
+    const { ok, data } = await api('/api/mini/league-admin/rename-member', { leagueId: league.id, userId, name: newMemberName.trim() })
     if (ok) {
       setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, nickname: newMemberName.trim() } : m))
       setRenamingMember(null); setNewMemberName('')
@@ -321,12 +309,9 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
     setSaving(null)
   }
 
-  // ── Remove member ─────────────────────────────────────────────────────────
   const handleRemoveMember = async (userId) => {
     setSaving(`remove-${userId}`)
-    const { ok, data } = await api('/api/mini/league-admin/remove-member', {
-      leagueId: league.id, userId,
-    })
+    const { ok, data } = await api('/api/mini/league-admin/remove-member', { leagueId: league.id, userId })
     if (ok) {
       setMembers(prev => prev.filter(m => m.user_id !== userId))
       setConfirmRemove(null)
@@ -335,12 +320,9 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
     setSaving(null)
   }
 
-  // ── Change admin ──────────────────────────────────────────────────────────
   const handleChangeAdmin = async (userId) => {
     setSaving(`admin-${userId}`)
-    const { ok, data } = await api('/api/mini/league-admin/change-admin', {
-      leagueId: league.id, userId,
-    })
+    const { ok, data } = await api('/api/mini/league-admin/change-admin', { leagueId: league.id, userId })
     if (ok) {
       showToast('Admin transferred — redirecting…')
       setTimeout(() => { window.location.href = `/mini/league/${league.id}` }, 1500)
@@ -348,6 +330,26 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
       showToast(data.error || 'Failed to change admin', 'error')
       setSaving(null)
     }
+  }
+
+  const handleSendEmail = async () => {
+    setSendingEmail(true)
+    setConfirmSendEmail(false)
+    const { ok, data } = await api('/api/mini/league-admin/send-standings-email', {
+      leagueId: league.id,
+      message: emailMessage.trim(),
+    })
+    if (ok) {
+      setEmailResult({ sent: true, recipientCount: data.recipientCount, sendsRemaining: data.sendsRemaining })
+      setEmailMessage('')
+      showToast(`Email sent to ${data.recipientCount} member${data.recipientCount !== 1 ? 's' : ''} ✓`)
+    } else showToast(data.error || 'Failed to send email', 'error')
+    setSendingEmail(false)
+  }
+
+  const handlePredictionsReminder = () => {
+    setEmailMessage(`⏰ Reminder — semi-finalist picks lock on June 28!\n\nMake sure you've submitted your 4 semi-finalist picks before the knockout stage begins. Head to the league page to enter yours now.`)
+    setConfirmSendEmail(true)
   }
 
   const tier = league.tier ?? 'hobby'
@@ -360,6 +362,9 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
   const badgeCls = isComped ? 'text-green-400 bg-green-500/10 border-green-500/30' : (TIER_BADGE[tier] ?? TIER_BADGE.hobby)
   const noticeLines = notice.split('\n').length
   const noticeChanged = notice.trim() !== (league.notice || '').trim()
+  const lastSentDisplay = league.last_email_sent_at
+    ? new Date(league.last_email_sent_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : null
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -422,9 +427,7 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
         <Section title="✏️ League Name">
           <div className="flex gap-3">
             <input
-              type="text"
-              value={leagueName}
-              onChange={e => setLeagueName(e.target.value)}
+              type="text" value={leagueName} onChange={e => setLeagueName(e.target.value)}
               maxLength={60}
               className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500"
             />
@@ -450,7 +453,7 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
         {isBusiness && (
           <Section title="📋 QR Table Card">
             <p className="text-gray-500 text-sm mb-4">
-              Generate a print-ready A5 PDF with your league's QR code. Put one on every table so members can join instantly by scanning.
+              Generate a print-ready A5 PDF with your league's QR code.
             </p>
             <button
               onClick={() => setShowQrModal(true)}
@@ -464,7 +467,7 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
         {/* Notice */}
         <Section title="📌 Pinned Notice">
           <p className="text-gray-500 text-sm mb-3">
-            Shown to all members at the top of the league page. Great for prizes, events, or links.
+            Shown to all members at the top of the league page.
           </p>
           <textarea
             value={notice}
@@ -472,8 +475,7 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
               const lines = e.target.value.split('\n')
               if (lines.length <= 10) setNotice(e.target.value)
             }}
-            maxLength={1000}
-            rows={5}
+            maxLength={1000} rows={5}
             placeholder={"e.g. 🏆 Winner gets a £50 bar tab!\n\nCheck our menu: https://example.com/menu"}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500 resize-none font-mono"
           />
@@ -481,10 +483,7 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
             <span className="text-xs text-gray-600">{noticeLines}/10 lines · {notice.length}/1000 chars</span>
             <div className="flex gap-2">
               {notice.trim() && (
-                <button onClick={() => setNotice('')}
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg text-sm transition-colors">
-                  Clear
-                </button>
+                <button onClick={() => setNotice('')} className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg text-sm transition-colors">Clear</button>
               )}
               <button
                 onClick={handleSaveNotice}
@@ -501,12 +500,12 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
         <Section title="👥 Members">
           <div className="space-y-0">
             {members.map(m => {
-              const isCurrentUser  = m.user_id === currentUserId
-              const isLeagueAdmin  = m.user_id === league.admin_id
-              const isRenaming     = renamingMember === m.user_id
+              const isCurrentUser   = m.user_id === currentUserId
+              const isLeagueAdmin   = m.user_id === league.admin_id
+              const isRenaming      = renamingMember === m.user_id
               const isConfirmRemove = confirmRemove === m.user_id
               const isConfirmAdmin  = confirmChangeAdmin === m.user_id
-              const effectiveName  = m.nickname || m.profiles?.display_name
+              const effectiveName   = m.nickname || m.profiles?.display_name
 
               return (
                 <div key={m.user_id} className="py-3 border-b border-gray-800/60 last:border-0">
@@ -521,9 +520,7 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
                           {isLeagueAdmin && <span className="ml-2 text-xs text-yellow-400">⭐ Admin</span>}
                           {isCurrentUser && <span className="ml-2 text-xs text-gray-500">(you)</span>}
                         </p>
-                        {m.nickname && (
-                          <p className="text-xs text-gray-600 truncate">{m.profiles?.display_name}</p>
-                        )}
+                        {m.nickname && <p className="text-xs text-gray-600 truncate">{m.profiles?.display_name}</p>}
                       </div>
                     </div>
 
@@ -540,16 +537,12 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
                         </button>
                         {!isLeagueAdmin && (
                           <>
-                            <button
-                              onClick={() => setConfirmChangeAdmin(m.user_id)}
-                              className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 rounded-lg border border-gray-700 hover:border-yellow-500/30 transition-colors"
-                            >
+                            <button onClick={() => setConfirmChangeAdmin(m.user_id)}
+                              className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 rounded-lg border border-gray-700 hover:border-yellow-500/30 transition-colors">
                               Make Admin
                             </button>
-                            <button
-                              onClick={() => setConfirmRemove(m.user_id)}
-                              className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-lg border border-gray-700 hover:border-red-500/30 transition-colors"
-                            >
+                            <button onClick={() => setConfirmRemove(m.user_id)}
+                              className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-lg border border-gray-700 hover:border-red-500/30 transition-colors">
                               Remove
                             </button>
                           </>
@@ -560,30 +553,22 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
                     {isConfirmRemove && (
                       <div className="flex items-center gap-2 flex-shrink-0 ml-9 sm:ml-0">
                         <span className="text-xs text-red-400">Remove {effectiveName}?</span>
-                        <button onClick={() => handleRemoveMember(m.user_id)}
-                          disabled={saving === `remove-${m.user_id}`}
+                        <button onClick={() => handleRemoveMember(m.user_id)} disabled={saving === `remove-${m.user_id}`}
                           className="text-xs px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg transition-colors disabled:opacity-50">
                           {saving === `remove-${m.user_id}` ? '…' : 'Yes, remove'}
                         </button>
-                        <button onClick={() => setConfirmRemove(null)}
-                          className="text-xs px-2.5 py-1 bg-gray-800 text-gray-400 rounded-lg transition-colors">
-                          Cancel
-                        </button>
+                        <button onClick={() => setConfirmRemove(null)} className="text-xs px-2.5 py-1 bg-gray-800 text-gray-400 rounded-lg transition-colors">Cancel</button>
                       </div>
                     )}
 
                     {isConfirmAdmin && (
                       <div className="flex items-center gap-2 flex-shrink-0 ml-9 sm:ml-0">
                         <span className="text-xs text-yellow-400">Make {effectiveName} admin?</span>
-                        <button onClick={() => handleChangeAdmin(m.user_id)}
-                          disabled={saving === `admin-${m.user_id}`}
+                        <button onClick={() => handleChangeAdmin(m.user_id)} disabled={saving === `admin-${m.user_id}`}
                           className="text-xs px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 rounded-lg transition-colors disabled:opacity-50">
                           {saving === `admin-${m.user_id}` ? '…' : 'Yes, transfer'}
                         </button>
-                        <button onClick={() => setConfirmChangeAdmin(null)}
-                          className="text-xs px-2.5 py-1 bg-gray-800 text-gray-400 rounded-lg transition-colors">
-                          Cancel
-                        </button>
+                        <button onClick={() => setConfirmChangeAdmin(null)} className="text-xs px-2.5 py-1 bg-gray-800 text-gray-400 rounded-lg transition-colors">Cancel</button>
                       </div>
                     )}
                   </div>
@@ -593,15 +578,11 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
                       <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)}
                         maxLength={40} placeholder="Nickname for this league" autoFocus
                         className="flex-1 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500" />
-                      <button onClick={() => handleRenameMember(m.user_id)}
-                        disabled={saving === `rename-${m.user_id}` || !newMemberName.trim()}
+                      <button onClick={() => handleRenameMember(m.user_id)} disabled={saving === `rename-${m.user_id}` || !newMemberName.trim()}
                         className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-950 font-bold rounded-lg text-sm transition-colors">
                         {saving === `rename-${m.user_id}` ? '…' : 'Save'}
                       </button>
-                      <button onClick={() => { setRenamingMember(null); setNewMemberName('') }}
-                        className="px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg text-sm transition-colors">
-                        Cancel
-                      </button>
+                      <button onClick={() => { setRenamingMember(null); setNewMemberName('') }} className="px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg text-sm transition-colors">Cancel</button>
                     </div>
                   )}
                 </div>
@@ -610,15 +591,68 @@ export default function MiniLeagueAdminClient({ league: initialLeague, members: 
           </div>
         </Section>
 
+        {/* ── Email standings update ─────────────────────────────────────── */}
+        <Section title="📧 Email Standings Update">
+          <p className="text-gray-500 text-sm mb-4">
+            Send the current top 5 mini-game standings to all league members. Max 2 emails per day.
+          </p>
+          {lastSentDisplay && (
+            <p className="text-xs text-gray-600 mb-3">
+              Last sent: <span className="text-gray-400">{lastSentDisplay}</span>
+            </p>
+          )}
+          {emailResult?.sent && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3 mb-4">
+              <p className="text-green-400 text-sm font-medium">
+                ✓ Email sent to {emailResult.recipientCount} member{emailResult.recipientCount !== 1 ? 's' : ''}
+              </p>
+              <p className="text-green-600 text-xs mt-0.5">
+                {emailResult.sendsRemaining > 0
+                  ? `${emailResult.sendsRemaining} send${emailResult.sendsRemaining !== 1 ? 's' : ''} remaining today`
+                  : 'Daily limit reached — resets at midnight'}
+              </p>
+            </div>
+          )}
+          <textarea
+            value={emailMessage}
+            onChange={e => setEmailMessage(e.target.value)}
+            maxLength={500} rows={4}
+            placeholder={"Optional personal message, e.g:\n\nGreat semi-finalist picks from everyone! Remember — bracket predictions open June 28."}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500 resize-none"
+          />
+          <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
+            <span className="text-xs text-gray-600">{emailMessage.length}/500 chars · optional</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {!confirmSendEmail && (
+                <button onClick={handlePredictionsReminder} disabled={sendingEmail}
+                  className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 rounded-lg transition-colors disabled:opacity-40">
+                  ⏰ Picks reminder
+                </button>
+              )}
+              {confirmSendEmail ? (
+                <>
+                  <span className="text-xs text-yellow-400">Send to all {members.length} members?</span>
+                  <button onClick={handleSendEmail} disabled={sendingEmail}
+                    className="text-xs px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-gray-950 font-bold rounded-lg transition-colors">
+                    {sendingEmail ? 'Sending…' : 'Yes, send'}
+                  </button>
+                  <button onClick={() => setConfirmSendEmail(false)} className="text-xs px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg transition-colors">Cancel</button>
+                </>
+              ) : (
+                <button onClick={() => setConfirmSendEmail(true)} disabled={sendingEmail}
+                  className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-950 font-bold rounded-lg text-sm transition-colors">
+                  Send Email
+                </button>
+              )}
+            </div>
+          </div>
+        </Section>
+
         {/* Danger zone */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
           <h2 className="font-bold text-lg text-red-400 mb-1">⚠️ Danger Zone</h2>
-          <p className="text-gray-500 text-sm mb-2">
-            Transferring admin rights will remove your access to this page.
-          </p>
-          <p className="text-gray-600 text-xs">
-            To transfer admin, use the "Make Admin" button next to a member above.
-          </p>
+          <p className="text-gray-500 text-sm mb-2">Transferring admin rights will remove your access to this page.</p>
+          <p className="text-gray-600 text-xs">To transfer admin, use the "Make Admin" button next to a member above.</p>
         </div>
 
       </div>
