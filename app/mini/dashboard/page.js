@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import SignOutButton from '@/app/components/SignOutButton'
+import { MINI_LOCK_TIME } from '@/lib/worldcup'
 
 export const revalidate = 0
 
@@ -14,10 +15,7 @@ const TIER_LABELS = {
   business:   'Business',
 }
 
-// R32 starts ~June 28 2026 00:00 UTC — semi-final picks lock at this point
-const SEMI_PICKS_LOCK = new Date('2026-06-28T00:00:00Z')
-
-export default async function MiniDashboardPage() {
+export default async function MiniDashboardPage({ searchParams }) {
   const supabase = await createServerSupabaseClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -29,7 +27,6 @@ export default async function MiniDashboardPage() {
     .eq('id', user.id)
     .single()
 
-  // Fetch mini-game memberships
   const { data: memberships } = await supabase
     .from('mini_league_members')
     .select(`
@@ -48,11 +45,6 @@ export default async function MiniDashboardPage() {
     `)
     .eq('user_id', user.id)
 
-  // Check whether semi-final picks are still open
-  const now = new Date()
-  const semiPicksOpen = now < SEMI_PICKS_LOCK
-
-  // For each league, check if user has already submitted semi-final picks
   const adminSupabase = createAdminClient()
   const leagueIds = (memberships || []).map(m => m.league_id)
 
@@ -64,7 +56,6 @@ export default async function MiniDashboardPage() {
       .eq('user_id', user.id)
       .in('mini_league_id', leagueIds)
 
-    // Group by league
     for (const pick of semiPicks || []) {
       if (!semiPicksByLeague[pick.mini_league_id]) {
         semiPicksByLeague[pick.mini_league_id] = []
@@ -72,6 +63,13 @@ export default async function MiniDashboardPage() {
       semiPicksByLeague[pick.mini_league_id].push(pick.team)
     }
   }
+
+  const semiPicksOpen = new Date() < MINI_LOCK_TIME
+
+  const sp = await searchParams
+  const error      = sp?.error
+  const leagueName = sp?.league_name
+  const tier       = sp?.tier
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -107,6 +105,40 @@ export default async function MiniDashboardPage() {
 
       <div className="max-w-4xl mx-auto px-6 py-10">
 
+        {/* ── Error banners ─────────────────────────────────────────────── */}
+        {error === 'league-full' && (
+          <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
+            <p className="font-bold text-red-400 mb-1">
+              🚫 {leagueName ? `"${leagueName}" is full` : 'That league is full'}
+            </p>
+            <p className="text-sm text-gray-400">
+              This league is on the{' '}
+              <span className="text-white font-medium">{TIER_LABELS[tier] ?? 'Hobby'}</span> tier
+              and has reached its member limit.
+              Ask the league admin to upgrade for more spots.
+            </p>
+          </div>
+        )}
+
+        {error === 'invalid-invite' && (
+          <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
+            <p className="font-bold text-red-400 mb-1">Invalid invite code</p>
+            <p className="text-sm text-gray-400">
+              That invite link doesn't match any mini-game league. Ask your league admin to share a fresh link.
+            </p>
+          </div>
+        )}
+
+        {error === 'join-failed' && (
+          <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
+            <p className="font-bold text-red-400 mb-1">Couldn't join league</p>
+            <p className="text-sm text-gray-400">
+              Something went wrong. Please try the invite link again or contact support.
+            </p>
+          </div>
+        )}
+        {/* ──────────────────────────────────────────────────────────────── */}
+
         <div className="mb-10">
           <h1 className="text-3xl font-bold mb-1">Mini-Game Dashboard 🥊</h1>
           <p className="text-gray-400">Knockout predictions — no group stage required.</p>
@@ -118,12 +150,10 @@ export default async function MiniDashboardPage() {
             <div className="flex items-start gap-3">
               <span className="text-2xl flex-shrink-0">🏆</span>
               <div>
-                <p className="font-bold text-yellow-300 mb-1">
-                  Semi-finalist picks are open
-                </p>
+                <p className="font-bold text-yellow-300 mb-1">Semi-finalist picks are open</p>
                 <p className="text-sm text-gray-400">
                   Pick 4 teams you think will reach the semi-finals for a bonus points round.
-                  Picks lock when the Round of 32 begins (~June 28).
+                  Picks lock at half-time of the first knockout match on June 28.
                   Head into each league to make your selections.
                 </p>
               </div>
@@ -136,8 +166,7 @@ export default async function MiniDashboardPage() {
               <div>
                 <p className="font-bold text-white mb-1">Semi-finalist picks locked</p>
                 <p className="text-sm text-gray-400">
-                  The knockout stage has begun. Bracket predictions are now open — head into
-                  each league to predict the winners.
+                  The knockout stage has begun. Head into each league to predict the bracket.
                 </p>
               </div>
             </div>
@@ -152,9 +181,7 @@ export default async function MiniDashboardPage() {
           >
             <div className="text-3xl mb-3">🏆</div>
             <h2 className="text-xl font-bold mb-1">Create a League</h2>
-            <p className="text-gray-800 text-sm">
-              Set up a new mini-game league and invite friends
-            </p>
+            <p className="text-gray-800 text-sm">Set up a new mini-game league and invite friends</p>
           </Link>
 
           <Link
@@ -163,9 +190,7 @@ export default async function MiniDashboardPage() {
           >
             <div className="text-3xl mb-3">🤝</div>
             <h2 className="text-xl font-bold mb-1">Join a League</h2>
-            <p className="text-gray-400 text-sm">
-              Enter an invite code to join a friend's mini-game league
-            </p>
+            <p className="text-gray-400 text-sm">Enter an invite code to join a friend's mini-game league</p>
           </Link>
         </div>
 
@@ -205,7 +230,6 @@ export default async function MiniDashboardPage() {
                           Joined {new Date(joined_at).toLocaleDateString('en-GB')}
                           {nickname ? ` · Playing as "${nickname}"` : ''}
                         </p>
-                        {/* Semi-final pick nudge */}
                         {semiPicksOpen && !hasSemiPicks && (
                           <p className="text-yellow-400 text-xs mt-1.5 font-medium">
                             ⚠️ Semi-finalist picks not submitted yet
