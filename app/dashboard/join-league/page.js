@@ -5,8 +5,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-
-const MAIN_LOCK_TIME = new Date('2026-06-11T19:59:00Z')
+import { GLOBAL_LOCK_DATE } from '@/lib/predictionsLock'
 
 export default function JoinLeaguePage() {
   const [inviteCode, setInviteCode] = useState('')
@@ -15,7 +14,7 @@ export default function JoinLeaguePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const isLocked = new Date() >= MAIN_LOCK_TIME
+  const isLocked = new Date() >= GLOBAL_LOCK_DATE
   // Also show mini banner if redirected here from a post-lockout invite link
   const showMiniBanner = isLocked || searchParams.get('locked') === 'true'
 
@@ -56,17 +55,12 @@ export default function JoinLeaguePage() {
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-gray-800 px-6 py-4 flex items-center gap-4">
-        <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
-          ← Back
-        </Link>
+        <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">← Back</Link>
         <span className="font-bold text-yellow-400">Join a League</span>
       </nav>
 
       <div className="max-w-lg mx-auto px-6 py-12">
 
-        {/* Post-lockout banner — shown above the form, not instead of it.
-            People might still have a valid main-game invite link from a friend
-            so we let them try the code, but make the mini-game very visible. */}
         {showMiniBanner && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-5 mb-8">
             <p className="font-bold text-yellow-300 mb-2">
@@ -106,29 +100,21 @@ export default function JoinLeaguePage() {
 
         <form onSubmit={handleJoin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Invite Code
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Invite Code</label>
             <input
-              type="text"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-              placeholder="e.g. 274AF7UW"
-              required
-              maxLength={8}
+              type="text" value={inviteCode}
+              onChange={e => setInviteCode(e.target.value.toUpperCase())}
+              placeholder="e.g. 274AF7UW" required maxLength={8}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 font-mono text-xl tracking-widest text-center uppercase"
             />
           </div>
 
           {error && (
-            <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-400 text-sm">
-              {error}
-            </div>
+            <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-400 text-sm">{error}</div>
           )}
 
           <button
-            type="submit"
-            disabled={loading || inviteCode.length < 6}
+            type="submit" disabled={loading || inviteCode.length < 6}
             className="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors disabled:opacity-50"
           >
             {loading ? 'Joining...' : 'Join League →'}

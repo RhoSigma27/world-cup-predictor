@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import LeagueLogo from '@/app/components/LeagueLogo'
 import SignOutButton from '@/app/components/SignOutButton'
+import { GLOBAL_LOCK_DATE } from '@/lib/predictionsLock'
 
 const TIER_LABELS = {
   hobby:      'Hobby',
@@ -11,9 +12,6 @@ const TIER_LABELS = {
   fanatic:    'Fanatic',
   business:   'Business',
 }
-
-// Main game prediction lock time — keep in sync with LOCK_DATE elsewhere
-const MAIN_LOCK_TIME = new Date('2026-06-11T19:59:00Z')
 
 export default async function DashboardPage({ searchParams }) {
   const supabase = await createServerSupabaseClient()
@@ -49,7 +47,7 @@ export default async function DashboardPage({ searchParams }) {
     .eq('user_id', user.id)
 
   const miniLeagueCount = miniMemberships?.length ?? 0
-  const mainGameLocked = new Date() >= MAIN_LOCK_TIME
+  const mainGameLocked = new Date() >= GLOBAL_LOCK_DATE
 
   const sp = await searchParams
   const error      = sp?.error
@@ -119,7 +117,6 @@ export default async function DashboardPage({ searchParams }) {
             </p>
           </div>
         )}
-        {/* ──────────────────────────────────────────────────────────────── */}
 
         <div className="mb-10">
           <h1 className="text-3xl font-bold mb-1">
@@ -135,9 +132,7 @@ export default async function DashboardPage({ searchParams }) {
 
         {/* ── Action cards ─────────────────────────────────────────────── */}
         {mainGameLocked ? (
-          // Post-lockout: show locked state + mini-game prompt
           <div className="mb-10 space-y-4">
-            {/* Locked notice */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
               <div className="flex items-start gap-4">
                 <span className="text-3xl flex-shrink-0">🔒</span>
@@ -151,7 +146,6 @@ export default async function DashboardPage({ searchParams }) {
               </div>
             </div>
 
-            {/* Mini-game CTA */}
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6">
               <div className="flex items-start gap-4 mb-4">
                 <span className="text-3xl flex-shrink-0">🥊</span>
@@ -161,8 +155,8 @@ export default async function DashboardPage({ searchParams }) {
                   </h2>
                   <p className="text-gray-400 text-sm">
                     Pick your semi-finalists and predict the winner of every knockout match —
-                    from the Round of 32 all the way to the Final. No group stage faff, just the knockouts.
-                    Create a new league or join one a friend has set up.
+                    from the Round of 32 all the way to the Final. No scorelines, no group stage.
+                    Simple enough to fill in at the bar.
                   </p>
                 </div>
               </div>
@@ -182,20 +176,16 @@ export default async function DashboardPage({ searchParams }) {
               </div>
             </div>
 
-            {/* Tournament bracket still available */}
             <Link
               href="/dashboard/tournament"
               className="block bg-gray-900 hover:bg-gray-800 border border-gray-700 rounded-2xl p-6 transition-colors"
             >
               <div className="text-3xl mb-3">📊</div>
               <h2 className="text-xl font-bold mb-1">Tournament Bracket</h2>
-              <p className="text-gray-400 text-sm">
-                Live results, group tables and the knockout bracket
-              </p>
+              <p className="text-gray-400 text-sm">Live results, group tables and the knockout bracket</p>
             </Link>
           </div>
         ) : (
-          // Pre-lockout: normal action cards
           <div className="grid md:grid-cols-2 gap-4 mb-10">
             <Link
               href="/dashboard/create-league"
@@ -203,9 +193,7 @@ export default async function DashboardPage({ searchParams }) {
             >
               <div className="text-3xl mb-3">🏆</div>
               <h2 className="text-xl font-bold mb-1">Create a League</h2>
-              <p className="text-gray-800 text-sm">
-                Set up a new private league and invite your friends
-              </p>
+              <p className="text-gray-800 text-sm">Set up a new private league and invite your friends</p>
             </Link>
 
             <Link
@@ -214,9 +202,7 @@ export default async function DashboardPage({ searchParams }) {
             >
               <div className="text-3xl mb-3">🤝</div>
               <h2 className="text-xl font-bold mb-1">Join a League</h2>
-              <p className="text-gray-400 text-sm">
-                Enter an invite code to join a friend's league
-              </p>
+              <p className="text-gray-400 text-sm">Enter an invite code to join a friend's league</p>
             </Link>
 
             <Link
@@ -225,9 +211,7 @@ export default async function DashboardPage({ searchParams }) {
             >
               <div className="text-3xl mb-3">📊</div>
               <h2 className="text-xl font-bold mb-1">Tournament Bracket</h2>
-              <p className="text-gray-400 text-sm">
-                Live results, group tables and the knockout bracket
-              </p>
+              <p className="text-gray-400 text-sm">Live results, group tables and the knockout bracket</p>
             </Link>
           </div>
         )}
@@ -239,9 +223,7 @@ export default async function DashboardPage({ searchParams }) {
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-10 text-center">
               <div className="text-5xl mb-4">🏟️</div>
               <p className="text-gray-400 mb-2">You haven't joined any leagues yet</p>
-              <p className="text-gray-500 text-sm">
-                Create a new league or ask a friend for their invite code
-              </p>
+              <p className="text-gray-500 text-sm">Create a new league or ask a friend for their invite code</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -253,11 +235,7 @@ export default async function DashboardPage({ searchParams }) {
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      <LeagueLogo
-                        name={league.league_name}
-                        logoUrl={league.logo_url}
-                        size="sm"
-                      />
+                      <LeagueLogo name={league.league_name} logoUrl={league.logo_url} size="sm" />
                       <div className="min-w-0">
                         <h3 className="font-bold text-lg truncate">{league.league_name}</h3>
                         <p className="text-gray-500 text-sm">
@@ -279,10 +257,7 @@ export default async function DashboardPage({ searchParams }) {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">🥊 Knockout Mini-Game</h2>
             {miniLeagueCount > 0 && (
-              <Link
-                href="/mini/dashboard"
-                className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors"
-              >
+              <Link href="/mini/dashboard" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors">
                 View all →
               </Link>
             )}
@@ -297,10 +272,7 @@ export default async function DashboardPage({ searchParams }) {
                 <span className="text-3xl flex-shrink-0">🥊</span>
                 <div>
                   <h3 className="font-bold text-lg mb-1">
-                    {mainGameLocked
-                      ? 'Play the Knockout Mini-Game'
-                      : 'Know someone who missed the main game?'
-                    }
+                    {mainGameLocked ? 'Play the Knockout Mini-Game' : 'Know someone who missed the main game?'}
                   </h3>
                   <p className="text-gray-400 text-sm mb-3">
                     {mainGameLocked
@@ -308,9 +280,7 @@ export default async function DashboardPage({ searchParams }) {
                       : 'The Knockout Mini-Game lets late joiners predict every knockout match — starting from the Round of 32.'
                     }
                   </p>
-                  <span className="text-yellow-400 text-sm font-medium">
-                    Go to Mini-Game →
-                  </span>
+                  <span className="text-yellow-400 text-sm font-medium">Go to Mini-Game →</span>
                 </div>
               </div>
             </Link>
