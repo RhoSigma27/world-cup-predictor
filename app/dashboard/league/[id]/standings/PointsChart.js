@@ -1,4 +1,5 @@
 'use client'
+// app/dashboard/league/[id]/standings/PointsChart.js
 
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -20,7 +21,17 @@ export default function PointsChart({ data, players }) {
     )
   }
 
-  const chartData = data.map((d, i) => ({ ...d, matchIndex: i + 1 }))
+  // Clamp all player values to 0 minimum so negative score adjustments
+  // don't pull lines below the axis
+  const chartData = data.map((d, i) => {
+    const point = { ...d, matchIndex: i + 1 }
+    for (const player of players) {
+      if (typeof point[player] === 'number') {
+        point[player] = Math.max(0, point[player])
+      }
+    }
+    return point
+  })
 
   return (
     <div className="mt-8 bg-gray-900 border border-gray-800 rounded-2xl p-6">
