@@ -192,9 +192,11 @@ export default async function MiniLeaguePage({ params, searchParams }) {
           )}
         </div>
 
-        {/* KO Predictions */}
+        {/* KO Predictions — visible as soon as any fixtures have confirmed teams,
+             regardless of whether semi-picks are still open.
+             Per-fixture lock is handled in the predictions page itself. */}
         <div className="mb-6">
-          {!semiPicksOpen && totalPredictable > 0 ? (
+          {totalPredictable > 0 ? (
             <Link
               href={`/mini/league/${id}/predictions`}
               className="block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg text-center transition-colors"
@@ -204,17 +206,11 @@ export default async function MiniLeaguePage({ params, searchParams }) {
                 ({totalPredicted}/{totalPredictable} filled)
               </span>
             </Link>
-          ) : !semiPicksOpen ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 text-center">
-              <p className="text-gray-400 text-sm">
-                Knockout fixtures will appear here as teams are confirmed through the bracket.
-              </p>
-            </div>
           ) : (
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 text-center">
               <p className="text-gray-500 text-sm">
-                🔒 Knockout predictions open after semi-finalist picks lock on June 28.
-                Submit your picks above in the meantime.
+                Knockout predictions will appear here as teams are confirmed.
+                The first fixtures are known from June 24 as groups finish.
               </p>
             </div>
           )}
