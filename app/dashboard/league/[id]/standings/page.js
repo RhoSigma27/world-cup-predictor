@@ -187,9 +187,6 @@ export default async function StandingsPage({ params }) {
   const resultsEntered = fixtures?.filter(f => f.home_score != null && f.away_score != null).length || 0
 
   // ── Chart data ────────────────────────────────────────────────────────────
-  // Note: chart shows engine points only (not adjusted) to keep it accurate
-  // to actual match-by-match performance. The adjustment only affects the
-  // final standings table total.
 
   const completedFixtures = (fixtures || [])
     .filter(f => f.home_score != null && f.away_score != null)
@@ -263,6 +260,17 @@ export default async function StandingsPage({ params }) {
   const ogImageUrl   = `${siteUrl}/api/og/standings?d=${encodeURIComponent(d)}`
   const standingsUrl = `${siteUrl}/dashboard/league/${id}/standings`
 
+  // ── Chart player order ────────────────────────────────────────────────────
+  // Sort by final cumulative score so legend order matches line order at the
+  // right edge of the chart — crossovers then appear historically accurate.
+
+  const chartPlayerOrder = [...standings]
+    .sort((a, b) => {
+      const last = cleanCumulativeChart[cleanCumulativeChart.length - 1]
+      return (last?.[b.displayName] ?? 0) - (last?.[a.displayName] ?? 0)
+    })
+    .map(s => s.displayName)
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 bg-gray-950 z-40">
@@ -311,12 +319,6 @@ export default async function StandingsPage({ params }) {
             <tbody>
               {standings.map((s) => {
                 const placeColor = s.place === 1 ? 'text-yellow-400' : s.place === 2 ? 'text-gray-300' : s.place === 3 ? 'text-amber-600' : 'text-gray-500'
-                const chartPlayerOrder = [...standings]
-                  .sort((a, b) => {
-                    const last = cleanCumulativeChart[cleanCumulativeChart.length - 1]
-                    return (last?.[b.displayName] ?? 0) - (last?.[a.displayName] ?? 0)
-                  })
-                  .map(s => s.displayName)
                 return (
                   <tr
                     key={s.userId}
@@ -338,8 +340,6 @@ export default async function StandingsPage({ params }) {
                             {s.isCurrentUser && <span className="ml-1 text-xs text-yellow-400">(you)</span>}
                             {s.isAdmin && <span className="ml-1 text-xs text-gray-500">⭐</span>}
                           </p>
-                          {/* Show adjustment indicator if non-zero — visible to all,
-                              but no detail on what/why to avoid confusion */}
                           {s.scoreAdjustment !== 0 && (
                             <p className="text-xs text-gray-600 mt-0.5">
                               incl. {s.scoreAdjustment > 0 ? '+' : ''}{s.scoreAdjustment} pts adjustment
