@@ -311,6 +311,12 @@ export default async function StandingsPage({ params }) {
             <tbody>
               {standings.map((s) => {
                 const placeColor = s.place === 1 ? 'text-yellow-400' : s.place === 2 ? 'text-gray-300' : s.place === 3 ? 'text-amber-600' : 'text-gray-500'
+                const chartPlayerOrder = [...standings]
+                  .sort((a, b) => {
+                    const last = cleanCumulativeChart[cleanCumulativeChart.length - 1]
+                    return (last?.[b.displayName] ?? 0) - (last?.[a.displayName] ?? 0)
+                  })
+                  .map(s => s.displayName)
                 return (
                   <tr
                     key={s.userId}
@@ -357,13 +363,6 @@ export default async function StandingsPage({ params }) {
         </div>
       </div>
 
-      const chartPlayerOrder = [...standings]
-        .sort((a, b) => {
-          const last = cleanCumulativeChart[cleanCumulativeChart.length - 1]
-          return (last?.[b.displayName] ?? 0) - (last?.[a.displayName] ?? 0)
-        })
-        .map(s => s.displayName)
-        // Then pass chartPlayerOrder instead of standings.map(s => s.displayName)
       <PointsChart data={cleanCumulativeChart} players={chartPlayerOrder} />
 
     </main>
