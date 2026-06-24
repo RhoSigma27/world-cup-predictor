@@ -106,7 +106,7 @@ export default function MiniCreateLeaguePage() {
         <Link href="/mini/dashboard" className="text-gray-400 hover:text-white transition-colors">
           ← Back
         </Link>
-        <span className="font-bold text-yellow-400">Create a Mini-Game League</span>
+        <span className="font-bold text-yellow-400">Create a KO Predictor League</span>
       </nav>
 
       <div className="max-w-lg mx-auto px-6 py-12">
@@ -114,7 +114,7 @@ export default function MiniCreateLeaguePage() {
           <div className="text-5xl mb-4">🥊</div>
           <h1 className="text-3xl font-bold mb-2">Create a League</h1>
           <p className="text-gray-400">
-            Set up your knockout mini-game league and invite friends
+            Set up your KO Predictor league and invite friends
           </p>
         </div>
 

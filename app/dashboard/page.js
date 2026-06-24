@@ -151,7 +151,7 @@ export default async function DashboardPage({ searchParams }) {
                 <span className="text-3xl flex-shrink-0">🥊</span>
                 <div>
                   <h2 className="font-bold text-lg mb-1 text-yellow-300">
-                    Still want to play? Try the Knockout Mini-Game
+                    Still want to play? Try the KO Predictor
                   </h2>
                   <p className="text-gray-400 text-sm">
                     Pick your semi-finalists and predict the winner of every knockout match —
@@ -165,13 +165,13 @@ export default async function DashboardPage({ searchParams }) {
                   href="/mini/create-league"
                   className="bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl p-4 transition-colors text-center font-bold"
                 >
-                  🏆 Create a Mini-Game League
+                  🏆 Create a KO Predictor League
                 </Link>
                 <Link
                   href="/mini/join-league"
                   className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-xl p-4 transition-colors text-center font-bold"
                 >
-                  🤝 Join a Mini-Game League
+                  🤝 Join a KO Predictor League
                 </Link>
               </div>
             </div>
@@ -252,10 +252,10 @@ export default async function DashboardPage({ searchParams }) {
           )}
         </div>
 
-        {/* ── Knockout Mini-Game ─────────────────────────────────────────── */}
+        {/* ── KO Predictor ──────────────────────────────────────────────── */}
         <div className="border-t border-gray-800 pt-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">🥊 Knockout Mini-Game</h2>
+            <h2 className="text-xl font-bold">🥊 KO Predictor</h2>
             {miniLeagueCount > 0 && (
               <Link href="/mini/dashboard" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors">
                 View all →
@@ -272,15 +272,15 @@ export default async function DashboardPage({ searchParams }) {
                 <span className="text-3xl flex-shrink-0">🥊</span>
                 <div>
                   <h3 className="font-bold text-lg mb-1">
-                    {mainGameLocked ? 'Play the Knockout Mini-Game' : 'Know someone who missed the main game?'}
+                    {mainGameLocked ? 'Play the KO Predictor' : 'Know someone who missed the main game?'}
                   </h3>
                   <p className="text-gray-400 text-sm mb-3">
                     {mainGameLocked
                       ? 'Pick your semi-finalists and predict every knockout match. Simple, fast, and still competitive.'
-                      : 'The Knockout Mini-Game lets late joiners predict every knockout match — starting from the Round of 32.'
+                      : 'The KO Predictor lets late joiners predict every knockout match — starting from the Round of 32.'
                     }
                   </p>
-                  <span className="text-yellow-400 text-sm font-medium">Go to Mini-Game →</span>
+                  <span className="text-yellow-400 text-sm font-medium">Go to KO Predictor →</span>
                 </div>
               </div>
             </Link>
@@ -293,7 +293,7 @@ export default async function DashboardPage({ searchParams }) {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">🥊</span>
                   <div>
-                    <h3 className="font-bold text-lg">Knockout Mini-Game</h3>
+                    <h3 className="font-bold text-lg">KO Predictor</h3>
                     <p className="text-gray-500 text-sm">
                       {miniLeagueCount} league{miniLeagueCount !== 1 ? 's' : ''} · Tap to manage
                     </p>

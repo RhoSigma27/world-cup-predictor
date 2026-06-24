@@ -6,8 +6,8 @@ import { createAdminClient } from '@/lib/supabase-admin'
 export const revalidate = 300
 
 export const metadata = {
-  title: 'Knockout Mini-Game — World Cup 2026',
-  description: 'Missed the main game? Join the Knockout Mini-Game — pick your semi-finalists and predict every knockout match from the Round of 32.',
+  title: 'KO Predictor — World Cup 2026',
+  description: 'Missed the main game? Join the KO Predictor — pick your semi-finalists and predict every knockout match from the Round of 32.',
 }
 
 export default async function MiniLandingPage() {
@@ -59,7 +59,7 @@ export default async function MiniLandingPage() {
       <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-6 py-3 text-center">
         <p className="text-sm text-yellow-300">
           ⏰ The main game has kicked off — group stage predictions are locked.
-          <span className="text-white font-medium"> But you can still play the Knockout Mini-Game below.</span>
+          <span className="text-white font-medium"> But you can still play the KO Predictor below.</span>
         </p>
       </div>
 
@@ -82,7 +82,7 @@ export default async function MiniLandingPage() {
             href={ctaHref}
             className="px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors"
           >
-            Start a Mini-Game League →
+            Start a KO Predictor League →
           </Link>
           <Link
             href={joinHref}
@@ -93,7 +93,7 @@ export default async function MiniLandingPage() {
         </div>
         {miniLeagueCount !== null && miniLeagueCount > 0 && (
           <p className="text-gray-500 text-sm mt-5">
-            🏟️ {miniLeagueCount} mini-game league{miniLeagueCount === 1 ? '' : 's'} already running
+            🏟️ {miniLeagueCount} KO Predictor league{miniLeagueCount === 1 ? '' : 's'} already running
           </p>
         )}
       </div>
@@ -200,7 +200,7 @@ export default async function MiniLandingPage() {
           href={ctaHref}
           className="inline-block px-10 py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg transition-colors"
         >
-          Create Your Mini-Game League →
+          Create Your KO Predictor League →
         </Link>
       </div>
 

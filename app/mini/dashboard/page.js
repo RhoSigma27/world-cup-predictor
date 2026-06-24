@@ -80,7 +80,7 @@ export default async function MiniDashboardPage({ searchParams }) {
           </Link>
           <div className="flex items-center gap-2">
             <span className="text-xl">🥊</span>
-            <span className="font-bold text-lg text-yellow-400">Knockout Mini-Game</span>
+            <span className="font-bold text-lg text-yellow-400">KO Predictor</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -124,7 +124,7 @@ export default async function MiniDashboardPage({ searchParams }) {
           <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
             <p className="font-bold text-red-400 mb-1">Invalid invite code</p>
             <p className="text-sm text-gray-400">
-              That invite link doesn't match any mini-game league. Ask your league admin to share a fresh link.
+              That invite link doesn't match any KO Predictor league. Ask your league admin to share a fresh link.
             </p>
           </div>
         )}
@@ -140,7 +140,7 @@ export default async function MiniDashboardPage({ searchParams }) {
         {/* ──────────────────────────────────────────────────────────────── */}
 
         <div className="mb-10">
-          <h1 className="text-3xl font-bold mb-1">Mini-Game Dashboard 🥊</h1>
+          <h1 className="text-3xl font-bold mb-1">KO Predictor 🥊</h1>
           <p className="text-gray-400">Knockout predictions — no group stage required.</p>
         </div>
 
@@ -181,7 +181,7 @@ export default async function MiniDashboardPage({ searchParams }) {
           >
             <div className="text-3xl mb-3">🏆</div>
             <h2 className="text-xl font-bold mb-1">Create a League</h2>
-            <p className="text-gray-800 text-sm">Set up a new mini-game league and invite friends</p>
+            <p className="text-gray-800 text-sm">Set up a new KO Predictor league and invite friends</p>
           </Link>
 
           <Link
@@ -190,17 +190,17 @@ export default async function MiniDashboardPage({ searchParams }) {
           >
             <div className="text-3xl mb-3">🤝</div>
             <h2 className="text-xl font-bold mb-1">Join a League</h2>
-            <p className="text-gray-400 text-sm">Enter an invite code to join a friend's mini-game league</p>
+            <p className="text-gray-400 text-sm">Enter an invite code to join a friend's KO Predictor league</p>
           </Link>
         </div>
 
-        {/* My mini-game leagues */}
+        {/* My KO Predictor leagues */}
         <div>
-          <h2 className="text-xl font-bold mb-4">My Mini-Game Leagues</h2>
+          <h2 className="text-xl font-bold mb-4">My KO Predictor Leagues</h2>
           {!memberships || memberships.length === 0 ? (
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-10 text-center">
               <div className="text-5xl mb-4">🥊</div>
-              <p className="text-gray-400 mb-2">You haven't joined any mini-game leagues yet</p>
+              <p className="text-gray-400 mb-2">You haven't joined any KO Predictor leagues yet</p>
               <p className="text-gray-500 text-sm">
                 Create a new league or ask a friend for their invite code
               </p>

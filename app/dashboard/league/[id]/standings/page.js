@@ -357,7 +357,15 @@ export default async function StandingsPage({ params }) {
         </div>
       </div>
 
-      <PointsChart data={cleanCumulativeChart} players={standings.map(s => s.displayName)} />
+      const chartPlayerOrder = [...standings]
+        .sort((a, b) => {
+          const last = cleanCumulativeChart[cleanCumulativeChart.length - 1]
+          return (last?.[b.displayName] ?? 0) - (last?.[a.displayName] ?? 0)
+        })
+        .map(s => s.displayName)
+        // Then pass chartPlayerOrder instead of standings.map(s => s.displayName)
+      <PointsChart data={cleanCumulativeChart} players={chartPlayerOrder} />
+
     </main>
   )
 }
