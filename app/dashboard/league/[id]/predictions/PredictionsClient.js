@@ -332,7 +332,6 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
 
     return (
       <div className={`w-44 bg-gray-900 border rounded-lg overflow-hidden flex-shrink-0 ${hasPred ? 'border-gray-600' : 'border-gray-700/50'}`}>
-        <div className="px-2 pt-1 pb-0.5 text-[10px] text-gray-600 border-b border-gray-800">M{f.match_number}</div>
         <div className="p-1 space-y-0.5">
           <TeamRow team={t1} score={pred.home} isWinner={winner === t1 && !isTbd1} isTbd={isTbd1} />
           <TeamRow team={t2} score={pred.away} isWinner={winner === t2 && !isTbd2} isTbd={isTbd2} />
