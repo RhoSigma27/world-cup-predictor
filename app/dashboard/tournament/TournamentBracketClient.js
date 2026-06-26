@@ -173,9 +173,17 @@ export default function TournamentBracketClient({ fixtures, masterExtras }) {
       ]
     : allThirds
 
-  const roundFixtures = (round) =>
-    koFixtures.filter(f => f.round === round).sort((a, b) => a.match_number - b.match_number)
+  // Correct visual order: pairs that feed the same R16 match must be adjacent
+  const R32_DISPLAY_ORDER = [74,77, 73,75, 76,78, 79,80, 83,84, 81,82, 86,88, 85,87]
 
+  const roundFixtures = (round) => {
+    const fs = koFixtures.filter(f => f.round === round)
+    if (round === 'R32') {
+      return R32_DISPLAY_ORDER.map(n => fs.find(f => f.match_number === n)).filter(Boolean)
+    }
+    return fs.sort((a, b) => a.match_number - b.match_number)
+  }
+  
   const CARD_H = 80
   const BASE_GAP = 8
   const rounds = ['R32', 'R16', 'QF', 'SF', 'FINAL']
