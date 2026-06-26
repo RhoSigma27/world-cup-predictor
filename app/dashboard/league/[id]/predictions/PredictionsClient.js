@@ -8,7 +8,6 @@ import { useState, useRef, useCallback, useEffect, Fragment } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
-import ShareButton from '@/app/components/ShareButton'
 import { isPredictionsLocked, getOverrideUntil } from '@/lib/predictionsLock'
 
 function calcGroupTables(predictions, fixtures) {
@@ -1033,13 +1032,6 @@ export default function PredictionsClient({
                   className="flex items-center gap-1.5 px-3 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs font-bold rounded-lg transition-colors whitespace-nowrap">
                   🏆 View bracket
                 </button>
-                <ShareButton
-                  imageUrl={`/api/og/bracket?userId=${userId}&leagueId=${leagueId}`}
-                  title="My World Cup 2026 bracket"
-                  text="Check out my predicted bracket on The Match Predictor"
-                  url={`https://thematchpredictor.com/dashboard/league/${leagueId}`}
-                  label="Share bracket"
-                />
               </div>
             </div>
 
