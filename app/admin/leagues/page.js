@@ -21,7 +21,7 @@ export default async function AdminLeaguesPage() {
 
   const { data: leagues } = await adminSupabase
     .from('leagues')
-    .select('id, league_name, invite_code, created_at, admin_id, logo_url, tier, is_comped, predictions_override_until')
+    .select('id, league_name, invite_code, created_at, admin_id, logo_url, tier, is_comped, predictions_override_until, ko_reopen_until')
     .order('created_at', { ascending: false })
 
   // Include score_adjustment so the admin UI can display and edit it

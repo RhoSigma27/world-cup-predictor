@@ -40,6 +40,15 @@ function OverrideBadge({ overrideUntil }) {
   )
 }
 
+function KoReopenBadge({ koReopenUntil }) {
+  if (!koReopenUntil || new Date(koReopenUntil) <= new Date()) return null
+  return (
+    <span className="text-xs px-2 py-0.5 rounded-full border font-medium text-orange-400 bg-orange-500/10 border-orange-500/30">
+      ⚡ KO open to {new Date(koReopenUntil).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
+    </span>
+  )
+}
+
 function LogoUploader({ league, onUploaded, onRemoved }) {
   const [preview, setPreview] = useState(league.logo_url || null)
   const [uploading, setUploading] = useState(false)
@@ -323,6 +332,9 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
   const [overridingLeague, setOverridingLeague] = useState(null)
   const [overrideValue, setOverrideValue] = useState('')
   const [savingOverride, setSavingOverride] = useState(false)
+  const [koReopenLeague, setKoReopenLeague] = useState(null)
+  const [koReopenValue, setKoReopenValue] = useState('')
+  const [savingKoReopen, setSavingKoReopen] = useState(false)
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -413,6 +425,26 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
     finally { setSavingOverride(false) }
   }
 
+  const handleSaveKoReopen = async (leagueId, value) => {
+    setSavingKoReopen(true)
+    try {
+      const koReopenUntil = value ? new Date(value).toISOString() : null
+      const res = await fetch('/api/admin/set-ko-reopen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leagueId, koReopenUntil }),
+      })
+      const data = await res.json()
+      if (!res.ok) showToast(data.error || 'Failed to update', 'error')
+      else {
+        setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, ko_reopen_until: koReopenUntil } : l))
+        showToast(koReopenUntil ? 'KO reopen deadline saved ✓' : 'KO reopen cleared')
+        setKoReopenLeague(null)
+      }
+    } catch { showToast('Something went wrong', 'error') }
+    finally { setSavingKoReopen(false) }
+  }
+
   const handleRename = async () => {
     if (!renameValue.trim() || !renamingMember) return
     setRenaming(true)
@@ -497,6 +529,7 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                     <code className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded font-mono">{league.invite_code}</code>
                     <TierBadge tier={league.tier} isComped={league.is_comped} />
                     <OverrideBadge overrideUntil={league.predictions_override_until} />
+                    <KoReopenBadge koReopenUntil={league.ko_reopen_until} />
                   </div>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="text-xs text-gray-500">
@@ -546,6 +579,16 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                     className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-blue-500/10 text-gray-500 hover:text-blue-400 border border-gray-700 hover:border-blue-500/30 rounded-lg transition-colors"
                   >
                     ⏰ Lock override
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setKoReopenLeague(koReopenLeague === league.id ? null : league.id)
+                      setKoReopenValue(league.ko_reopen_until ? toLocalInputValue(league.ko_reopen_until) : '')
+                    }}
+                    className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-orange-500/10 text-gray-500 hover:text-orange-400 border border-gray-700 hover:border-orange-500/30 rounded-lg transition-colors"
+                  >
+                    ⚡ KO reopen
                   </button>
 
                   {confirmDelete === league.id ? (
@@ -604,6 +647,34 @@ export default function LeaguesClient({ leagues: initialLeagues, nextKickoff }) 
                 </div>
               )}
 
+              {koReopenLeague === league.id && (
+                <div className="border-t border-gray-800 px-5 py-3 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500">KO predictions open until:</span>
+                  <input
+                    type="datetime-local" value={koReopenValue} onChange={e => setKoReopenValue(e.target.value)}
+                    className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    onClick={() => handleSaveKoReopen(league.id, koReopenValue)}
+                    disabled={savingKoReopen || !koReopenValue}
+                    className="text-xs px-3 py-1.5 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 text-white font-bold rounded-lg transition-colors"
+                  >
+                    {savingKoReopen ? '…' : 'Save'}
+                  </button>
+                  {league.ko_reopen_until && (
+                    <button
+                      onClick={() => handleSaveKoReopen(league.id, null)}
+                      disabled={savingKoReopen}
+                      className="text-xs px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <button onClick={() => setKoReopenLeague(null)} className="text-xs px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg transition-colors">Cancel</button>
+                  <span className="text-xs text-gray-600 ml-auto">Times shown in your local timezone (UK)</span>
+                </div>
+              )}
+              
               {expanded[league.id] && (
                 <div className="border-t border-gray-800 px-5 py-3">
                   {league.members.length === 0 ? (
