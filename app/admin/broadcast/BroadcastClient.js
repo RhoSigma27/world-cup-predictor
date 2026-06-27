@@ -9,6 +9,7 @@ const TIER_OPTIONS = [
   { value: 'fanatic',    label: 'Fanatic tier only' },
   { value: 'business',   label: 'Business tier only' },
   { value: 'post_lock',  label: 'Leagues created after prediction lock (11 Jun)' },
+  { value: 'all_users', label: 'All active users (KO reset notification)' },
 ]
 
 export default function BroadcastClient() {
@@ -67,7 +68,7 @@ export default function BroadcastClient() {
         <div className="text-4xl mb-4">✅</div>
         <h2 className="text-xl font-bold text-white mb-2">Broadcast sent</h2>
         <p className="text-gray-400">
-          Your message was sent to <span className="text-yellow-400 font-bold">{result.recipientCount}</span> league admin{result.recipientCount !== 1 ? 's' : ''}.
+          Your message was sent to <span className="text-yellow-400 font-bold">{result.recipientCount}</span> recipient{result.recipientCount !== 1 ? 's' : ''}.
         </p>
         <button
           onClick={() => setResult(null)}
@@ -89,7 +90,7 @@ export default function BroadcastClient() {
             <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">Recipients</p>
             <p className="text-white font-semibold">
               {TIER_OPTIONS.find(t => t.value === tier)?.label}
-              {count !== null && <span className="text-yellow-400 ml-2">— {count} admin{count !== 1 ? 's' : ''}</span>}
+              {count !== null && <span className="text-yellow-400 ml-2">— {count} recipient{count !== 1 ? 's' : ''}</span>}
             </p>
           </div>
           <div>
@@ -112,7 +113,7 @@ export default function BroadcastClient() {
             disabled={sending}
             className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-gray-950 font-bold rounded-lg text-sm transition-colors"
           >
-            {sending ? 'Sending…' : `Send to ${count ?? '?'} admin${count !== 1 ? 's' : ''}`}
+            {sending ? 'Sending…' : `Send to ${count ?? '?'} recipient${count !== 1 ? 's' : ''}`}
           </button>
           <button
             onClick={() => { setConfirming(false); setResult(null) }}

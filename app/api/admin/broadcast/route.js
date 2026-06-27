@@ -15,6 +15,25 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function getRecipients(adminSupabase, tier) {
+  // Special case: all active users in multi-member leagues with group predictions
+  if (tier === 'all_users') {
+        // This is complex for Supabase to do in one query — use raw SQL instead
+    const { data: userRows } = await adminSupabase.rpc('get_active_ko_reset_users')
+
+    if (!userRows?.length) return []
+
+    const userIds = [...new Set(userRows.map(r => r.user_id))]
+
+    const { data: profiles } = await adminSupabase
+      .from('profiles')
+      .select('id, email, display_name, is_banned')
+      .in('id', userIds)
+      .eq('is_banned', false)
+      .not('email', 'is', null)
+
+    return (profiles || []).filter(p => p.email)
+  }
+  
   let query = adminSupabase
     .from('leagues')
     .select('admin_id')
@@ -44,7 +63,7 @@ async function getRecipients(adminSupabase, tier) {
 
 // ─── Email HTML ───────────────────────────────────────────────────────────────
 
-function buildBroadcastHtml({ subject, message }) {
+function buildBroadcastHtml({ subject, message, recipientType = 'admin' }) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://thematchpredictor.com'
 
   return `
@@ -82,7 +101,10 @@ function buildBroadcastHtml({ subject, message }) {
     <!-- Footer -->
     <div style="border-top: 1px solid #1f2937; margin-top: 32px; padding-top: 20px; text-align: center;">
       <p style="color: #4b5563; font-size: 12px; margin: 0 0 4px 0;">
-        You're receiving this as a league admin on World Cup Predictor 2026.
+        ${recipientType === 'all_users'
+          ? "You're receiving this as a player on World Cup Predictor 2026."
+          : "You're receiving this as a league admin on World Cup Predictor 2026."
+        }
       </p>
       <p style="color: #374151; font-size: 11px; margin: 0;">
         <a href="${siteUrl}" style="color: #4b5563; text-decoration: none;">thematchpredictor.com</a>
@@ -154,7 +176,7 @@ export async function POST(request) {
     }
 
     const recipientEmails = recipients.map(r => r.email)
-    const html = buildBroadcastHtml({ subject: subject.trim(), message: message.trim() })
+    const html = buildBroadcastHtml({ subject: subject.trim(), message: message.trim(), recipientType: tier })
 
     // ── Send in batches of 50 (Resend BCC limit) ──────────────────────────────
     const chunkSize = 49
