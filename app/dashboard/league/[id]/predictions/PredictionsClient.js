@@ -331,6 +331,7 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
 
     return (
       <div className={`w-44 bg-gray-900 border rounded-lg overflow-hidden flex-shrink-0 ${hasPred ? 'border-gray-600' : 'border-gray-700/50'}`}>
+        <div className="px-2 pt-1 pb-0.5 text-[10px] text-gray-600 border-b border-gray-800">M{f.match_number}</div>
         <div className="p-1 space-y-0.5">
           <TeamRow team={t1} score={pred.home} isWinner={winner === t1 && !isTbd1} isTbd={isTbd1} />
           <TeamRow team={t2} score={pred.away} isWinner={winner === t2 && !isTbd2} isTbd={isTbd2} />
@@ -339,10 +340,18 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
     )
   }
 
+  const R32_DISPLAY_ORDER = [74,77, 73,75, 83,84, 81,82, 76,78, 79,80, 86,88, 85,87]
+  const R16_DISPLAY_ORDER = [89,90, 93,94, 91,92, 95,96]
+
   const rounds = ['R32', 'R16', 'QF', 'SF', 'FINAL']
   const bronze = koFixtures.find(f => f.round === '3RD')
-  const roundFixtures = (round) => koFixtures.filter(f => f.round === round).sort((a, b) => a.match_number - b.match_number)
-
+  const roundFixtures = (round) => {
+    const fs = koFixtures.filter(f => f.round === round)
+    if (round === 'R32') return R32_DISPLAY_ORDER.map(n => fs.find(f => f.match_number === n)).filter(Boolean)
+    if (round === 'R16') return R16_DISPLAY_ORDER.map(n => fs.find(f => f.match_number === n)).filter(Boolean)
+    return fs.sort((a, b) => a.match_number - b.match_number)
+  }
+  
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={onClose}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950 flex-shrink-0" onClick={e => e.stopPropagation()}>
