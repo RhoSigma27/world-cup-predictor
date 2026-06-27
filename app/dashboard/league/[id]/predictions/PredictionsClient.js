@@ -8,7 +8,7 @@ import { useState, useRef, useCallback, useEffect, Fragment } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { isPredictionsLocked, getOverrideUntil } from '@/lib/predictionsLock'
+import { isPredictionsLocked, getOverrideUntil, isKOReopened, getKOReopenUntil } from '@/lib/predictionsLock'
 
 function calcGroupTables(predictions, fixtures) {
   const tables = {}
@@ -627,6 +627,8 @@ export default function PredictionsClient({
 }) {
   const locked = isPredictionsLocked(league)
   const overrideUntil = getOverrideUntil(league)
+  const koReopened = isKOReopened(league)
+  const koReopenUntil = getKOReopenUntil(league)
   const [activeGroup, setActiveGroup] = useState('A')
   const [saveStatus, setSaveStatus] = useState('saved')
   const [toast, setToast] = useState(null)
@@ -717,7 +719,9 @@ export default function PredictionsClient({
   }
 
   const savePrediction = useCallback(async (fixtureId, home, away) => {
-    if (locked) return
+    const f = fixtures.find(fix => fix.id === fixtureId)
+    const isKO = f?.round !== 'group'
+    if (locked && !(isKO && koReopened)) return
     setSaveStatus('saving')
     const { error } = await supabase
       .from('predictions')
@@ -924,6 +928,26 @@ export default function PredictionsClient({
             </div>
           )}
           
+          {koReopenUntil && (
+            <div className="mb-4 bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+              <p className="text-sm text-blue-300 font-medium mb-1">
+                ⚡ Knockout predictions reopened
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Due to a technical issue with the knockout bracket configuration, 
+                we've reset all R16–Final predictions and reopened them until{' '}
+                <strong className="text-white">
+                  {koReopenUntil.toLocaleString('en-GB', { 
+                    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/London' 
+                  })}
+                </strong>{' '}
+                (London time). Your R32 predictions and group stage are unaffected. 
+                You'll only be scored on teams you predict to progress — 
+                incomplete slots simply score zero, as always.
+              </p>
+            </div>
+          )}
+
           {/* Import banner */}
           <ImportBanner importableLeagues={importableLeagues} leagueId={leagueId} onImported={handleImported} />
 
@@ -1068,11 +1092,11 @@ export default function PredictionsClient({
                                   {t1 === 'TBD' ? <span className="text-gray-600 text-xs italic">TBD</span> : <TeamCell team={t1} align="right" />}
                                 </td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={locked || t1 === 'TBD' || t2 === 'TBD'}/>
+                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={(locked && !koReopened) || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={locked || t1 === 'TBD' || t2 === 'TBD'}/>
+                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={(locked && !koReopened) || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-2 py-2">
                                   {t2 === 'TBD' ? <span className="text-gray-600 text-xs italic">TBD</span> : <TeamCell team={t2} align="left" />}
