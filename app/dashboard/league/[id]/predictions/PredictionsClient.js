@@ -749,7 +749,7 @@ export default function PredictionsClient({
   }
 
   const updateKoPrediction = (fixtureId, side, value) => {
-    if (locked) return
+    if (locked && !koReopened) return
     setKoPredictions(prev => {
       const updated = { ...prev, [fixtureId]: { ...(prev[fixtureId] || {}), [side]: value } }
       const p = updated[fixtureId]
