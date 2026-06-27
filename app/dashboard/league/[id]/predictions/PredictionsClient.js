@@ -732,7 +732,7 @@ export default function PredictionsClient({
       }, { onConflict: 'user_id,league_id,fixture_id' })
     if (error) showToast('Save failed', 'error')
     else setSaveStatus('saved')
-  }, [locked, userId, leagueId, supabase])
+  }, [locked, koReopened, userId, leagueId, supabase])
 
   const updateGroupPrediction = (fixtureId, side, value) => {
     if (locked) return
