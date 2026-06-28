@@ -3,7 +3,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { KO_ROUNDS, ROUND_LABELS, MINI_KO_POINTS, MINI_LOCK_TIME, flagUrl, shortName } from '@/lib/worldcup'
+import { KO_ROUNDS, ROUND_LABELS, MINI_KO_POINTS, flagUrl, shortName } from '@/lib/worldcup'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -15,39 +15,40 @@ function getFixtureWinner(fixture) {
   return null
 }
 
+function hasKickedOff(fixture) {
+  if (!fixture.kickoff_utc) return false
+  return new Date() >= new Date(fixture.kickoff_utc)
+}
+
 function FlagImg({ team, className = 'w-5 h-3.5' }) {
   const src = flagUrl(team)
   if (!src) return null
   return <img src={src} alt="" className={`${className} object-cover rounded-sm flex-shrink-0`} />
 }
 
-// ── Bracket Modal (winners-only, reuses main game layout) ─────────────────────
+// ── Bracket Modal ─────────────────────────────────────────────────────────────
 
 function BracketModal({ onClose, fixtures, predMap }) {
   const rounds = ['R32', 'R16', 'QF', 'SF', 'FINAL']
   const bronze = fixtures.find(f => f.round === '3RD')
 
-  const getTeams = (f) => ({
-    home: f.home_team || 'TBD',
-    away: f.away_team || 'TBD',
-  })
-
   const MatchCard = ({ f }) => {
     if (!f) return <div className="w-44 h-16 rounded-lg bg-gray-800/40 border border-gray-700/30" />
-    const { home, away } = getTeams(f)
-    const predicted = predMap[f.id]
-    const actual    = getFixtureWinner(f)
-    const isComplete = actual != null
-    const isTbdHome = home === 'TBD'
-    const isTbdAway = away === 'TBD'
+    const home = f.home_team || 'TBD'
+    const away = f.away_team || 'TBD'
+    const predicted   = predMap[f.id]
+    const actual      = getFixtureWinner(f)
+    const isComplete  = actual != null
+    const isTbdHome   = home === 'TBD'
+    const isTbdAway   = away === 'TBD'
 
     const TeamRow = ({ team, isTbd, isPredicted, isActualWinner, isWrong }) => (
-      <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${isPredicted && !isComplete ? 'bg-yellow-500/15' : isActualWinner ? 'bg-green-500/15' : isWrong ? '' : ''}`}>
+      <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${isPredicted && !isComplete ? 'bg-yellow-500/15' : isActualWinner ? 'bg-green-500/15' : ''}`}>
         {!isTbd && <FlagImg team={team} className="w-4 h-3 flex-shrink-0" />}
         <span className={`text-xs truncate max-w-[90px] ${
-          isTbd        ? 'text-gray-600 italic'
+          isTbd ? 'text-gray-600 italic'
           : isActualWinner ? 'text-green-300 font-bold'
-          : isWrong    ? 'text-gray-500'
+          : isWrong ? 'text-gray-500'
           : isPredicted ? 'text-yellow-300 font-bold'
           : 'text-gray-300'
         }`}>
@@ -64,18 +65,8 @@ function BracketModal({ onClose, fixtures, predMap }) {
           M{f.match_number} · {MINI_KO_POINTS[f.round] ?? '?'}pts
         </div>
         <div className="p-1 space-y-0.5">
-          <TeamRow
-            team={home} isTbd={isTbdHome}
-            isPredicted={predicted === home}
-            isActualWinner={isComplete && actual === home}
-            isWrong={isComplete && predicted === home && actual !== home}
-          />
-          <TeamRow
-            team={away} isTbd={isTbdAway}
-            isPredicted={predicted === away}
-            isActualWinner={isComplete && actual === away}
-            isWrong={isComplete && predicted === away && actual !== away}
-          />
+          <TeamRow team={home} isTbd={isTbdHome} isPredicted={predicted === home} isActualWinner={isComplete && actual === home} isWrong={isComplete && predicted === home && actual !== home} />
+          <TeamRow team={away} isTbd={isTbdAway} isPredicted={predicted === away} isActualWinner={isComplete && actual === away} isWrong={isComplete && predicted === away && actual !== away} />
         </div>
       </div>
     )
@@ -89,15 +80,10 @@ function BracketModal({ onClose, fixtures, predMap }) {
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={onClose}>
-      <div
-        className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950 flex-shrink-0"
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950 flex-shrink-0" onClick={e => e.stopPropagation()}>
         <div>
           <h2 className="font-bold text-white">🏆 My Predicted Bracket</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Gold = your pick · Green = correct · Red = wrong
-          </p>
+          <p className="text-xs text-gray-500 mt-0.5">Gold = your pick · Green = correct · Red = wrong</p>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-white text-xl px-2">✕</button>
       </div>
@@ -123,9 +109,7 @@ function BracketModal({ onClose, fixtures, predMap }) {
           })}
           {bronze && (
             <div className="flex flex-col flex-shrink-0 opacity-75 ml-4">
-              <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 text-center w-44">
-                Bronze Final
-              </div>
+              <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 text-center w-44">Bronze Final</div>
               <div style={{ height: `${(CARD_H + BASE_GAP) * 8}px` }} className="flex items-start pt-2">
                 <MatchCard f={bronze} />
               </div>
@@ -133,12 +117,8 @@ function BracketModal({ onClose, fixtures, predMap }) {
           )}
         </div>
         <div className="mt-8 flex items-center gap-4 text-xs text-gray-600">
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-yellow-500/15 inline-block border border-yellow-500/30" /> your pick
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-green-500/15 inline-block border border-green-500/30" /> correct
-          </span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500/15 inline-block border border-yellow-500/30" /> your pick</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500/15 inline-block border border-green-500/30" /> correct</span>
           <span className="text-gray-600 italic">TBD = teams not yet confirmed</span>
         </div>
       </div>
@@ -151,15 +131,10 @@ function BracketModal({ onClose, fixtures, predMap }) {
 export default function MiniPredictionsClient({
   league, fixtures, existingPredictions, semiPicks, userId, profile, miniLeagueId,
 }) {
-  const now = new Date()
-  const isLocked = now >= MINI_LOCK_TIME
-
   // Build initial prediction map: fixture_id → predicted_winner
   const [predMap, setPredMap] = useState(() => {
     const map = {}
-    for (const p of existingPredictions) {
-      map[p.fixture_id] = p.predicted_winner
-    }
+    for (const p of existingPredictions) map[p.fixture_id] = p.predicted_winner
     return map
   })
 
@@ -195,12 +170,10 @@ export default function MiniPredictionsClient({
   }, [miniLeagueId])
 
   const handlePick = (fixtureId, team, fixture) => {
-    if (isLocked) return
-    // If match already played, don't allow changes
-    if (getFixtureWinner(fixture)) return
+    // Double-check client-side — server will also enforce this
+    if (hasKickedOff(fixture) || getFixtureWinner(fixture)) return
 
     setPredMap(prev => {
-      // Toggle off if same team tapped again
       const next = prev[fixtureId] === team
         ? { ...prev, [fixtureId]: null }
         : { ...prev, [fixtureId]: team }
@@ -223,10 +196,10 @@ export default function MiniPredictionsClient({
       .sort((a, b) => a.match_number - b.match_number)
   }
 
-  const predictableFixtures = fixtures.filter(f => f.home_team && f.away_team)
-  const totalPredictable = predictableFixtures.length
-  const totalPredicted   = predictableFixtures.filter(f => predMap[f.id]).length
-  const progressPct      = totalPredictable > 0 ? Math.round((totalPredicted / totalPredictable) * 100) : 0
+  const predictableFixtures = fixtures.filter(f => f.home_team && f.away_team && !hasKickedOff(f) && !getFixtureWinner(f))
+  const totalPredictable   = fixtures.filter(f => f.home_team && f.away_team).length
+  const totalPredicted     = fixtures.filter(f => f.home_team && f.away_team && predMap[f.id]).length
+  const progressPct        = totalPredictable > 0 ? Math.round((totalPredicted / totalPredictable) * 100) : 0
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -236,23 +209,16 @@ export default function MiniPredictionsClient({
           ← {league.league_name}
         </Link>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500">
-            {totalPredicted}/{totalPredictable} picks
-          </span>
+          <span className="text-xs text-gray-500">{totalPredicted}/{totalPredictable} picks</span>
           <div className="flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full ${
-              saveStatus === 'saved'   ? 'bg-green-400'
+              saveStatus === 'saved' ? 'bg-green-400'
               : saveStatus === 'saving' ? 'bg-yellow-400'
               : 'bg-red-400'
             }`} />
             <span className="text-xs text-gray-500">
               {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving…' : 'Unsaved'}
             </span>
-          </div>
-          <div className={`text-xs px-2 py-1 rounded-full font-medium ${
-            isLocked ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
-          }`}>
-            {isLocked ? '🔒 Locked' : '🔓 Open'}
           </div>
         </div>
       </nav>
@@ -266,25 +232,17 @@ export default function MiniPredictionsClient({
             <span>{totalPredicted}/{totalPredictable} · {progressPct}%</span>
           </div>
           <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-yellow-500 rounded-full transition-all duration-300"
-              style={{ width: `${progressPct}%` }}
-            />
+            <div className="h-full bg-yellow-500 rounded-full transition-all duration-300" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
 
         {/* Semi picks summary */}
         {semiPicks.length === 4 && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6">
-            <p className="text-xs text-yellow-400 font-bold uppercase tracking-wider mb-2">
-              🏆 Your semi-finalist picks
-            </p>
+            <p className="text-xs text-yellow-400 font-bold uppercase tracking-wider mb-2">🏆 Your semi-finalist picks</p>
             <div className="flex flex-wrap gap-2">
               {semiPicks.map(team => (
-                <span
-                  key={team}
-                  className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs px-2.5 py-1 rounded-full"
-                >
+                <span key={team} className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs px-2.5 py-1 rounded-full">
                   <FlagImg team={team} className="w-4 h-3" />
                   {team}
                 </span>
@@ -323,22 +281,21 @@ export default function MiniPredictionsClient({
 
               <div className="space-y-3">
                 {roundFixtures.map(f => {
-                  const homeTeam    = f.home_team
-                  const awayTeam    = f.away_team
-                  const isTbd       = !homeTeam || !awayTeam
+                  const homeTeam     = f.home_team
+                  const awayTeam     = f.away_team
+                  const isTbd        = !homeTeam || !awayTeam
                   const actualWinner = getFixtureWinner(f)
-                  const isComplete  = actualWinner != null
-                  const predicted   = predMap[f.id]
-                  const isCorrect   = isComplete && predicted && predicted === actualWinner
-                  const isWrong     = isComplete && predicted && predicted !== actualWinner
-                  const canPredict  = !isLocked && !isComplete && !isTbd
+                  const isComplete   = actualWinner != null
+                  const kicked       = hasKickedOff(f)
+                  const predicted    = predMap[f.id]
+                  const isCorrect    = isComplete && predicted && predicted === actualWinner
+                  const isWrong      = isComplete && predicted && predicted !== actualWinner
+                  // Can predict: teams known, not kicked off yet, not already finished
+                  const canPredict   = !isTbd && !kicked && !isComplete
 
                   if (isTbd) {
                     return (
-                      <div
-                        key={f.id}
-                        className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center gap-2"
-                      >
+                      <div key={f.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center gap-2">
                         <span className="text-gray-600 text-xs">🔒</span>
                         <span className="text-gray-600 text-xs italic">
                           Teams to be confirmed (Match {f.match_number})
@@ -348,28 +305,34 @@ export default function MiniPredictionsClient({
                   }
 
                   return (
-                    <div
-                      key={f.id}
-                      className={`bg-gray-900 border rounded-xl p-3 transition-colors ${
-                        isCorrect ? 'border-green-500/40'
-                        : isWrong  ? 'border-gray-800'
-                        : predicted ? 'border-yellow-500/40'
-                        : 'border-gray-800'
-                      }`}
-                    >
-                      {/* Match number + date */}
+                    <div key={f.id} className={`bg-gray-900 border rounded-xl p-3 transition-colors ${
+                      isCorrect ? 'border-green-500/40'
+                      : isWrong ? 'border-gray-800'
+                      : predicted ? 'border-yellow-500/40'
+                      : 'border-gray-800'
+                    }`}>
+                      {/* Match info */}
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-gray-600">Match {f.match_number}</span>
-                        {f.kickoff_utc && (
-                          <span className="text-xs text-gray-600">
-                            {new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {kicked && !isComplete && (
+                            <span className="text-xs text-orange-400">🔒 In progress</span>
+                          )}
+                          {kicked && isComplete && (
+                            <span className="text-xs text-gray-600">Full time</span>
+                          )}
+                          {!kicked && f.kickoff_utc && (
+                            <span className="text-xs text-gray-600">
+                              {new Date(f.kickoff_utc).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                              {' · '}
+                              {new Date(f.kickoff_utc).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} UK
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Team buttons */}
                       <div className="flex items-center gap-2">
-                        {/* Home team */}
                         <button
                           onClick={() => handlePick(f.id, homeTeam, f)}
                           disabled={!canPredict}
@@ -381,11 +344,10 @@ export default function MiniPredictionsClient({
                                 ? 'bg-green-500/15 border-green-500/40 text-green-300 font-medium'
                                 : isComplete && predicted === homeTeam && actualWinner !== homeTeam
                                   ? 'bg-gray-800 border-gray-700 text-gray-500'
-                                  : isComplete
+                                  : isComplete || kicked
                                     ? 'bg-gray-900 border-gray-800 text-gray-500'
                                     : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-yellow-500/40 hover:text-white'
-                            }
-                          `}
+                            }`}
                         >
                           <FlagImg team={homeTeam} />
                           <span className="hidden sm:inline truncate">{homeTeam}</span>
@@ -396,7 +358,6 @@ export default function MiniPredictionsClient({
 
                         <span className="text-gray-600 text-xs flex-shrink-0">vs</span>
 
-                        {/* Away team */}
                         <button
                           onClick={() => handlePick(f.id, awayTeam, f)}
                           disabled={!canPredict}
@@ -408,11 +369,10 @@ export default function MiniPredictionsClient({
                                 ? 'bg-green-500/15 border-green-500/40 text-green-300 font-medium'
                                 : isComplete && predicted === awayTeam && actualWinner !== awayTeam
                                   ? 'bg-gray-800 border-gray-700 text-gray-500'
-                                  : isComplete
+                                  : isComplete || kicked
                                     ? 'bg-gray-900 border-gray-800 text-gray-500'
                                     : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-yellow-500/40 hover:text-white'
-                            }
-                          `}
+                            }`}
                         >
                           <FlagImg team={awayTeam} />
                           <span className="hidden sm:inline truncate">{awayTeam}</span>
@@ -422,14 +382,19 @@ export default function MiniPredictionsClient({
                         </button>
                       </div>
 
-                      {/* Result / no prediction note */}
+                      {/* Result note */}
                       {isComplete && (
-                        <div className={`mt-2 text-xs text-center ${
-                          isCorrect ? 'text-green-400' : isWrong ? 'text-red-400' : 'text-gray-500'
-                        }`}>
+                        <div className={`mt-2 text-xs text-center ${isCorrect ? 'text-green-400' : isWrong ? 'text-red-400' : 'text-gray-500'}`}>
                           {isCorrect && `✓ Correct — ${actualWinner} won · +${roundPts} pts`}
-                          {isWrong  && `✗ ${actualWinner} won · +0 pts`}
+                          {isWrong   && `✗ ${actualWinner} won · +0 pts`}
                           {!predicted && `No prediction made · ${actualWinner} won`}
+                        </div>
+                      )}
+
+                      {/* Kicked off but not complete — no prediction */}
+                      {kicked && !isComplete && !predicted && (
+                        <div className="mt-2 text-xs text-center text-orange-400/70">
+                          Match in progress — predictions closed
                         </div>
                       )}
                     </div>
@@ -444,11 +409,7 @@ export default function MiniPredictionsClient({
 
       {/* Bracket modal */}
       {showBracket && (
-        <BracketModal
-          onClose={() => setShowBracket(false)}
-          fixtures={fixtures}
-          predMap={predMap}
-        />
+        <BracketModal onClose={() => setShowBracket(false)} fixtures={fixtures} predMap={predMap} />
       )}
 
       {/* Toast */}
