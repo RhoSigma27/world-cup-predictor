@@ -11,6 +11,10 @@ const SCORING_ROWS = [
   { round: 'Bronze Final / Final',   result: '50 pts', exact: '+25 pts' },
 ]
 
+// Replace the existing FAQS constant in app/help/page.js (or wherever HelpPage lives)
+// All other code in the file remains unchanged.
+// The two new entries are added to the 'Predictions' category items array.
+
 const FAQS = [
   {
     category: 'Scoring',
@@ -100,6 +104,18 @@ We recommend getting everything in well before then. It's much more fun to have 
       {
         q: 'Can I change my knockout stage predictions?',
         a: `Yes — you can overwrite your knockout predictions at any time before the tournament begins on **11 June 2026**. Simply go to your Predictions page, navigate to the knockout round, and enter new scores. Your latest entry is always saved automatically.`
+      },
+      {
+        q: 'Why do I have to enter all my predictions before the tournament starts?',
+        a: `The short answer is that this makes the game a true test of football knowledge rather than a test of who remembers to log in at the right time.
+
+The longer answer is that this tournament format makes round-by-round prediction surprisingly tricky to do fairly. With 48 teams and 12 groups, 8 of the best third-place teams qualify for the Round of 32 — but which 8, and crucially which slots they fill, depends on a FIFA allocation table with 495 possible combinations. This means even if you correctly predict most of the group stage results, your Round of 32 bracket could look very different from reality through no fault of your predictions.
+
+To handle this fairly, we use **team-centric scoring** in the knockout rounds — you earn points for correctly predicting a team's result and score regardless of who their opponent turns out to be. Predicting "Spain win 2–1" earns points whether that 2–1 was against England or Argentina. This rewards the quality of your football knowledge, not your luck with the bracket draw.
+
+Entering all predictions upfront also means everyone is on a level playing field from day one — no one can benefit from watching earlier matches before making their picks.
+
+**Prefer to predict round by round?** If you'd rather enter predictions as each round unfolds — and don't mind keeping on top of multiple prediction windows — check out the **KO Predictor** at thematchpredictor.com/mini. It's a lighter version of the game focused purely on the knockout stages, where you pick the winner of each match as the real fixtures are confirmed, round by round, right up until each match kicks off.`
       },
       {
         q: 'Where do I enter my Star Pick?',
