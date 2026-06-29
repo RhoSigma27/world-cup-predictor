@@ -351,7 +351,7 @@ function BracketModal({ onClose, fixtures, groupPredictions, koPredictions, tabl
     if (round === 'R16') return R16_DISPLAY_ORDER.map(n => fs.find(f => f.match_number === n)).filter(Boolean)
     return fs.sort((a, b) => a.match_number - b.match_number)
   }
-  
+
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={onClose}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950 flex-shrink-0" onClick={e => e.stopPropagation()}>
@@ -759,6 +759,8 @@ export default function PredictionsClient({
 
   const updateKoPrediction = (fixtureId, side, value) => {
     if (locked && !koReopened) return
+    const fixture = fixtures.find(fix => fix.id === fixtureId)
+    if (fixture && isRoundLocked(fixture.round)) return
     setKoPredictions(prev => {
       const updated = { ...prev, [fixtureId]: { ...(prev[fixtureId] || {}), [side]: value } }
       const p = updated[fixtureId]
@@ -1101,11 +1103,11 @@ export default function PredictionsClient({
                                   {t1 === 'TBD' ? <span className="text-gray-600 text-xs italic">TBD</span> : <TeamCell team={t1} align="right" />}
                                 </td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={(locked && !koReopened) || t1 === 'TBD' || t2 === 'TBD'}/>
+                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={(locked && !(koReopened && f.round !== 'R32')) || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={(locked && !koReopened) || t1 === 'TBD' || t2 === 'TBD'}/>
+                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={(locked && !(koReopened && f.round !== 'R32')) || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-2 py-2">
                                   {t2 === 'TBD' ? <span className="text-gray-600 text-xs italic">TBD</span> : <TeamCell team={t2} align="left" />}
