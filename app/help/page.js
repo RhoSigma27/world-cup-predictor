@@ -25,7 +25,7 @@ const FAQS = [
 
 When a knockout match is played, the app looks at both teams separately and asks: did you predict this team to reach this round, and did you predict the right outcome for them? If yes, you earn points — regardless of who their opponent actually was.
 
-This is by design. In the Round of 32, 8 of the 32 fixtures involve third-placed group teams whose placement is determined by a FIFA draw with 495 possible combinations. Scoring only on exact fixture match-ups would mean nearly everyone scores zero on those matches through no fault of their own. The team-centric model rewards your football knowledge — correctly calling which teams advance and which exit — rather than luck of the draw.`
+This is by design. In the Round of 32, 8 of the 16 fixtures involve third-placed group teams whose placement is determined by a FIFA draw with 495 possible combinations. Scoring only on exact fixture match-ups would mean nearly everyone scores zero on those matches through no fault of their own. The team-centric model rewards your football knowledge — correctly calling which teams advance and which exit — rather than luck of the draw.`
       },
       {
         q: 'What is a Star Pick and how does it work?',
