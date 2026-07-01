@@ -1,7 +1,8 @@
 'use client'
 // app/mini/league/[id]/predictions/MiniPredictionsClient.js
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { KO_ROUNDS, ROUND_LABELS, MINI_KO_POINTS, flagUrl, shortName } from '@/lib/worldcup'
 
@@ -24,6 +25,139 @@ function FlagImg({ team, className = 'w-5 h-3.5' }) {
   const src = flagUrl(team)
   if (!src) return null
   return <img src={src} alt="" className={`${className} object-cover rounded-sm flex-shrink-0`} />
+}
+
+
+// ── Two-segment OddsPie (home win / away win only — no draw in KO) ────────────
+
+function OddsPie2({ homePct, drawPct, awayPct, homeTeam, awayTeam }) {
+  const canvasRef = useRef(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const W = 178, H = 178, cx = 89, cy = 89, R = 86
+    const probs = [homePct / 100, drawPct / 100, awayPct / 100]
+    const light = ['#4a90d9', '#aaaaaa', '#e05555']
+    const dark  = ['#0a3d7a', '#3a3a3a', '#7a0f0f']
+    const off = document.createElement('canvas')
+    off.width = W; off.height = H
+    const o = off.getContext('2d')
+    o.fillStyle = '#fff'
+    o.beginPath(); o.arc(cx, cy, R, 0, Math.PI * 2); o.fill()
+    function pentagon(c, x, y, r, rot) {
+      c.beginPath()
+      for (let i = 0; i < 5; i++) {
+        const a = rot + i * Math.PI * 2 / 5
+        i === 0 ? c.moveTo(x + r * Math.cos(a), y + r * Math.sin(a))
+                : c.lineTo(x + r * Math.cos(a), y + r * Math.sin(a))
+      }
+      c.closePath()
+    }
+    o.fillStyle = '#111'
+    pentagon(o, cx, cy, 18, -Math.PI / 2); o.fill()
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5
+      pentagon(o, cx + 40 * Math.cos(a), cy + 40 * Math.sin(a), 15, a + Math.PI / 5); o.fill()
+    }
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + (i + 0.5) * Math.PI * 2 / 5
+      pentagon(o, cx + 70 * Math.cos(a), cy + 70 * Math.sin(a), 12, a); o.fill()
+    }
+    const fd = o.getImageData(0, 0, W, H).data
+    const angles = []
+    let cum = -Math.PI / 2
+    for (const p of probs) { angles.push(cum); cum += p * Math.PI * 2 }
+    angles.push(cum)
+    const out = ctx.createImageData(W, H)
+    const od = out.data
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const dx = x - cx, dy = y - cy
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const i = (y * W + x) * 4
+        if (dist > R) { od[i + 3] = 0; continue }
+        let angle = Math.atan2(dy, dx)
+        let seg = probs.length - 1
+        for (let s = 0; s < probs.length; s++) {
+          let a = angle
+          while (a < angles[s] - 0.001) a += Math.PI * 2
+          if (a >= angles[s] && a < angles[s + 1]) { seg = s; break }
+        }
+        const brightness = (fd[i] + fd[i + 1] + fd[i + 2]) / 3
+        const t = brightness / 255
+        const lc = light[seg], dc = dark[seg]
+        const lr = parseInt(lc.slice(1, 3), 16), lg = parseInt(lc.slice(3, 5), 16), lb = parseInt(lc.slice(5, 7), 16)
+        const dr = parseInt(dc.slice(1, 3), 16), dg = parseInt(dc.slice(3, 5), 16), db = parseInt(dc.slice(5, 7), 16)
+        od[i]     = Math.round(dr + (lr - dr) * t)
+        od[i + 1] = Math.round(dg + (lg - dg) * t)
+        od[i + 2] = Math.round(db + (lb - db) * t)
+        od[i + 3] = 255
+      }
+    }
+    ctx.putImageData(out, 0, 0)
+    ctx.save()
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip()
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2.5
+    for (let s = 0; s < probs.length; s++) {
+      ctx.beginPath(); ctx.moveTo(cx, cy)
+      ctx.lineTo(cx + R * Math.cos(angles[s]), cy + R * Math.sin(angles[s])); ctx.stroke()
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, R - 1, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke()
+    ctx.font = 'bold 13px sans-serif'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    const labels = [`${homePct}%`, `${drawPct}%`, `${awayPct}%`]
+    for (let s = 0; s < probs.length; s++) {
+      const mid = angles[s] + probs[s] * Math.PI
+      const lx = cx + R * 0.6 * Math.cos(mid)
+      const ly = cy + R * 0.6 * Math.sin(mid)
+      ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 4
+      ctx.fillStyle = 'white'; ctx.fillText(labels[s], lx, ly)
+    }
+    ctx.restore()
+  }, [homePct, drawPct, awayPct])
+
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 w-52 shadow-xl">
+      <p className="text-xs text-gray-500 text-center mb-2 uppercase tracking-wider font-bold">Match outcome probability</p>
+      <canvas ref={canvasRef} width={178} height={178} className="w-full h-auto" />
+      <div className="flex justify-between mt-3 text-xs">
+        <span className="text-blue-400 font-bold truncate max-w-[38%]">{homeTeam}</span>
+        <span className="text-gray-400 font-bold flex-shrink-0 mx-1">Pens</span>
+        <span className="text-red-400 font-bold truncate max-w-[38%] text-right">{awayTeam}</span>
+      </div>
+      <p className="text-[10px] text-gray-600 text-center mt-2">Derived from bookmaker odds · updated daily</p>
+    </div>
+  )
+}
+
+function OddsPopover2({ rect, odds, homeTeam, awayTeam, onClose }) {
+  useEffect(() => {
+    const handler = () => onClose()
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+  if (!rect) return null
+  const homePct = Math.round(odds.home_prob ?? 0)
+  const drawPct = Math.round(odds.draw_prob ?? 0)
+  const awayPct = 100 - homePct - drawPct
+  const popoverH = 300
+  const spaceBelow = window.innerHeight - rect.bottom
+  const top = spaceBelow > popoverH ? rect.bottom + 6 : rect.top - popoverH - 6
+  const right = window.innerWidth - rect.right
+  return createPortal(
+    <div style={{ position: 'fixed', top, right, zIndex: 9999 }} onMouseDown={e => e.stopPropagation()}>
+      <OddsPie2
+        homePct={homePct}
+        drawPct={drawPct}
+        awayPct={awayPct}
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
+      />
+    </div>,
+    document.body
+  )
 }
 
 // ── Bracket Modal ─────────────────────────────────────────────────────────────
@@ -137,6 +271,7 @@ function BracketModal({ onClose, fixtures, predMap }) {
 
 export default function MiniPredictionsClient({
   league, fixtures, existingPredictions, semiPicks, userId, profile, miniLeagueId,
+  fixtureOdds = {},
 }) {
   // Build initial prediction map: fixture_id → predicted_winner
   const [predMap, setPredMap] = useState(() => {
@@ -148,6 +283,7 @@ export default function MiniPredictionsClient({
   const [saveStatus, setSaveStatus] = useState('saved')
   const [toast, setToast] = useState(null)
   const [showBracket, setShowBracket] = useState(false)
+  const [oddsOpen, setOddsOpen] = useState(null)
   const saveTimers = useRef({})
 
   const showToast = (msg, type = 'success') => {
@@ -335,6 +471,25 @@ export default function MiniPredictionsClient({
                               {new Date(f.kickoff_utc).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} UK
                             </span>
                           )}
+                          {fixtureOdds[f.id] && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation()
+                                if (oddsOpen?.fixtureId === f.id) { setOddsOpen(null); return }
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                setOddsOpen({ fixtureId: f.id, rect, odds: fixtureOdds[f.id], homeTeam: f.home_team, awayTeam: f.away_team })
+                              }}
+                              className={`inline-flex items-center gap-1 text-xs px-1.5 py-1 rounded border transition-colors flex-shrink-0
+                                ${oddsOpen?.fixtureId === f.id ? 'border-gray-500 text-gray-300 bg-gray-800' : 'border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'}`}
+                            >
+                              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                                <rect x="0" y="5" width="3" height="7" rx="1" fill="currentColor"/>
+                                <rect x="4" y="3" width="3" height="9" rx="1" fill="currentColor"/>
+                                <rect x="8" y="0.5" width="3" height="11.5" rx="1" fill="currentColor"/>
+                              </svg>
+                              %
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -413,6 +568,17 @@ export default function MiniPredictionsClient({
         })}
 
       </div>
+
+      {/* Odds popover */}
+      {oddsOpen && (
+        <OddsPopover2
+          rect={oddsOpen.rect}
+          odds={oddsOpen.odds}
+          homeTeam={oddsOpen.homeTeam}
+          awayTeam={oddsOpen.awayTeam}
+          onClose={() => setOddsOpen(null)}
+        />
+      )}
 
       {/* Bracket modal */}
       {showBracket && (

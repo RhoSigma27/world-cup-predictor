@@ -62,6 +62,23 @@ export default async function MiniPredictionsPage({ params }) {
     .eq('id', user.id)
     .single()
 
+  // Load odds for KO fixtures — same table as main game
+  const fixtureIds = (fixtures || []).map(f => f.id)
+  let fixtureOdds = {}
+  if (fixtureIds.length > 0) {
+    const { data: oddsRows } = await adminSupabase
+      .from('fixture_odds')
+      .select('fixture_id, home_prob, draw_prob, away_prob')
+      .in('fixture_id', fixtureIds)
+    for (const row of oddsRows || []) {
+      fixtureOdds[row.fixture_id] = {
+        home_prob: row.home_prob,
+        draw_prob: row.draw_prob,
+        away_prob: row.away_prob,
+      }
+    }
+  }
+
   return (
     <MiniPredictionsClient
       league={league}
@@ -71,6 +88,7 @@ export default async function MiniPredictionsPage({ params }) {
       userId={user.id}
       profile={profile}
       miniLeagueId={id}
+      fixtureOdds={fixtureOdds}
     />
   )
 }
