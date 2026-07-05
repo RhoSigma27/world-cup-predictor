@@ -760,7 +760,7 @@ export default function PredictionsClient({
   const updateKoPrediction = (fixtureId, side, value) => {
     if (locked && !koReopened) return
     const fixture = fixtures.find(fix => fix.id === fixtureId)
-    if (fixture && isRoundLocked(fixture.round)) return
+    if (fixture && ((isRoundLocked(fixture.round) && !(koReopened && fixture.round === 'R16')) || [89, 90].includes(fixture.match_number))) return
     setKoPredictions(prev => {
       const updated = { ...prev, [fixtureId]: { ...(prev[fixtureId] || {}), [side]: value } }
       const p = updated[fixtureId]
@@ -1103,11 +1103,11 @@ export default function PredictionsClient({
                                   {t1 === 'TBD' ? <span className="text-gray-600 text-xs italic">TBD</span> : <TeamCell team={t1} align="right" />}
                                 </td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={(locked && !(koReopened && f.round !== 'R32')) || t1 === 'TBD' || t2 === 'TBD'}/>
+                                  <ScoreInput value={pred.home} onChange={v => updateKoPrediction(f.id, 'home', v)} disabled={(locked && !(koReopened && f.round !== 'R32')) || (isRoundLocked(f.round) && !(koReopened && f.round === 'R16')) || [89, 90].includes(f.match_number) || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-1 py-2 text-center text-gray-600 font-bold">–</td>
                                 <td className="px-1 py-2 text-center">
-                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={(locked && !(koReopened && f.round !== 'R32')) || t1 === 'TBD' || t2 === 'TBD'}/>
+                                  <ScoreInput value={pred.away} onChange={v => updateKoPrediction(f.id, 'away', v)} disabled={(locked && !(koReopened && f.round !== 'R32')) || (isRoundLocked(f.round) && !(koReopened && f.round === 'R16')) || [89, 90].includes(f.match_number) || t1 === 'TBD' || t2 === 'TBD'}/>
                                 </td>
                                 <td className="px-2 py-2">
                                   {t2 === 'TBD' ? <span className="text-gray-600 text-xs italic">TBD</span> : <TeamCell team={t2} align="left" />}
