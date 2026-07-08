@@ -9,7 +9,7 @@ const cspHeader = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
 
   // Styles — Tailwind uses inline styles
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 
   // API / WebSocket connections
   // *.supabase.co      — Supabase REST + Auth
@@ -26,7 +26,7 @@ const cspHeader = [
   "img-src 'self' data: blob: https://flagcdn.com https://*.supabase.co",
 
   // Fonts — self-hosted only
-  "font-src 'self'",
+  "font-src 'self' https://fonts.gstatic.com",
 
   // Frames — Lemon Squeezy checkout may open in a frame/popup
   // www.loom.com       — Loom video embed on /businesses page

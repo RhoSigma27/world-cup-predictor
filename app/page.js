@@ -155,6 +155,11 @@ export default async function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-800 px-6 py-8 text-center text-gray-500 text-sm">
         ⚽ World Cup Predictor 2026 — Built for football fans
+        <br className="sm:hidden" />
+        <span className="hidden sm:inline"> · </span>
+        <Link href="/games" className="text-yellow-400 hover:underline">
+          Bored waiting for kickoff? Play a game →
+        </Link>
       </footer>
     </main>
   )

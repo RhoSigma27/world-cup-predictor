@@ -63,6 +63,12 @@ export default async function DashboardPage({ searchParams }) {
           <span className="font-bold text-xl text-yellow-400">World Cup Predictor</span>
         </div>
         <div className="flex items-center gap-4">
+          <Link
+            href="/games"
+            className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors"
+          >
+            🍦 Play something else
+          </Link>
           {profile?.is_superadmin && (
             <Link
               href="/admin"

@@ -1,0 +1,57 @@
+import Link from 'next/link'
+
+const GAMES = [
+  {
+    slug: 'sundae-showdown',
+    name: 'Sundae Showdown',
+    emoji: '🍦',
+    tagline: "Eat scoops until someone's left with nothing. Play solo against kAI Havertz, pass and play, or send your turn to a friend on WhatsApp.",
+    href: '/games/sundae-showdown.html',
+  },
+  // Add more games here as you build them.
+]
+
+export default function GamesPage() {
+  return (
+    <main className="min-h-screen bg-gray-950 text-white">
+      <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">⚽</span>
+          <span className="font-bold text-xl text-yellow-400">World Cup Predictor</span>
+        </div>
+        <Link
+          href="/dashboard"
+          className="text-gray-400 hover:text-white text-sm transition-colors"
+        >
+          ← Back to dashboard
+        </Link>
+      </nav>
+
+      <div className="max-w-3xl mx-auto px-6 py-14">
+        <h1 className="text-3xl font-bold mb-2">Something to play between matches</h1>
+        <p className="text-gray-400 mb-10">
+          A few quick games for the downtime while you wait for kickoff.
+        </p>
+
+        <div className="space-y-4">
+          {GAMES.map((game) => (
+            <Link
+              key={game.slug}
+              href={game.href}
+              className="block bg-gray-900 border border-gray-800 hover:border-yellow-500 rounded-2xl p-6 transition-colors"
+            >
+              <div className="flex items-start gap-4">
+                <span className="text-3xl flex-shrink-0">{game.emoji}</span>
+                <div>
+                  <h2 className="text-xl font-bold mb-1">{game.name}</h2>
+                  <p className="text-gray-400 text-sm mb-2">{game.tagline}</p>
+                  <span className="text-yellow-400 text-sm font-medium">Play →</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}

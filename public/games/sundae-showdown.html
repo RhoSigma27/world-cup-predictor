@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sundae Showdown</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap">
+<style>
+  :root {
+    --surface-2: #ffffff; --surface-1: #f5f4f0; --surface-0: #ebe9e3;
+    --border: rgba(0,0,0,0.12); --border-strong: rgba(0,0,0,0.22);
+    --border-accent: #378ADD; --bg-accent: #E6F1FB; --text-accent: #0C447C;
+    --text-primary: #1a1a1a; --text-secondary: #5f5e5a;
+    --bg-success: #EAF3DE; --text-success: #27500A;
+    --bg-warning: #FAEEDA; --text-warning: #633806;
+    --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-2: #262523; --surface-1: #302f2c; --surface-0: #201f1d;
+      --border: rgba(255,255,255,0.14); --border-strong: rgba(255,255,255,0.24);
+      --bg-accent: #0C447C; --text-accent: #B5D4F4;
+      --text-primary: #f1efe8; --text-secondary: #b4b2a9;
+      --bg-success: #173404; --text-success: #C0DD97;
+      --bg-warning: #412402; --text-warning: #FAC775;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface-0); color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; justify-content: center; padding: 24px 12px 60px;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+  h1 { font-family:'Baloo 2',sans-serif; font-size: 24px; font-weight: 700; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 20px; }
+  button, .btn-link {
+    background: transparent; border: 0.5px solid var(--border-strong); border-radius: var(--radius);
+    padding: 9px 14px; font-size: 14px; color: var(--text-primary); cursor: pointer; font-family: inherit;
+    text-decoration: none; display: inline-block;
+  }
+  button:hover, .btn-link:hover { background: var(--surface-1); }
+  button:active, .btn-link:active { transform: scale(0.98); }
+  input[type="range"] { width: 100%; }
+  #setup-view { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 20px; }
+  #game-view { display: none; }
+  .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+  #turn-indicator { font-family:'Baloo 2',sans-serif; font-size: 15px; font-weight: 700; padding: 7px 14px; border-radius: 999px; background: var(--bg-accent); color: var(--text-accent); }
+  #cones-row { display: flex; justify-content: center; align-items: flex-end; gap: 18px; flex-wrap: wrap; min-height: 280px; padding: 1rem 0; }
+  #banner { display: none; margin: 0.5rem 0 1rem; padding: 16px; border-radius: 12px; font-family:'Baloo 2',sans-serif; font-size: 16px; font-weight: 700; text-align: center; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+  .scoop { width: 52px; height: 52px; border-radius: 50%; margin-top: -13px; cursor: pointer; position: relative; transition: transform 0.12s ease; }
+  .scoop:hover, .scoop:hover ~ .scoop { transform: scale(1.08); }
+  .scoop-stack.disabled .scoop { cursor: default; }
+  .scoop-stack.disabled .scoop:hover, .scoop-stack.disabled .scoop:hover ~ .scoop { transform: none; }
+  .cone-shape { width: 60px; height: 70px; clip-path: polygon(0% 0%, 100% 0%, 50% 100%); margin-top: -4px; }
+  @keyframes bounceSettle { 0%{ transform:translateY(-14px) scale(0.85); } 60%{ transform:translateY(4px) scale(1.05); } 100%{ transform:translateY(0) scale(1); } }
+  .settle { animation: bounceSettle 0.35s ease; }
+  @keyframes trophyWiggle { 0%{ transform:rotate(-8deg) scale(0.7); } 50%{ transform:rotate(8deg) scale(1.1); } 100%{ transform:rotate(0deg) scale(1); } }
+  .stat-label { font-size: 12px; color: var(--text-secondary); }
+  .stat-value { font-size: 22px; font-weight: 700; font-family:'Baloo 2',sans-serif; }
+  #share-area { display:none; background: var(--surface-1); border-radius: 12px; padding: 14px; margin-bottom: 12px; text-align:center; }
+  #share-area p { font-size: 13px; color: var(--text-secondary); margin: 0 0 10px; }
+  #share-area .row-btns { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  #wa-link { background: var(--bg-accent); color: var(--text-accent); border-color: var(--border-accent); font-weight:500; }
+  #roster-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .roster-card { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 2px; border-radius:12px; cursor:pointer; border:3px solid transparent; transition:transform 0.12s ease; }
+  .roster-card:hover { background: var(--surface-1); }
+  .roster-card span { font-size:10.5px; font-weight:600; font-family:'Baloo 2',sans-serif; text-align:center; line-height:1.15; }
+  .bio-card { display:none; margin-top:10px; background: var(--surface-1); border-radius:12px; padding:12px 14px; font-size:13px; text-align:center; line-height:1.5; }
+  .bio-card .bio-name { font-weight:700; font-family:'Baloo 2',sans-serif; margin-bottom:4px; }
+  .bio-card .bio-text { color: var(--text-secondary); margin-bottom:6px; }
+  .bio-card .bio-slogan { font-style:italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Sundae Showdown</h1>
+  <p class="sub">Tap a scoop to eat it and everything above it. Whoever eats the very last scoop wins.</p>
+
+  <div id="setup-view">
+    <div style="margin-bottom:1.25rem;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+        <label style="font-size:14px; color:var(--text-secondary);">Number of cones</label>
+        <span style="font-size:14px; font-weight:500;" id="n-out">4</span>
+      </div>
+      <input type="range" min="3" max="6" step="1" value="4" id="n-slider">
+    </div>
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:14px; color:var(--text-secondary); margin-bottom:6px;">Who's playing</div>
+      <div style="display:flex; gap:8px;">
+        <button id="opp-ai" style="flex:1; border-color:var(--border-accent); background:var(--bg-accent); color:var(--text-accent);">Play vs computer</button>
+        <button id="opp-pass" style="flex:1;">Pass and play / WhatsApp</button>
+      </div>
+      <div id="opponent-preview" class="bio-card"></div>
+    </div>
+    <div id="difficulty-row" style="margin-bottom:1.5rem;">
+      <div style="font-size:14px; color:var(--text-secondary); margin-bottom:6px;">Computer's skill</div>
+      <div style="display:flex; gap:8px;">
+        <button id="diff-easy" style="flex:1;">10-man Accrington Stanley</button>
+        <button id="diff-hard" style="flex:1; border-color:var(--border-accent); background:var(--bg-accent); color:var(--text-accent);">1970 Brazil</button>
+      </div>
+    </div>
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:14px; color:var(--text-secondary); margin-bottom:8px;">Choose your player</div>
+      <div id="roster-grid"></div>
+      <div id="catchphrase-bubble" class="bio-card"></div>
+    </div>
+    <button id="start-btn" style="width:100%; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px;">Let's play</button>
+  </div>
+
+  <div id="game-view">
+    <div class="row">
+      <div style="display:flex; gap:20px;">
+        <div><div class="stat-label" id="p1-label">You</div><div class="stat-value" id="score-player">0</div></div>
+        <div><div class="stat-label" id="opp-label">kAI Havertz</div><div class="stat-value" id="score-ai">0</div></div>
+      </div>
+      <div id="turn-indicator">Your turn</div>
+    </div>
+
+    <div id="cones-row"></div>
+
+    <div id="banner"></div>
+
+    <div id="share-area">
+      <p id="share-msg">Send this turn to your friend to keep the game going.</p>
+      <div class="row-btns">
+        <a id="wa-link" class="btn-link" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
+        <button id="copy-link-btn">Copy link instead</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="newgame-btn">New game</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var GAME_NAME = 'Sundae Showdown';
+
+  var ROSTER = [
+    { name: 'Lionel Messy', bio: "Known for his incredibly messy eating style; can dribble chocolate sauce like nobody's business.", phrase: 'Getting messy on the dessert pitch!', main: '#1D9E75', accent: '#BA7517', number: 1 },
+    { name: 'Cristy-Cone Ronaldo', bio: "Perfectionist. Counts every calorie, but absolutely destroys ice cream towers when it's a Sunday.", phrase: 'Siuuuu-per scoop!', main: '#D85A30', accent: '#378ADD', number: 2 },
+    { name: 'Erling Baaland', bio: 'A literal goal-scoring, ice-cream-eating robot from Norway.', phrase: 'SCOOP-ING MACHINE activated!', main: '#378ADD', accent: '#D85A30', number: 3 },
+    { name: 'Kylian Mbappe-rment', bio: 'Blazing fast eating speed, loves a bit of mint-chocolate chip.', phrase: 'Speeding to the final scoop!', main: '#5DCAA5', accent: '#D4537E', number: 4 },
+    { name: 'Harry Sundae-Kane', bio: "The clinical finisher who treats every ice cream cone like a trophy he's desperate to lift.", phrase: 'This cone needs a trophy!', main: '#BA7517', accent: '#7F77DD', number: 5 },
+    { name: 'Diego Maradonut', bio: 'Famous for his legendary dribbling and the infamous "Hand of Cod-flavoured ice cream" incident. Loves a massive, chaotic sundae.', phrase: 'Dribbling through the sprinkles!', main: '#7F77DD', accent: '#BA7517', number: 6 },
+    { name: 'Kevin De Brownie', bio: "He doesn't just eat the ice cream; he perfectly orchestrates the layout of the toppings with pinpoint tactical precision.", phrase: 'Tactical precision... in dessert form!', main: '#854F0B', accent: '#FAC775', number: 7 },
+    { name: 'Gary Linek-eclair', bio: 'The classic crisp-packet loving striker turned pundit, who now prefers a soft pastry-and-cream combo.', phrase: "It's all about the perfect finish!", main: '#D4537E', accent: '#1D9E75', number: 8 },
+    { name: 'Bukayo Sorb-et', bio: 'The fan favorite who keeps things light, fast, and incredibly refreshing on the wing.', phrase: 'Refreshing the defense, one scoop at a time!', main: '#534AB7', accent: '#D85A30', number: 9 }
+  ];
+
+  var AI_CHARACTER = {
+    name: 'kAI Havertz',
+    bio: 'A relentlessly efficient ice-cream-eating algorithm, calculating the optimal scoop with cold German precision. Never bluffs, never blinks, never leaves a mess.',
+    phrase: 'Efficiency: 100%. Mercy: 0%.'
+  };
+
+  function mascotSvg(main, accent, number, size){
+    var numStr = String(number);
+    var fs = numStr.length > 1 ? 13 : 16;
+    return '<svg width="'+size+'" height="'+Math.round(size*1.3)+'" viewBox="0 0 100 130" aria-hidden="true">'
+    + '<line x1="58" y1="87" x2="78" y2="102" stroke="#BA7517" stroke-width="9" stroke-linecap="round"></line>'
+    + '<line x1="42" y1="87" x2="40" y2="112" stroke="#BA7517" stroke-width="9" stroke-linecap="round"></line>'
+    + '<circle cx="84" cy="100" r="9" fill="#FFF6E8" stroke="#2C2C2A" stroke-width="1.5"></circle>'
+    + '<path d="M 78 95 Q 84 90 90 95" stroke="#2C2C2A" stroke-width="1.4" fill="none" stroke-linecap="round"></path>'
+    + '<line x1="32" y1="60" x2="18" y2="45" stroke="'+main+'" stroke-width="10" stroke-linecap="round"></line>'
+    + '<line x1="68" y1="60" x2="79" y2="75" stroke="'+main+'" stroke-width="10" stroke-linecap="round"></line>'
+    + '<rect x="32" y="55" width="36" height="32" rx="10" fill="'+main+'" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"></rect>'
+    + '<text x="50" y="77" text-anchor="middle" font-size="'+fs+'" font-weight="700" font-family="Baloo 2, sans-serif" fill="#ffffff" stroke="#2C2C2A" stroke-width="3" paint-order="stroke fill">'+numStr+'</text>'
+    + '<circle cx="50" cy="34" r="24" fill="#FFF6E8" stroke="#2C2C2A" stroke-width="1.5"></circle>'
+    + '<circle cx="41" cy="32" r="3" fill="#2C2C2A"></circle>'
+    + '<circle cx="59" cy="32" r="3" fill="#2C2C2A"></circle>'
+    + '<path d="M 40 41 Q 50 49 60 41" stroke="#2C2C2A" stroke-width="2.4" fill="none" stroke-linecap="round"></path>'
+    + '<circle cx="44" cy="14" r="7" fill="'+accent+'"></circle>'
+    + '<circle cx="52" cy="7" r="5.5" fill="'+accent+'"></circle>'
+    + '<circle cx="59" cy="3" r="4" fill="'+accent+'"></circle>'
+    + '</svg>';
+  }
+
+  function aiMascotSvg(size){
+    var main='#2C2C2A', accent='#BA7517';
+    return '<svg width="'+size+'" height="'+Math.round(size*1.3)+'" viewBox="0 0 100 130" aria-hidden="true">'
+    + '<line x1="58" y1="87" x2="78" y2="102" stroke="#BA7517" stroke-width="9" stroke-linecap="round"></line>'
+    + '<line x1="42" y1="87" x2="40" y2="112" stroke="#BA7517" stroke-width="9" stroke-linecap="round"></line>'
+    + '<circle cx="84" cy="100" r="9" fill="#FFF6E8" stroke="#2C2C2A" stroke-width="1.5"></circle>'
+    + '<path d="M 78 95 Q 84 90 90 95" stroke="#2C2C2A" stroke-width="1.4" fill="none" stroke-linecap="round"></path>'
+    + '<line x1="32" y1="60" x2="18" y2="45" stroke="'+main+'" stroke-width="10" stroke-linecap="round"></line>'
+    + '<line x1="68" y1="60" x2="79" y2="75" stroke="'+main+'" stroke-width="10" stroke-linecap="round"></line>'
+    + '<rect x="32" y="55" width="36" height="32" rx="10" fill="'+main+'" stroke="'+accent+'" stroke-width="2"></rect>'
+    + '<text x="50" y="76" text-anchor="middle" font-size="13" font-weight="700" font-family="Baloo 2, sans-serif" fill="'+accent+'">AI</text>'
+    + '<circle cx="50" cy="34" r="24" fill="#FFF6E8" stroke="#2C2C2A" stroke-width="1.5"></circle>'
+    + '<circle cx="41" cy="32" r="3" fill="#2C2C2A"></circle>'
+    + '<circle cx="59" cy="32" r="3" fill="#2C2C2A"></circle>'
+    + '<path d="M 40 41 L 60 41" stroke="#2C2C2A" stroke-width="2.4" fill="none" stroke-linecap="round"></path>'
+    + '<line x1="50" y1="10" x2="50" y2="2" stroke="'+accent+'" stroke-width="2.5" stroke-linecap="round"></line>'
+    + '<circle cx="50" cy="2" r="4" fill="'+accent+'"></circle>'
+    + '</svg>';
+  }
+
+  function trophySvg(size){
+    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 100 100" aria-hidden="true">'
+    + '<rect x="35" y="84" width="30" height="8" rx="2" fill="#BA7517"></rect>'
+    + '<rect x="46" y="68" width="8" height="18" fill="#BA7517"></rect>'
+    + '<path d="M30,34 Q30,64 50,67 Q70,64 70,34 Z" fill="#EF9F27" stroke="#854F0B" stroke-width="2"></path>'
+    + '<ellipse cx="21" cy="42" rx="7" ry="13" fill="none" stroke="#854F0B" stroke-width="4"></ellipse>'
+    + '<ellipse cx="79" cy="42" rx="7" ry="13" fill="none" stroke="#854F0B" stroke-width="4"></ellipse>'
+    + '<circle cx="38" cy="27" r="9" fill="#D4537E" stroke="#993556" stroke-width="1.5"></circle>'
+    + '<circle cx="50" cy="21" r="10" fill="#1D9E75" stroke="#0F6E56" stroke-width="1.5"></circle>'
+    + '<circle cx="62" cy="27" r="9" fill="#FAC775" stroke="#854F0B" stroke-width="1.5"></circle>'
+    + '</svg>';
+  }
+
+  var nSlider=document.getElementById('n-slider'), nOut=document.getElementById('n-out');
+  var oppAiBtn=document.getElementById('opp-ai'), oppPassBtn=document.getElementById('opp-pass');
+  var opponentPreview=document.getElementById('opponent-preview');
+  var diffRow=document.getElementById('difficulty-row');
+  var diffEasyBtn=document.getElementById('diff-easy'), diffHardBtn=document.getElementById('diff-hard');
+  var startBtn=document.getElementById('start-btn');
+  var setupView=document.getElementById('setup-view'), gameView=document.getElementById('game-view');
+  var conesRow=document.getElementById('cones-row');
+  var scorePlayerEl=document.getElementById('score-player'), scoreAiEl=document.getElementById('score-ai');
+  var p1LabelEl=document.getElementById('p1-label'), oppLabelEl=document.getElementById('opp-label');
+  var turnIndicator=document.getElementById('turn-indicator');
+  var banner=document.getElementById('banner');
+  var newgameBtn=document.getElementById('newgame-btn');
+  var shareArea=document.getElementById('share-area'), shareMsg=document.getElementById('share-msg');
+  var waLink=document.getElementById('wa-link'), copyLinkBtn=document.getElementById('copy-link-btn');
+  var rosterGrid=document.getElementById('roster-grid'), catchphraseBubble=document.getElementById('catchphrase-bubble');
+
+  var opponentType='ai', difficulty='hard';
+  var piles=[], currentPlayer='P1', gameOver=false, winner=null, scorePlayer=0, scoreAi=0;
+  var selectedPlayerIdx = Math.floor(Math.random()*ROSTER.length);
+  var myPlayerIdx = selectedPlayerIdx;
+
+  function bioHtml(name, bio, phrase){
+    return '<div class="bio-name">'+name+'</div>'
+      + '<div class="bio-text">'+bio+'</div>'
+      + '<div class="bio-slogan">"'+phrase+'"</div>';
+  }
+
+  function showOpponentPreview(){
+    opponentPreview.style.display='block';
+    opponentPreview.innerHTML = '<div style="display:flex;justify-content:center;margin-bottom:4px;">'+aiMascotSvg(48)+'</div>'
+      + bioHtml(AI_CHARACTER.name, AI_CHARACTER.bio, AI_CHARACTER.phrase);
+  }
+
+  function renderRoster(){
+    rosterGrid.innerHTML='';
+    ROSTER.forEach(function(pl, idx){
+      var card=document.createElement('div');
+      card.className='roster-card';
+      card.innerHTML = mascotSvg(pl.main, pl.accent, pl.number, 56) + '<span>'+pl.name+'</span>';
+      card.addEventListener('click', function(){ selectPlayer(idx); });
+      rosterGrid.appendChild(card);
+    });
+    highlightSelected();
+  }
+  function highlightSelected(){
+    var cards=rosterGrid.children;
+    for (var i=0;i<cards.length;i++){
+      cards[i].style.borderColor = (i===selectedPlayerIdx) ? '#BA7517' : 'transparent';
+      cards[i].style.transform = (i===selectedPlayerIdx) ? 'scale(1.06)' : 'scale(1)';
+    }
+  }
+  function selectPlayer(idx){
+    selectedPlayerIdx=idx;
+    highlightSelected();
+    var pl=ROSTER[idx];
+    catchphraseBubble.style.display='block';
+    catchphraseBubble.innerHTML = bioHtml(pl.name, pl.bio, pl.phrase);
+  }
+
+  function encodeState(){
+    var parts=[piles.join('.'), currentPlayer, scorePlayer, scoreAi, gameOver?1:0, winner||'', myPlayerIdx];
+    return encodeURIComponent(parts.join('_'));
+  }
+  function decodeState(str){
+    try{
+      var parts=decodeURIComponent(str).split('_');
+      var p=parts[0].split('.').map(Number);
+      if (!p.length || p.some(function(x){return isNaN(x)||x<0;})) return null;
+      return {
+        p:p, t: parts[1]==='P2'?'P2':'P1', sp: parseInt(parts[2],10)||0, sa: parseInt(parts[3],10)||0,
+        go: parts[4]==='1', w: parts[5]||null, pIdx: parseInt(parts[6],10)||0
+      };
+    }catch(e){ return null; }
+  }
+  function buildShareUrl(){
+    return location.origin + location.pathname + '#' + encodeState();
+  }
+
+  function updateShareArea(){
+    if (opponentType!=='pass'){ shareArea.style.display='none'; return; }
+    shareArea.style.display='block';
+    if (gameOver){
+      shareMsg.textContent = 'Game over — start a new game, or send this result to your friend.';
+    } else {
+      shareMsg.textContent = (currentPlayer==='P1' ? "It's Player 1's" : "It's Player 2's") + ' turn next — send it over.';
+    }
+    var url=buildShareUrl();
+    var text = "Your turn in " + GAME_NAME + "! " + url;
+    waLink.href = 'https://wa.me/?text=' + encodeURIComponent(text);
+    copyLinkBtn.onclick = function(){
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(function(){
+          copyLinkBtn.textContent='Copied!';
+          setTimeout(function(){ copyLinkBtn.textContent='Copy link instead'; }, 1500);
+        }).catch(function(){});
+      }
+    };
+  }
+
+  nSlider.addEventListener('input', function(){ nOut.textContent=nSlider.value; });
+  oppAiBtn.addEventListener('click', function(){
+    opponentType='ai';
+    oppAiBtn.style.borderColor='var(--border-accent)'; oppAiBtn.style.background='var(--bg-accent)'; oppAiBtn.style.color='var(--text-accent)';
+    oppPassBtn.style.borderColor=''; oppPassBtn.style.background=''; oppPassBtn.style.color='';
+    diffRow.style.display='block';
+    showOpponentPreview();
+  });
+  oppPassBtn.addEventListener('click', function(){
+    opponentType='pass';
+    oppPassBtn.style.borderColor='var(--border-accent)'; oppPassBtn.style.background='var(--bg-accent)'; oppPassBtn.style.color='var(--text-accent)';
+    oppAiBtn.style.borderColor=''; oppAiBtn.style.background=''; oppAiBtn.style.color='';
+    diffRow.style.display='none';
+    opponentPreview.style.display='none';
+  });
+  diffEasyBtn.addEventListener('click', function(){
+    difficulty='easy';
+    diffEasyBtn.style.borderColor='var(--border-accent)'; diffEasyBtn.style.background='var(--bg-accent)'; diffEasyBtn.style.color='var(--text-accent)';
+    diffHardBtn.style.borderColor=''; diffHardBtn.style.background=''; diffHardBtn.style.color='';
+  });
+  diffHardBtn.addEventListener('click', function(){
+    difficulty='hard';
+    diffHardBtn.style.borderColor='var(--border-accent)'; diffHardBtn.style.background='var(--bg-accent)'; diffHardBtn.style.color='var(--text-accent)';
+    diffEasyBtn.style.borderColor=''; diffEasyBtn.style.background=''; diffEasyBtn.style.color='';
+  });
+
+  var audioCtx=null;
+  function pop(){
+    try{
+      if (!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      var t=audioCtx.currentTime;
+      var osc=audioCtx.createOscillator(); var gain=audioCtx.createGain();
+      osc.type='sine'; osc.frequency.setValueAtTime(520,t); osc.frequency.exponentialRampToValueAtTime(220,t+0.12);
+      gain.gain.setValueAtTime(0.001,t); gain.gain.exponentialRampToValueAtTime(0.16,t+0.02); gain.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t+0.2);
+    }catch(e){}
+  }
+  function victoryJingle(){
+    try{
+      if (!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      var t=audioCtx.currentTime;
+      [440,554,659].forEach(function(freq,i){
+        var osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+        osc.type='sine'; osc.frequency.setValueAtTime(freq, t+i*0.12);
+        gain.gain.setValueAtTime(0.001, t+i*0.12);
+        gain.gain.exponentialRampToValueAtTime(0.15, t+i*0.12+0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t+i*0.12+0.25);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t+i*0.12); osc.stop(t+i*0.12+0.3);
+      });
+    }catch(e){}
+  }
+
+  function nimSum(p){ return p.reduce(function(a,b){return a^b;},0); }
+  function randomPiles(n){ var arr=[]; for (var i=0;i<n;i++) arr.push(2+Math.floor(Math.random()*5)); return arr; }
+  function total(p){ return p.reduce(function(a,b){return a+b;},0); }
+
+  function playerLabel(p, possessive){
+    if (opponentType==='ai') return p==='P1' ? (possessive?'Your':'You') : (possessive ? (AI_CHARACTER.name+"'s") : AI_CHARACTER.name);
+    return p==='P1' ? (possessive?"Player 1's":'Player 1') : (possessive?"Player 2's":'Player 2');
+  }
+
+  function faceSvg(){
+    return '<svg width="52" height="52" viewBox="0 0 52 52" style="position:absolute; top:0; left:0; pointer-events:none;" aria-hidden="true">'+
+      '<circle cx="18" cy="22" r="3.2" fill="#2C2C2A"></circle>'+
+      '<circle cx="34" cy="22" r="3.2" fill="#2C2C2A"></circle>'+
+      '<path d="M 17 31 Q 26 37 35 31" stroke="#2C2C2A" stroke-width="2.4" fill="none" stroke-linecap="round"></path>'+
+      '</svg>';
+  }
+
+  function render(){
+    conesRow.innerHTML='';
+    piles.forEach(function(count, pIdx){
+      var col=document.createElement('div');
+      col.style.display='flex'; col.style.flexDirection='column'; col.style.alignItems='center';
+
+      var stack=document.createElement('div');
+      stack.className='scoop-stack'+((gameOver || (opponentType==='ai' && currentPlayer==='P2')) ? ' disabled' : '');
+      stack.style.display='flex'; stack.style.flexDirection='column-reverse'; stack.style.alignItems='center'; stack.style.paddingTop='16px';
+      stack.id='stack-'+pIdx;
+
+      var flavor = [
+        {light:'#F4C0D1', dark:'#D4537E', border:'#993556'},
+        {light:'#FAC775', dark:'#EF9F27', border:'#854F0B'},
+        {light:'#CECBF6', dark:'#7F77DD', border:'#534AB7'},
+        {light:'#9FE1CB', dark:'#1D9E75', border:'#0F6E56'},
+        {light:'#F5C4B3', dark:'#D85A30', border:'#993C1D'},
+        {light:'#B5D4F4', dark:'#378ADD', border:'#185FA5'}
+      ][pIdx%6];
+      for (var i=0;i<count;i++){
+        var scoop=document.createElement('div');
+        scoop.className='scoop';
+        scoop.style.background = (i%2===0) ? flavor.dark : flavor.light;
+        scoop.style.border = '2.5px solid '+flavor.border;
+        scoop.setAttribute('role','button');
+        scoop.setAttribute('aria-label', 'Eat down to '+i+' scoop'+(i===1?'':'s')+' left in this cone');
+        (function(pileIdx, keep){
+          scoop.addEventListener('click', function(){ playerMove(pileIdx, keep); });
+        })(pIdx, i);
+        if (i===count-1){ scoop.innerHTML=faceSvg(); }
+        stack.appendChild(scoop);
+      }
+      col.appendChild(stack);
+
+      var cone=document.createElement('div');
+      cone.className='cone-shape';
+      cone.style.background='#BA7517';
+      col.appendChild(cone);
+
+      conesRow.appendChild(col);
+    });
+
+    scorePlayerEl.textContent=scorePlayer;
+    scoreAiEl.textContent=scoreAi;
+    var me=ROSTER[myPlayerIdx];
+    p1LabelEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">'+mascotSvg(me.main, me.accent, me.number, 20)+me.name+'</span>';
+    if (opponentType==='ai'){
+      oppLabelEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">'+aiMascotSvg(20)+AI_CHARACTER.name+'</span>';
+    } else {
+      oppLabelEl.textContent = 'Player 2';
+    }
+
+    if (!gameOver){
+      turnIndicator.style.display='inline-block';
+      turnIndicator.textContent = playerLabel(currentPlayer,true) + ' turn';
+      if (opponentType==='ai' && currentPlayer==='P2'){
+        turnIndicator.style.background='var(--surface-1)'; turnIndicator.style.color='var(--text-secondary)';
+      } else {
+        turnIndicator.style.background='var(--bg-accent)'; turnIndicator.style.color='var(--text-accent)';
+      }
+    } else {
+      turnIndicator.style.display='none';
+    }
+    updateShareArea();
+  }
+
+  function bounceStack(pIdx){
+    var el=document.getElementById('stack-'+pIdx);
+    if (!el) return;
+    el.classList.remove('settle');
+    void el.offsetWidth;
+    el.classList.add('settle');
+  }
+
+  function showBanner(){
+    banner.style.display='block';
+    banner.innerHTML='';
+    var isHumanWin = (winner==='P1') || (winner==='P2' && opponentType==='pass');
+    if (isHumanWin){
+      victoryJingle();
+      var trophyWrap=document.createElement('div');
+      trophyWrap.innerHTML=trophySvg(64);
+      trophyWrap.style.marginBottom='4px';
+      banner.appendChild(trophyWrap);
+      var svgEl=trophyWrap.querySelector('svg');
+      if (svgEl) svgEl.style.animation='trophyWiggle 0.6s ease';
+      var msg=document.createElement('div');
+      if (winner==='P1'){
+        var me=ROSTER[myPlayerIdx];
+        msg.innerHTML = me.name + ' wins!<br><span style="font-weight:500; font-style:italic; font-size:14px;">"'+me.phrase+'"</span>';
+      } else {
+        msg.textContent = 'Player 2 wins!';
+      }
+      banner.appendChild(msg);
+      banner.style.background='var(--bg-success)'; banner.style.color='var(--text-success)';
+    } else {
+      var aiWrap=document.createElement('div');
+      aiWrap.innerHTML=aiMascotSvg(48);
+      aiWrap.style.marginBottom='4px';
+      banner.appendChild(aiWrap);
+      var aiMsg=document.createElement('div');
+      aiMsg.innerHTML = AI_CHARACTER.name + ' wins!<br><span style="font-weight:500; font-style:italic; font-size:14px;">"'+AI_CHARACTER.phrase+'"</span>';
+      banner.appendChild(aiMsg);
+      banner.style.background='var(--bg-warning)'; banner.style.color='var(--text-warning)';
+    }
+  }
+
+  function playerMove(pileIdx, keep){
+    if (gameOver) return;
+    if (opponentType==='ai' && currentPlayer==='P2') return;
+    piles[pileIdx]=keep;
+    pop();
+    bounceStack(pileIdx);
+    if (total(piles)===0){
+      gameOver=true; winner=currentPlayer;
+      if (currentPlayer==='P1') scorePlayer++; else scoreAi++;
+      render();
+      showBanner();
+      return;
+    }
+    currentPlayer = currentPlayer==='P1' ? 'P2' : 'P1';
+    render();
+    if (opponentType==='ai' && currentPlayer==='P2'){
+      setTimeout(aiTurn, 800);
+    }
+  }
+
+  function aiTurn(){
+    if (gameOver) return;
+    var idx, newSize;
+    if (difficulty==='hard'){
+      var sum=nimSum(piles);
+      if (sum!==0){
+        for (var i=0;i<piles.length;i++){
+          var target=piles[i]^sum;
+          if (target<piles[i]){ idx=i; newSize=target; break; }
+        }
+      }
+      if (idx===undefined){
+        var maxIdx=0;
+        for (var j=1;j<piles.length;j++){ if (piles[j]>piles[maxIdx]) maxIdx=j; }
+        idx=maxIdx; newSize=Math.max(0, piles[maxIdx]-1);
+      }
+    } else {
+      var options=[];
+      piles.forEach(function(c,i){ for (var k=0;k<c;k++) options.push([i,k]); });
+      var pick=options[Math.floor(Math.random()*options.length)];
+      idx=pick[0]; newSize=pick[1];
+    }
+    piles[idx]=newSize;
+    pop();
+    bounceStack(idx);
+    if (total(piles)===0){
+      gameOver=true; winner='P2'; scoreAi++;
+      render();
+      showBanner();
+      return;
+    }
+    currentPlayer='P1';
+    render();
+  }
+
+  newgameBtn.addEventListener('click', function(){
+    try{ history.replaceState(null, '', location.pathname); }catch(e){}
+    setupView.style.display='block'; gameView.style.display='none';
+  });
+
+  startBtn.addEventListener('click', function(){
+    var n=parseInt(nSlider.value,10);
+    piles=randomPiles(n);
+    currentPlayer='P1'; gameOver=false; winner=null; scorePlayer=0; scoreAi=0;
+    myPlayerIdx=selectedPlayerIdx;
+    banner.style.display='none';
+    setupView.style.display='none'; gameView.style.display='block';
+    render();
+  });
+
+  renderRoster();
+  showOpponentPreview();
+
+  var hash=location.hash.replace(/^#/, '');
+  if (hash){
+    var st=decodeState(hash);
+    if (st){
+      piles=st.p; currentPlayer=st.t; scorePlayer=st.sp; scoreAi=st.sa; gameOver=st.go; winner=st.w;
+      myPlayerIdx = (st.pIdx>=0 && st.pIdx<ROSTER.length) ? st.pIdx : 0;
+      opponentType='pass';
+      setupView.style.display='none'; gameView.style.display='block';
+      render();
+      if (gameOver) showBanner();
+    }
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
