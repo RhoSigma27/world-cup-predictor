@@ -11,6 +11,7 @@ import StandingsShareButton from './standings/StandingsShareButton'
 import { scoreParticipant } from '@/lib/scoringEngine'
 
 export const revalidate = 0
+export const dynamic = 'force-dynamic' // always fetch fresh data for league pages
 
 const TIER_LIMITS  = { hobby: 6, enthusiast: 11, fanatic: Infinity, business: Infinity }
 const TIER_LABELS  = { hobby: 'Hobby', enthusiast: 'Enthusiast', fanatic: 'Fanatic', business: 'Business' }
