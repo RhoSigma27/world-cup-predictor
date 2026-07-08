@@ -268,6 +268,13 @@ export default async function LeaguePage({ params, searchParams }) {
         )}
 
         <Link
+          href="/games"
+          className="block w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center transition-colors mb-3"
+        >
+          🍦 Bored waiting for the next match? Play a game →
+        </Link>
+        
+        <Link
           href={`/dashboard/league/${id}/predictions`}
           className="hidden sm:block w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-lg text-center transition-colors mb-6"
         >

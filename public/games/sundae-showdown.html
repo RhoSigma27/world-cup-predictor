@@ -63,7 +63,7 @@
   #share-area p { font-size: 13px; color: var(--text-secondary); margin: 0 0 10px; }
   #share-area .row-btns { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
   #wa-link { background: var(--bg-accent); color: var(--text-accent); border-color: var(--border-accent); font-weight:500; }
-  #roster-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .roster-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
   .roster-card { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 2px; border-radius:12px; cursor:pointer; border:3px solid transparent; transition:transform 0.12s ease; }
   .roster-card:hover { background: var(--surface-1); }
   .roster-card span { font-size:10.5px; font-weight:600; font-family:'Baloo 2',sans-serif; text-align:center; line-height:1.15; }
@@ -102,9 +102,14 @@
       </div>
     </div>
     <div style="margin-bottom:1.25rem;">
-      <div style="font-size:14px; color:var(--text-secondary); margin-bottom:8px;">Choose your player</div>
-      <div id="roster-grid"></div>
-      <div id="catchphrase-bubble" class="bio-card"></div>
+      <div id="picker1-label" style="font-size:14px; color:var(--text-secondary); margin-bottom:8px;">Choose your player</div>
+      <div id="roster-grid-1" class="roster-grid"></div>
+      <div id="catchphrase-bubble-1" class="bio-card"></div>
+    </div>
+    <div id="player2-picker-wrap" style="display:none; margin-bottom:1.25rem;">
+      <div style="font-size:14px; color:var(--text-secondary); margin-bottom:8px;">Player 2's character</div>
+      <div id="roster-grid-2" class="roster-grid"></div>
+      <div id="catchphrase-bubble-2" class="bio-card"></div>
     </div>
     <button id="start-btn" style="width:100%; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px;">Let's play</button>
   </div>
@@ -157,6 +162,8 @@
     bio: 'A relentlessly efficient ice-cream-eating algorithm, calculating the optimal scoop with cold German precision. Never bluffs, never blinks, never leaves a mess.',
     phrase: 'Efficiency: 100%. Mercy: 0%.'
   };
+
+  function firstName(full){ return full.split(' ')[0]; }
 
   function mascotSvg(main, accent, number, size){
     var numStr = String(number);
@@ -228,12 +235,21 @@
   var newgameBtn=document.getElementById('newgame-btn');
   var shareArea=document.getElementById('share-area'), shareMsg=document.getElementById('share-msg');
   var waLink=document.getElementById('wa-link'), copyLinkBtn=document.getElementById('copy-link-btn');
-  var rosterGrid=document.getElementById('roster-grid'), catchphraseBubble=document.getElementById('catchphrase-bubble');
+  var rosterGrid1=document.getElementById('roster-grid-1'), catchphraseBubble1=document.getElementById('catchphrase-bubble-1');
+  var rosterGrid2=document.getElementById('roster-grid-2'), catchphraseBubble2=document.getElementById('catchphrase-bubble-2');
+  var player2PickerWrap=document.getElementById('player2-picker-wrap'), picker1Label=document.getElementById('picker1-label');
 
   var opponentType='ai', difficulty='hard';
   var piles=[], currentPlayer='P1', gameOver=false, winner=null, scorePlayer=0, scoreAi=0;
-  var selectedPlayerIdx = Math.floor(Math.random()*ROSTER.length);
-  var myPlayerIdx = selectedPlayerIdx;
+  var myPlayerIdx=0, myPlayer2Idx=0;
+
+  function twoDistinctRandom(n){
+    var a=Math.floor(Math.random()*n), b=Math.floor(Math.random()*n);
+    if (n>1){ while (b===a) b=Math.floor(Math.random()*n); }
+    return [a,b];
+  }
+  var defaults=twoDistinctRandom(ROSTER.length);
+  var picks={ p1: defaults[0], p2: defaults[1] };
 
   function bioHtml(name, bio, phrase){
     return '<div class="bio-name">'+name+'</div>'
@@ -247,34 +263,35 @@
       + bioHtml(AI_CHARACTER.name, AI_CHARACTER.bio, AI_CHARACTER.phrase);
   }
 
-  function renderRoster(){
-    rosterGrid.innerHTML='';
+  function renderRosterGrid(gridEl, bubbleEl, key){
+    gridEl.innerHTML='';
     ROSTER.forEach(function(pl, idx){
       var card=document.createElement('div');
       card.className='roster-card';
       card.innerHTML = mascotSvg(pl.main, pl.accent, pl.number, 56) + '<span>'+pl.name+'</span>';
-      card.addEventListener('click', function(){ selectPlayer(idx); });
-      rosterGrid.appendChild(card);
+      card.addEventListener('click', function(){ selectPlayerFor(key, idx, gridEl, bubbleEl); });
+      gridEl.appendChild(card);
     });
-    highlightSelected();
+    highlightSelectedFor(key, gridEl);
   }
-  function highlightSelected(){
-    var cards=rosterGrid.children;
+  function highlightSelectedFor(key, gridEl){
+    var idx=picks[key];
+    var cards=gridEl.children;
     for (var i=0;i<cards.length;i++){
-      cards[i].style.borderColor = (i===selectedPlayerIdx) ? '#BA7517' : 'transparent';
-      cards[i].style.transform = (i===selectedPlayerIdx) ? 'scale(1.06)' : 'scale(1)';
+      cards[i].style.borderColor = (i===idx) ? '#BA7517' : 'transparent';
+      cards[i].style.transform = (i===idx) ? 'scale(1.06)' : 'scale(1)';
     }
   }
-  function selectPlayer(idx){
-    selectedPlayerIdx=idx;
-    highlightSelected();
+  function selectPlayerFor(key, idx, gridEl, bubbleEl){
+    picks[key]=idx;
+    highlightSelectedFor(key, gridEl);
     var pl=ROSTER[idx];
-    catchphraseBubble.style.display='block';
-    catchphraseBubble.innerHTML = bioHtml(pl.name, pl.bio, pl.phrase);
+    bubbleEl.style.display='block';
+    bubbleEl.innerHTML=bioHtml(pl.name, pl.bio, pl.phrase);
   }
 
   function encodeState(){
-    var parts=[piles.join('.'), currentPlayer, scorePlayer, scoreAi, gameOver?1:0, winner||'', myPlayerIdx];
+    var parts=[piles.join('.'), currentPlayer, scorePlayer, scoreAi, gameOver?1:0, winner||'', myPlayerIdx, myPlayer2Idx];
     return encodeURIComponent(parts.join('_'));
   }
   function decodeState(str){
@@ -284,7 +301,7 @@
       if (!p.length || p.some(function(x){return isNaN(x)||x<0;})) return null;
       return {
         p:p, t: parts[1]==='P2'?'P2':'P1', sp: parseInt(parts[2],10)||0, sa: parseInt(parts[3],10)||0,
-        go: parts[4]==='1', w: parts[5]||null, pIdx: parseInt(parts[6],10)||0
+        go: parts[4]==='1', w: parts[5]||null, pIdx: parseInt(parts[6],10)||0, p2Idx: parseInt(parts[7],10)||0
       };
     }catch(e){ return null; }
   }
@@ -295,13 +312,16 @@
   function updateShareArea(){
     if (opponentType!=='pass'){ shareArea.style.display='none'; return; }
     shareArea.style.display='block';
+    var url=buildShareUrl();
+    var text;
     if (gameOver){
       shareMsg.textContent = 'Game over — start a new game, or send this result to your friend.';
+      text = 'Game over in ' + GAME_NAME + '! ' + url;
     } else {
-      shareMsg.textContent = (currentPlayer==='P1' ? "It's Player 1's" : "It's Player 2's") + ' turn next — send it over.';
+      var whoNext = playerLabel(currentPlayer, false);
+      shareMsg.textContent = whoNext + "'s turn next — send it over.";
+      text = whoNext + "'s turn in " + GAME_NAME + '! ' + url;
     }
-    var url=buildShareUrl();
-    var text = "Your turn in " + GAME_NAME + "! " + url;
     waLink.href = 'https://wa.me/?text=' + encodeURIComponent(text);
     copyLinkBtn.onclick = function(){
       if (navigator.clipboard && navigator.clipboard.writeText){
@@ -319,6 +339,8 @@
     oppAiBtn.style.borderColor='var(--border-accent)'; oppAiBtn.style.background='var(--bg-accent)'; oppAiBtn.style.color='var(--text-accent)';
     oppPassBtn.style.borderColor=''; oppPassBtn.style.background=''; oppPassBtn.style.color='';
     diffRow.style.display='block';
+    player2PickerWrap.style.display='none';
+    picker1Label.textContent='Choose your player';
     showOpponentPreview();
   });
   oppPassBtn.addEventListener('click', function(){
@@ -327,6 +349,8 @@
     oppAiBtn.style.borderColor=''; oppAiBtn.style.background=''; oppAiBtn.style.color='';
     diffRow.style.display='none';
     opponentPreview.style.display='none';
+    player2PickerWrap.style.display='block';
+    picker1Label.textContent="Player 1's character";
   });
   diffEasyBtn.addEventListener('click', function(){
     difficulty='easy';
@@ -373,7 +397,8 @@
 
   function playerLabel(p, possessive){
     if (opponentType==='ai') return p==='P1' ? (possessive?'Your':'You') : (possessive ? (AI_CHARACTER.name+"'s") : AI_CHARACTER.name);
-    return p==='P1' ? (possessive?"Player 1's":'Player 1') : (possessive?"Player 2's":'Player 2');
+    var nm = p==='P1' ? firstName(ROSTER[myPlayerIdx].name) : firstName(ROSTER[myPlayer2Idx].name);
+    return possessive ? (nm+"'s") : nm;
   }
 
   function faceSvg(){
@@ -429,11 +454,12 @@
     scorePlayerEl.textContent=scorePlayer;
     scoreAiEl.textContent=scoreAi;
     var me=ROSTER[myPlayerIdx];
-    p1LabelEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">'+mascotSvg(me.main, me.accent, me.number, 20)+me.name+'</span>';
+    p1LabelEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">'+mascotSvg(me.main, me.accent, me.number, 20)+firstName(me.name)+'</span>';
     if (opponentType==='ai'){
       oppLabelEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">'+aiMascotSvg(20)+AI_CHARACTER.name+'</span>';
     } else {
-      oppLabelEl.textContent = 'Player 2';
+      var p2=ROSTER[myPlayer2Idx];
+      oppLabelEl.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">'+mascotSvg(p2.main, p2.accent, p2.number, 20)+firstName(p2.name)+'</span>';
     }
 
     if (!gameOver){
@@ -471,12 +497,8 @@
       var svgEl=trophyWrap.querySelector('svg');
       if (svgEl) svgEl.style.animation='trophyWiggle 0.6s ease';
       var msg=document.createElement('div');
-      if (winner==='P1'){
-        var me=ROSTER[myPlayerIdx];
-        msg.innerHTML = me.name + ' wins!<br><span style="font-weight:500; font-style:italic; font-size:14px;">"'+me.phrase+'"</span>';
-      } else {
-        msg.textContent = 'Player 2 wins!';
-      }
+      var winnerChar = winner==='P1' ? ROSTER[myPlayerIdx] : ROSTER[myPlayer2Idx];
+      msg.innerHTML = winnerChar.name + ' wins!<br><span style="font-weight:500; font-style:italic; font-size:14px;">"'+winnerChar.phrase+'"</span>';
       banner.appendChild(msg);
       banner.style.background='var(--bg-success)'; banner.style.color='var(--text-success)';
     } else {
@@ -555,13 +577,14 @@
     var n=parseInt(nSlider.value,10);
     piles=randomPiles(n);
     currentPlayer='P1'; gameOver=false; winner=null; scorePlayer=0; scoreAi=0;
-    myPlayerIdx=selectedPlayerIdx;
+    myPlayerIdx=picks.p1; myPlayer2Idx=picks.p2;
     banner.style.display='none';
     setupView.style.display='none'; gameView.style.display='block';
     render();
   });
 
-  renderRoster();
+  renderRosterGrid(rosterGrid1, catchphraseBubble1, 'p1');
+  renderRosterGrid(rosterGrid2, catchphraseBubble2, 'p2');
   showOpponentPreview();
 
   var hash=location.hash.replace(/^#/, '');
@@ -570,6 +593,7 @@
     if (st){
       piles=st.p; currentPlayer=st.t; scorePlayer=st.sp; scoreAi=st.sa; gameOver=st.go; winner=st.w;
       myPlayerIdx = (st.pIdx>=0 && st.pIdx<ROSTER.length) ? st.pIdx : 0;
+      myPlayer2Idx = (st.p2Idx>=0 && st.p2Idx<ROSTER.length) ? st.p2Idx : 0;
       opponentType='pass';
       setupView.style.display='none'; gameView.style.display='block';
       render();
