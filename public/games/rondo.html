@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondo</title>
+<style>
+  :root {
+    --surface-2: #ffffff;
+    --surface-1: #f5f4f0;
+    --surface-0: #ebe9e3;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.22);
+    --border-accent: #378ADD;
+    --bg-accent: #E6F1FB;
+    --text-accent: #0C447C;
+    --text-primary: #1a1a1a;
+    --text-secondary: #5f5e5a;
+    --bg-success: #EAF3DE;
+    --text-success: #27500A;
+    --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-2: #262523;
+      --surface-1: #302f2c;
+      --surface-0: #201f1d;
+      --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.24);
+      --bg-accent: #0C447C;
+      --text-accent: #B5D4F4;
+      --text-primary: #f1efe8;
+      --text-secondary: #b4b2a9;
+      --bg-success: #173404;
+      --text-success: #C0DD97;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 24px 12px 60px;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+  h1 { font-size: 20px; font-weight: 500; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 20px; }
+  button {
+    background: transparent;
+    border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover { background: var(--surface-1); }
+  button:active { transform: scale(0.98); }
+  input[type="range"] { width: 100%; }
+  #setup-view { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 20px; }
+  #game-view { display: none; }
+  .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .stat-label { font-size: 12px; color: var(--text-secondary); }
+  .stat-value { font-size: 20px; font-weight: 500; }
+  #turn-indicator { font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: var(--radius); background: var(--bg-accent); color: var(--text-accent); }
+  #board { width: 100%; height: auto; display: block; touch-action: none; background: #2F6B45; border: 0.5px solid var(--border); border-radius: 12px; }
+  #instruction { font-size: 13px; color: var(--text-secondary); text-align: center; margin: 10px 0; }
+  #banner { display: none; margin-bottom: 1rem; padding: 12px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500; text-align: center; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  #info-box { display: none; font-size: 13px; color: var(--text-secondary); background: var(--surface-1); border-radius: var(--radius); padding: 12px 16px; line-height: 1.6; margin-bottom: 12px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+  .swatch { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Rondo</h1>
+  <p class="sub">Pass the ball between players. Everyone gets 3 touches. Whoever plays the last legal pass wins.</p>
+
+  <div id="setup-view">
+    <div style="margin-bottom:1.25rem;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+        <label style="font-size:14px; color:var(--text-secondary);">Starting players</label>
+        <span style="font-size:14px; font-weight:500;" id="n-out">6</span>
+      </div>
+      <input type="range" min="3" max="10" step="1" value="6" id="n-slider">
+    </div>
+    <div style="margin-bottom:1.5rem;">
+      <div style="font-size:14px; color:var(--text-secondary); margin-bottom:6px;">Opponent</div>
+      <div style="display:flex; gap:8px;">
+        <button id="opp-ai" style="flex:1; border-color:var(--border-accent); background:var(--bg-accent); color:var(--text-accent);">Play vs AI</button>
+        <button id="opp-pass" style="flex:1;">Pass and play</button>
+      </div>
+    </div>
+    <button id="start-btn" style="width:100%; font-weight:500;">Kick off</button>
+  </div>
+
+  <div id="game-view">
+    <div class="row">
+      <div style="display:flex; gap:20px;">
+        <div><div class="stat-label">Touches left</div><div class="stat-value" id="lives-out">0</div></div>
+        <div><div class="stat-label">Passes</div><div class="stat-value" id="move-out">0</div></div>
+      </div>
+      <div id="turn-indicator">Your turn</div>
+    </div>
+
+    <canvas id="board" width="640" height="420"></canvas>
+
+    <div id="instruction">Drag from one player to another to make a pass.</div>
+    <div id="banner"></div>
+
+    <div class="controls">
+      <button id="cancel-btn" style="display:none;">Cancel</button>
+      <button id="undo-btn">Undo</button>
+      <button id="newgame-btn">New match</button>
+      <button id="info-btn">Why can't this go on forever?</button>
+    </div>
+
+    <div id="info-box"></div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="swatch" style="background:#378ADD;"></span>3 touches</div>
+      <div class="legend-item"><span class="swatch" style="background:#7F77DD;"></span>2 touches</div>
+      <div class="legend-item"><span class="swatch" style="background:#BA7517;"></span>1 touch</div>
+      <div class="legend-item"><span style="width:11px; height:11px; display:inline-block; text-align:center; font-weight:500;">x</span>subbed off</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var nSlider=document.getElementById('n-slider'), nOut=document.getElementById('n-out');
+  var oppAiBtn=document.getElementById('opp-ai'), oppPassBtn=document.getElementById('opp-pass');
+  var startBtn=document.getElementById('start-btn');
+  var setupView=document.getElementById('setup-view'), gameView=document.getElementById('game-view');
+  var canvas=document.getElementById('board'), ctx=canvas.getContext('2d');
+  var livesOut=document.getElementById('lives-out'), moveOut=document.getElementById('move-out');
+  var turnIndicator=document.getElementById('turn-indicator');
+  var instruction=document.getElementById('instruction');
+  var banner=document.getElementById('banner');
+  var cancelBtn=document.getElementById('cancel-btn'), undoBtn=document.getElementById('undo-btn');
+  var newgameBtn=document.getElementById('newgame-btn'), infoBtn=document.getElementById('info-btn');
+  var infoBox=document.getElementById('info-box');
+
+  var opponentType='ai';
+  var dots=[], edges=[], nextDotId=0, moveCount=0, currentPlayer='P1', lastMover='P1';
+  var gameOver=false, winner=null, initialN=6, history=[];
+  var drawState='idle', startDot=null, tempPath=[], pendingPath=null, pendingStart=null, pendingEnd=null, ghostPoint=null, invalidFlashPath=null;
+
+  var DOT_R=10;
+  var JUNCTION_BUF=DOT_R+3;
+  var W=640, H=420;
+  var CELL=6, GRID_W=Math.ceil(W/CELL), GRID_H=Math.ceil(H/CELL);
+  var LINE_HALF=5, DOT_BLOCK_R=DOT_R+6;
+
+  nSlider.addEventListener('input', function(){ nOut.textContent=nSlider.value; });
+  oppAiBtn.addEventListener('click', function(){
+    opponentType='ai';
+    oppAiBtn.style.borderColor='var(--border-accent)'; oppAiBtn.style.background='var(--bg-accent)'; oppAiBtn.style.color='var(--text-accent)';
+    oppPassBtn.style.borderColor=''; oppPassBtn.style.background=''; oppPassBtn.style.color='';
+  });
+  oppPassBtn.addEventListener('click', function(){
+    opponentType='pass';
+    oppPassBtn.style.borderColor='var(--border-accent)'; oppPassBtn.style.background='var(--bg-accent)'; oppPassBtn.style.color='var(--text-accent)';
+    oppAiBtn.style.borderColor=''; oppAiBtn.style.background=''; oppAiBtn.style.color='';
+  });
+
+  function dist(p,q){ return Math.hypot(p[0]-q[0], p[1]-q[1]); }
+
+  function cross(o,a,b){ return (a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]); }
+  function segIntersect(a1,a2,b1,b2){
+    var d1=cross(b1,b2,a1), d2=cross(b1,b2,a2), d3=cross(a1,a2,b1), d4=cross(a1,a2,b2);
+    if (((d1>0&&d2<0)||(d1<0&&d2>0)) && ((d3>0&&d4<0)||(d3<0&&d4>0))) return true;
+    return false;
+  }
+  function toSegs(path){ var s=[]; for (var i=0;i<path.length-1;i++) s.push([path[i],path[i+1]]); return s; }
+  function pathBBox(path){
+    var minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
+    path.forEach(function(p){ if(p[0]<minx)minx=p[0]; if(p[0]>maxx)maxx=p[0]; if(p[1]<miny)miny=p[1]; if(p[1]>maxy)maxy=p[1]; });
+    return {minx:minx,maxx:maxx,miny:miny,maxy:maxy};
+  }
+  function bboxOverlap(b1,b2,pad){
+    return (b1.minx-pad<=b2.maxx+pad) && (b1.maxx+pad>=b2.minx-pad) && (b1.miny-pad<=b2.maxy+pad) && (b1.maxy+pad>=b2.miny-pad);
+  }
+  function trimNearShared(path, a, b, sharesA, sharesB){
+    if (!sharesA && !sharesB) return path;
+    var t=path.filter(function(p){
+      var okA = !sharesA || dist(p,[a.x,a.y])>JUNCTION_BUF;
+      var okB = !sharesB || dist(p,[b.x,b.y])>JUNCTION_BUF;
+      return okA && okB;
+    });
+    return t.length>=2 ? t : path;
+  }
+  function edgeCrosses(candPath, edge, a, b){
+    var candBBox=pathBBox(candPath);
+    if (!bboxOverlap(candBBox, edge.bbox, DOT_R*2)) return false;
+    var sharesA = (edge.from===a.id || edge.to===a.id);
+    var sharesB = (edge.from===b.id || edge.to===b.id);
+    var tc=trimNearShared(candPath, a, b, sharesA, sharesB);
+    var te=trimNearShared(edge.points, a, b, sharesA, sharesB);
+    var sa=toSegs(tc), sb=toSegs(te);
+    for (var i=0;i<sa.length;i++) for (var j=0;j<sb.length;j++) if (segIntersect(sa[i][0],sa[i][1],sb[j][0],sb[j][1])) return true;
+    return false;
+  }
+  function selfIntersects(path, isLoop){
+    var segs=toSegs(path);
+    for (var i=0;i<segs.length;i++){
+      for (var j=i+2;j<segs.length;j++){
+        if (isLoop && i===0 && j===segs.length-1) continue;
+        if (segIntersect(segs[i][0],segs[i][1],segs[j][0],segs[j][1])) return true;
+      }
+    }
+    return false;
+  }
+  function passesOtherDot(path, a, b){
+    for (var i=0;i<path.length;i++){
+      for (var k=0;k<dots.length;k++){
+        var d=dots[k];
+        if (d===a || d===b) continue;
+        if (dist(path[i],[d.x,d.y]) < DOT_R+10) return true;
+      }
+    }
+    return false;
+  }
+  function isPathValid(path, a, b){
+    if (selfIntersects(path, a===b)) return false;
+    if (passesOtherDot(path, a, b)) return false;
+    for (var i=0;i<edges.length;i++) if (edgeCrosses(path, edges[i], a, b)) return false;
+    return true;
+  }
+
+  function cellIdx(cx,cy){ return cy*GRID_W+cx; }
+  function worldToCellCoord(p){ return [Math.min(GRID_W-1,Math.max(0,Math.floor(p[0]/CELL))), Math.min(GRID_H-1,Math.max(0,Math.floor(p[1]/CELL)))]; }
+  function cellCenter(cx,cy){ return [(cx+0.5)*CELL, (cy+0.5)*CELL]; }
+  function stampDisk(grid, center, radius, value){
+    var cx0=Math.max(0,Math.floor((center[0]-radius)/CELL)), cx1=Math.min(GRID_W-1,Math.ceil((center[0]+radius)/CELL));
+    var cy0=Math.max(0,Math.floor((center[1]-radius)/CELL)), cy1=Math.min(GRID_H-1,Math.ceil((center[1]+radius)/CELL));
+    for (var gy=cy0; gy<=cy1; gy++){
+      for (var gx=cx0; gx<=cx1; gx++){
+        var c=cellCenter(gx,gy);
+        if (dist(c,center)<=radius) grid[cellIdx(gx,gy)]=value;
+      }
+    }
+  }
+  function stampSegment(grid, p0, p1, halfWidth, value){
+    var len=dist(p0,p1);
+    var steps=Math.max(1, Math.ceil(len/(CELL*0.6)));
+    for (var i=0;i<=steps;i++){
+      var t=i/steps;
+      var p=[p0[0]+(p1[0]-p0[0])*t, p0[1]+(p1[1]-p0[1])*t];
+      stampDisk(grid, p, halfWidth, value);
+    }
+  }
+  function buildBaseGrid(){
+    var grid=new Uint8Array(GRID_W*GRID_H);
+    edges.forEach(function(e){
+      for (var i=0;i<e.points.length-1;i++) stampSegment(grid, e.points[i], e.points[i+1], LINE_HALF, 1);
+    });
+    dots.forEach(function(d){ stampDisk(grid, [d.x,d.y], DOT_BLOCK_R, 1); });
+    return grid;
+  }
+  function gridForPair(baseGrid, a, b){
+    var g=baseGrid.slice();
+    stampDisk(g, [a.x,a.y], DOT_BLOCK_R, 0);
+    stampDisk(g, [b.x,b.y], DOT_BLOCK_R, 0);
+    return g;
+  }
+  function bfsPath(grid, a, b){
+    var startC=worldToCellCoord([a.x,a.y]), endC=worldToCellCoord([b.x,b.y]);
+    var startIdx=cellIdx(startC[0],startC[1]), endIdx=cellIdx(endC[0],endC[1]);
+    var visited=new Int32Array(GRID_W*GRID_H).fill(-1);
+    var queue=[startIdx]; visited[startIdx]=startIdx;
+    var qi=0;
+    var dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    while (qi<queue.length){
+      var cur=queue[qi++];
+      if (cur===endIdx) break;
+      var cx=cur%GRID_W, cy=Math.floor(cur/GRID_W);
+      for (var d=0; d<8; d++){
+        var nx=cx+dirs[d][0], ny=cy+dirs[d][1];
+        if (nx<0||ny<0||nx>=GRID_W||ny>=GRID_H) continue;
+        var nIdx=cellIdx(nx,ny);
+        if (visited[nIdx]!==-1) continue;
+        if (grid[nIdx]) continue;
+        visited[nIdx]=cur;
+        queue.push(nIdx);
+      }
+    }
+    if (visited[endIdx]===-1) return null;
+    var pathIdx=[]; var cur=endIdx; var guard=0;
+    while (cur!==startIdx){ pathIdx.push(cur); cur=visited[cur]; guard++; if (guard>GRID_W*GRID_H) return null; }
+    pathIdx.push(startIdx);
+    pathIdx.reverse();
+    var pts=pathIdx.map(function(idx){ var cx=idx%GRID_W, cy=Math.floor(idx/GRID_W); return cellCenter(cx,cy); });
+    pts[0]=[a.x,a.y]; pts[pts.length-1]=[b.x,b.y];
+    return pts;
+  }
+  function chaikinSmooth(points, iterations){
+    var pts=points;
+    for (var it=0; it<iterations; it++){
+      var newPts=[pts[0]];
+      for (var i=0;i<pts.length-1;i++){
+        var p0=pts[i], p1=pts[i+1];
+        newPts.push([p0[0]*0.75+p1[0]*0.25, p0[1]*0.75+p1[1]*0.25], [p0[0]*0.25+p1[0]*0.75, p0[1]*0.25+p1[1]*0.75]);
+      }
+      newPts.push(pts[pts.length-1]);
+      pts=newPts;
+    }
+    return pts;
+  }
+  function getSmoothedValidPath(rawPath, a, b){
+    var smooth=chaikinSmooth(rawPath, 1);
+    smooth[0]=[a.x,a.y]; smooth[smooth.length-1]=[b.x,b.y];
+    if (isPathValid(smooth, a, b)) return smooth;
+    if (isPathValid(rawPath, a, b)) return rawPath;
+    return null;
+  }
+
+  function selfLoopCandidates(a){
+    var out=[];
+    var cx=a.x, cy=a.y;
+    [0,45,90,135,180,225,270,315].forEach(function(angDeg){
+      [28,42,58].forEach(function(r){
+        var ang=angDeg*Math.PI/180;
+        var lc=[cx+Math.cos(ang)*r, cy+Math.sin(ang)*r];
+        var t0=ang+Math.PI;
+        var pts=[]; var steps=32;
+        for (var i=0;i<=steps;i++){ var t=t0+(i/steps)*Math.PI*2; pts.push([lc[0]+r*Math.cos(t), lc[1]+r*Math.sin(t)]); }
+        out.push(pts);
+      });
+    });
+    return out;
+  }
+
+  function shuffle(arr){ for (var i=arr.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=arr[i]; arr[i]=arr[j]; arr[j]=t; } }
+
+  function findLegalMove(existsOnly){
+    var alive=dots.filter(function(d){ return d.lives>=1; });
+    var pairs=[];
+    for (var i=0;i<alive.length;i++){
+      for (var j=i;j<alive.length;j++){
+        if (i===j){ if (alive[i].lives>=2) pairs.push([alive[i],alive[i]]); }
+        else pairs.push([alive[i],alive[j]]);
+      }
+    }
+    shuffle(pairs);
+    var baseGrid=buildBaseGrid();
+    var found=[];
+    for (var p=0;p<pairs.length;p++){
+      var a=pairs[p][0], b=pairs[p][1];
+      if (a===b){
+        var cands=selfLoopCandidates(a);
+        shuffle(cands);
+        for (var ci=0; ci<cands.length; ci++){
+          if (isPathValid(cands[ci], a, b)){
+            if (existsOnly) return true;
+            found.push({a:a,b:b,path:cands[ci]});
+            break;
+          }
+        }
+      } else {
+        var g=gridForPair(baseGrid, a, b);
+        var raw=bfsPath(g, a, b);
+        if (raw){
+          if (existsOnly) return true;
+          var finalPath=getSmoothedValidPath(raw, a, b);
+          if (finalPath) found.push({a:a,b:b,path:finalPath});
+        }
+      }
+      if (!existsOnly && found.length>=4) break;
+    }
+    if (existsOnly) return false;
+    if (found.length===0) return null;
+    return found[Math.floor(Math.random()*found.length)];
+  }
+
+  function cloneState(){
+    return JSON.parse(JSON.stringify({dots:dots, edges:edges, moveCount:moveCount, currentPlayer:currentPlayer, nextDotId:nextDotId}));
+  }
+
+  function commitMove(a, b, fullPath, idx){
+    history.push(cloneState());
+    var pos=fullPath[idx];
+    var nd={id:nextDotId++, x:pos[0], y:pos[1], lives:1};
+    var pathA=fullPath.slice(0, idx+1), pathB=fullPath.slice(idx);
+    dots.push(nd);
+    edges.push({points:pathA, from:a.id, to:nd.id, bbox:pathBBox(pathA)});
+    edges.push({points:pathB, from:nd.id, to:b.id, bbox:pathBBox(pathB)});
+    if (a===b) a.lives-=2; else { a.lives-=1; b.lives-=1; }
+    moveCount++;
+    lastMover=currentPlayer;
+    currentPlayer = currentPlayer==='P1' ? 'P2' : 'P1';
+  }
+
+  function playerLabel(p, possessive){
+    if (opponentType==='ai') return p==='P1' ? (possessive?'Your':'You') : (possessive?"AI's":'AI');
+    return p==='P1' ? (possessive?"Player 1's":'Player 1') : (possessive?"Player 2's":'Player 2');
+  }
+
+  function checkGameEnd(){
+    if (!findLegalMove(true)){
+      gameOver=true; winner=lastMover;
+      banner.style.display='block';
+      banner.textContent = playerLabel(winner,false) + ' wins! No more moves are possible.';
+      banner.style.background='var(--bg-success)'; banner.style.color='var(--text-success)';
+      instruction.textContent='Game over.';
+      render();
+      return;
+    }
+    if (opponentType==='ai' && currentPlayer==='P2'){
+      instruction.textContent='AI is thinking...';
+      turnIndicator.textContent='AI thinking...';
+      turnIndicator.style.background='var(--surface-1)'; turnIndicator.style.color='var(--text-secondary)';
+      setTimeout(aiTakeTurn, 750);
+    }
+  }
+
+  function aiTakeTurn(){
+    if (gameOver) return;
+    var move=findLegalMove(false);
+    if (!move){ gameOver=true; winner=lastMover; render(); return; }
+    var idx=Math.floor(move.path.length/2);
+    commitMove(move.a, move.b, move.path, idx);
+    render();
+    checkGameEnd();
+  }
+
+  function resetDraw(){ drawState='idle'; startDot=null; tempPath=[]; pendingPath=null; pendingStart=null; pendingEnd=null; ghostPoint=null; invalidFlashPath=null; cancelBtn.style.display='none'; }
+
+  function flashInvalid(path, msg){
+    invalidFlashPath=path;
+    instruction.textContent=msg;
+    render();
+    setTimeout(function(){ resetDraw(); instruction.textContent = gameOver? 'Game over.' : 'Drag from one player to another to make a pass.'; render(); }, 650);
+  }
+
+  function nearestLiveDot(pos, radius){
+    var best=null, bestD=Infinity;
+    for (var i=0;i<dots.length;i++){
+      var d=dots[i];
+      if (d.lives<1) continue;
+      var dd=dist(pos,[d.x,d.y]);
+      if (dd<radius && dd<bestD){ best=d; bestD=dd; }
+    }
+    return best;
+  }
+
+  function arcLenPoints(path){
+    var acc=[0];
+    for (var i=1;i<path.length;i++) acc.push(acc[i-1]+dist(path[i-1],path[i]));
+    return acc;
+  }
+
+  function nearestAllowedIndex(path, pos){
+    var acc=arcLenPoints(path);
+    var total=acc[acc.length-1]||1;
+    var margin=Math.min(30, total*0.35);
+    var lo=margin, hi=total-margin;
+    if (hi<=lo){ lo=total*0.4; hi=total*0.6; if (hi<=lo){ lo=total/2-1; hi=total/2+1; } }
+    var bestI=Math.floor(path.length/2), bestD=Infinity;
+    for (var i=0;i<path.length;i++){
+      if (acc[i]<lo || acc[i]>hi) continue;
+      var dd=dist(path[i],pos);
+      if (dd<bestD){ bestD=dd; bestI=i; }
+    }
+    return bestI;
+  }
+
+  function isPlayersTurn(){
+    if (gameOver) return false;
+    if (opponentType==='ai' && currentPlayer==='P2') return false;
+    return true;
+  }
+
+  function getPos(evt){
+    var rect=canvas.getBoundingClientRect();
+    var cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    var cy = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    var sx=canvas.width/rect.width, sy=canvas.height/rect.height;
+    return [(cx-rect.left)*sx, (cy-rect.top)*sy];
+  }
+
+  function onDown(evt){
+    if (!isPlayersTurn()) return;
+    evt.preventDefault();
+    var pos=getPos(evt);
+    if (drawState==='idle'){
+      var d=nearestLiveDot(pos, 20);
+      if (d){ drawState='drawing'; startDot=d; tempPath=[[d.x,d.y]]; render(); }
+    } else if (drawState==='placing'){
+      var idx=nearestAllowedIndex(pendingPath, pos);
+      commitMove(pendingStart, pendingEnd, pendingPath, idx);
+      resetDraw();
+      render();
+      instruction.textContent = gameOver? 'Game over.' : 'Drag from one player to another to make a pass.';
+      checkGameEnd();
+    }
+  }
+  function onMove(evt){
+    if (drawState==='drawing'){
+      evt.preventDefault();
+      var pos=getPos(evt);
+      var last=tempPath[tempPath.length-1];
+      if (dist(last,pos)>4) tempPath.push(pos);
+      render();
+    } else if (drawState==='placing'){
+      evt.preventDefault();
+      var pos2=getPos(evt);
+      var idx2=nearestAllowedIndex(pendingPath, pos2);
+      ghostPoint=pendingPath[idx2];
+      render();
+    }
+  }
+  function onUp(evt){
+    if (drawState!=='drawing') return;
+    evt.preventDefault();
+    var pos=getPos(evt);
+    var endDot=nearestLiveDot(pos, 20);
+    var fullPath=tempPath.slice();
+    if (!endDot){ resetDraw(); render(); return; }
+    fullPath.push([endDot.x, endDot.y]);
+    var totalLen=0; for (var i=1;i<fullPath.length;i++) totalLen+=dist(fullPath[i-1],fullPath[i]);
+    if (totalLen<45){ resetDraw(); render(); return; }
+    var needLives = startDot===endDot ? 2 : 1;
+    if (startDot.lives<needLives || (startDot!==endDot && endDot.lives<1)){
+      flashInvalid(fullPath, 'Not enough touches left for that pass.');
+      return;
+    }
+    if (!isPathValid(fullPath, startDot, endDot)){
+      flashInvalid(fullPath, 'That pass crosses another pass or player.');
+      return;
+    }
+    pendingPath=fullPath; pendingStart=startDot; pendingEnd=endDot;
+    drawState='placing';
+    ghostPoint=fullPath[Math.floor(fullPath.length/2)];
+    cancelBtn.style.display='inline-flex';
+    instruction.textContent='Tap along the pass to bring on the player who receives it.';
+    render();
+  }
+
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('mouseup', onUp);
+  canvas.addEventListener('touchstart', onDown, {passive:false});
+  canvas.addEventListener('touchmove', onMove, {passive:false});
+  canvas.addEventListener('touchend', onUp, {passive:false});
+
+  cancelBtn.addEventListener('click', function(){ resetDraw(); instruction.textContent='Drag from one player to another to make a pass.'; render(); });
+  undoBtn.addEventListener('click', function(){
+    if (history.length===0) return;
+    var prev=history.pop();
+    dots=prev.dots; edges=prev.edges; moveCount=prev.moveCount; currentPlayer=prev.currentPlayer; nextDotId=prev.nextDotId;
+    edges.forEach(function(e){ e.bbox=pathBBox(e.points); });
+    gameOver=false; winner=null; resetDraw();
+    banner.style.display='none';
+    instruction.textContent='Drag from one player to another to make a pass.';
+    render();
+  });
+  newgameBtn.addEventListener('click', function(){ setupView.style.display='block'; gameView.style.display='none'; });
+  infoBtn.addEventListener('click', function(){
+    var open=infoBox.style.display==='block';
+    infoBox.style.display = open ? 'none' : 'block';
+    infoBox.textContent = 'Every player starts with 3 touches. A pass uses up one touch from the passer and one from the receiver — and the link-up player who receives a pass and instantly plays it on is already down to 1 touch, since receiving-and-releasing uses 2 of their 3 touches in one go. So the touches left on the pitch always drop by exactly 1 with every pass, from ' + (3*initialN) + ' down toward 0. That guarantees the ball must eventually have nowhere legal left to go, somewhere between ' + (2*initialN) + ' and ' + (3*initialN-1) + ' passes in.';
+  });
+
+  function drawPitch(){
+    var W=canvas.width, H=canvas.height, M=14;
+    var stripeCount=8, stripeW=W/stripeCount;
+    for (var i=0;i<stripeCount;i++){
+      ctx.fillStyle = (i%2===0) ? '#2F6B45' : '#356F4A';
+      ctx.fillRect(i*stripeW, 0, stripeW+1, H);
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=2;
+    ctx.strokeRect(M, M, W-2*M, H-2*M);
+    ctx.beginPath(); ctx.moveTo(W/2, M); ctx.lineTo(W/2, H-M); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W/2, H/2, 55, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W/2, H/2, 3, 0, Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fill();
+    ctx.strokeRect(M, H/2-95, 88, 190);
+    ctx.strokeRect(W-M-88, H/2-95, 88, 190);
+    var r=10;
+    ctx.beginPath(); ctx.arc(M, M, r, 0, Math.PI/2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W-M, M, r, Math.PI/2, Math.PI); ctx.stroke();
+    ctx.beginPath(); ctx.arc(M, H-M, r, -Math.PI/2, 0); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W-M, H-M, r, Math.PI, Math.PI*1.5); ctx.stroke();
+  }
+
+  function render(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawPitch();
+    var textPrimary='#20201C';
+    ctx.lineWidth=2.5;
+    ctx.strokeStyle='#F5F4F0';
+    edges.forEach(function(e){
+      ctx.beginPath();
+      e.points.forEach(function(p,i){ if (i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+      ctx.stroke();
+    });
+    if (drawState==='drawing' && tempPath.length>1){
+      ctx.strokeStyle='#378ADD'; ctx.lineWidth=2.5;
+      ctx.beginPath();
+      tempPath.forEach(function(p,i){ if (i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+      ctx.stroke();
+    }
+    if (invalidFlashPath){
+      ctx.strokeStyle='#E24B4A'; ctx.lineWidth=3;
+      ctx.beginPath();
+      invalidFlashPath.forEach(function(p,i){ if (i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+      ctx.stroke();
+    }
+    if (drawState==='placing' && pendingPath){
+      ctx.strokeStyle='#EF9F27'; ctx.lineWidth=3;
+      ctx.beginPath();
+      pendingPath.forEach(function(p,i){ if (i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+      ctx.stroke();
+      if (ghostPoint){
+        ctx.beginPath(); ctx.arc(ghostPoint[0], ghostPoint[1], 7, 0, Math.PI*2);
+        ctx.fillStyle='#EF9F27'; ctx.fill();
+      }
+    }
+    dots.forEach(function(d){
+      ctx.beginPath(); ctx.arc(d.x,d.y,DOT_R,0,Math.PI*2);
+      if (d.lives<=0){
+        ctx.fillStyle='rgba(245,244,240,0.9)'; ctx.fill();
+        ctx.strokeStyle=textPrimary; ctx.lineWidth=1.5; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(d.x-5,d.y-5); ctx.lineTo(d.x+5,d.y+5);
+        ctx.moveTo(d.x+5,d.y-5); ctx.lineTo(d.x-5,d.y+5);
+        ctx.strokeStyle=textPrimary; ctx.lineWidth=2; ctx.stroke();
+      } else {
+        var fill = d.lives===3 ? '#378ADD' : d.lives===2 ? '#7F77DD' : '#BA7517';
+        var strokeC = d.lives===3 ? '#185FA5' : d.lives===2 ? '#534AB7' : '#854F0B';
+        ctx.fillStyle=fill; ctx.fill();
+        ctx.strokeStyle=strokeC; ctx.lineWidth=1.5; ctx.stroke();
+      }
+    });
+    var totalLives=dots.reduce(function(s,d){ return s+d.lives; },0);
+    livesOut.textContent=totalLives;
+    moveOut.textContent=moveCount;
+    if (!gameOver){
+      turnIndicator.textContent = playerLabel(currentPlayer,true) + ' turn';
+      if (opponentType==='ai' && currentPlayer==='P2'){
+        turnIndicator.style.background='var(--surface-1)'; turnIndicator.style.color='var(--text-secondary)';
+      } else {
+        turnIndicator.style.background='var(--bg-accent)'; turnIndicator.style.color='var(--text-accent)';
+      }
+    }
+  }
+
+  function layoutDots(n){
+    dots=[]; edges=[]; nextDotId=n; moveCount=0; currentPlayer='P1'; lastMover='P1';
+    gameOver=false; winner=null; history=[];
+    var cx=320, cy=205, r=150;
+    for (var i=0;i<n;i++){
+      var ang = -Math.PI/2 + i*(2*Math.PI/n);
+      dots.push({id:i, x:cx+r*Math.cos(ang), y:cy+r*Math.sin(ang), lives:3});
+    }
+  }
+
+  startBtn.addEventListener('click', function(){
+    initialN=parseInt(nSlider.value,10);
+    layoutDots(initialN);
+    resetDraw();
+    banner.style.display='none';
+    infoBox.style.display='none';
+    instruction.textContent='Drag from one player to another to make a pass.';
+    setupView.style.display='none'; gameView.style.display='block';
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

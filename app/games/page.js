@@ -8,6 +8,13 @@ const GAMES = [
     tagline: "Eat scoops until someone's left with nothing. Play solo against kAI Havertz, pass and play, or send your turn to a friend on WhatsApp.",
     href: '/games/sundae-showdown.html',
   },
+  {
+    slug: 'rondo',
+    name: 'Rondo',
+    emoji: '⚽',
+    tagline: 'Pass the ball between players — everyone gets 3 touches. Work out who can force the other player out of moves.',
+    href: '/games/rondo.html',
+  },
   // Add more games here as you build them.
 ]
 
