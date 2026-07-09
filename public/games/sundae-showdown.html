@@ -145,6 +145,27 @@
 (function(){
   var GAME_NAME = 'Sundae Showdown';
 
+  function getAnonId(){
+    try{
+      var id = localStorage.getItem('tmp_anon_id');
+      if (!id){
+        id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now())+Math.random();
+        localStorage.setItem('tmp_anon_id', id);
+      }
+      return id;
+    }catch(e){ return 'unknown'; }
+  }
+  function trackEvent(gameSlug, eventType, meta){
+    try{
+      fetch('/api/games/track', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ game: gameSlug, event: eventType, anon_id: getAnonId(), meta: meta||null }),
+        keepalive: true
+      }).catch(function(){});
+    }catch(e){}
+  }
+
   var ROSTER = [
     { name: 'Lionel Messy', bio: "Known for his incredibly messy eating style; can dribble chocolate sauce like nobody's business.", phrase: 'Getting messy on the dessert pitch!', main: '#1D9E75', accent: '#BA7517', number: 1 },
     { name: 'Cristy-Cone Ronaldo', bio: "Perfectionist. Counts every calorie, but absolutely destroys ice cream towers when it's a Sunday.", phrase: 'Siuuuu-per scoop!', main: '#D85A30', accent: '#378ADD', number: 2 },
@@ -522,6 +543,7 @@
     if (total(piles)===0){
       gameOver=true; winner=currentPlayer;
       if (currentPlayer==='P1') scorePlayer++; else scoreAi++;
+      trackEvent('sundae-showdown', 'game_end', { winner: winner, opponentType: opponentType });
       render();
       showBanner();
       return;
@@ -560,6 +582,7 @@
     bounceStack(idx);
     if (total(piles)===0){
       gameOver=true; winner='P2'; scoreAi++;
+      trackEvent('sundae-showdown', 'game_end', { winner: 'P2', opponentType: 'ai' });
       render();
       showBanner();
       return;
@@ -580,6 +603,7 @@
     myPlayerIdx=picks.p1; myPlayer2Idx=picks.p2;
     banner.style.display='none';
     setupView.style.display='none'; gameView.style.display='block';
+    trackEvent('sundae-showdown', 'game_start', { opponentType: opponentType, difficulty: opponentType==='ai' ? difficulty : null, cones: n });
     render();
   });
 

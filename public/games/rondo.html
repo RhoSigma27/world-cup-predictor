@@ -152,6 +152,27 @@
   var gameOver=false, winner=null, initialN=6, history=[];
   var drawState='idle', startDot=null, tempPath=[], pendingPath=null, pendingStart=null, pendingEnd=null, ghostPoint=null, invalidFlashPath=null;
 
+  function getAnonId(){
+    try{
+      var id = localStorage.getItem('tmp_anon_id');
+      if (!id){
+        id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now())+Math.random();
+        localStorage.setItem('tmp_anon_id', id);
+      }
+      return id;
+    }catch(e){ return 'unknown'; }
+  }
+  function trackEvent(gameSlug, eventType, meta){
+    try{
+      fetch('/api/games/track', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ game: gameSlug, event: eventType, anon_id: getAnonId(), meta: meta||null }),
+        keepalive: true
+      }).catch(function(){});
+    }catch(e){}
+  }
+
   var DOT_R=10;
   var JUNCTION_BUF=DOT_R+3;
   var W=640, H=420;
@@ -409,6 +430,7 @@
       banner.textContent = playerLabel(winner,false) + ' wins! No more moves are possible.';
       banner.style.background='var(--bg-success)'; banner.style.color='var(--text-success)';
       instruction.textContent='Game over.';
+      trackEvent('rondo', 'game_end', { winner: winner, opponentType: opponentType, passes: moveCount });
       render();
       return;
     }
@@ -477,10 +499,19 @@
     return true;
   }
 
+  function getCanvasScale(){
+    var rect=canvas.getBoundingClientRect();
+    return canvas.width / rect.width;
+  }
+  function snapRadius(){
+    return 34 * getCanvasScale();
+  }
+
   function getPos(evt){
     var rect=canvas.getBoundingClientRect();
-    var cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
-    var cy = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    var t = (evt.touches && evt.touches.length) ? evt.touches[0] : (evt.changedTouches && evt.changedTouches.length) ? evt.changedTouches[0] : null;
+    var cx = t ? t.clientX : evt.clientX;
+    var cy = t ? t.clientY : evt.clientY;
     var sx=canvas.width/rect.width, sy=canvas.height/rect.height;
     return [(cx-rect.left)*sx, (cy-rect.top)*sy];
   }
@@ -490,7 +521,7 @@
     evt.preventDefault();
     var pos=getPos(evt);
     if (drawState==='idle'){
-      var d=nearestLiveDot(pos, 20);
+      var d=nearestLiveDot(pos, snapRadius());
       if (d){ drawState='drawing'; startDot=d; tempPath=[[d.x,d.y]]; render(); }
     } else if (drawState==='placing'){
       var idx=nearestAllowedIndex(pendingPath, pos);
@@ -520,7 +551,7 @@
     if (drawState!=='drawing') return;
     evt.preventDefault();
     var pos=getPos(evt);
-    var endDot=nearestLiveDot(pos, 20);
+    var endDot=nearestLiveDot(pos, snapRadius());
     var fullPath=tempPath.slice();
     if (!endDot){ resetDraw(); render(); return; }
     fullPath.push([endDot.x, endDot.y]);
@@ -668,6 +699,7 @@
     infoBox.style.display='none';
     instruction.textContent='Drag from one player to another to make a pass.';
     setupView.style.display='none'; gameView.style.display='block';
+    trackEvent('rondo', 'game_start', { opponentType: opponentType, players: initialN });
     render();
   });
 
