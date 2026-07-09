@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Night Out</title>
+<style>
+  :root {
+    --surface-2: #ffffff; --surface-1: #f5f4f0; --surface-0: #ebe9e3;
+    --border: rgba(0,0,0,0.12); --border-strong: rgba(0,0,0,0.22);
+    --border-accent: #378ADD; --bg-accent: #E6F1FB; --text-accent: #0C447C;
+    --text-primary: #1a1a1a; --text-secondary: #5f5e5a;
+    --bg-success: #EAF3DE; --text-success: #27500A;
+    --bg-warning: #FAEEDA; --text-warning: #633806;
+    --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-2: #262523; --surface-1: #302f2c; --surface-0: #201f1d;
+      --border: rgba(255,255,255,0.14); --border-strong: rgba(255,255,255,0.24);
+      --bg-accent: #0C447C; --text-accent: #B5D4F4;
+      --text-primary: #f1efe8; --text-secondary: #b4b2a9;
+      --bg-success: #173404; --text-success: #C0DD97;
+      --bg-warning: #412402; --text-warning: #FAC775;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface-0); color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; justify-content: center; padding: 24px 12px 60px;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+  h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 20px; line-height:1.5; }
+  button, .btn-link {
+    background: transparent; border: 0.5px solid var(--border-strong); border-radius: var(--radius);
+    padding: 9px 14px; font-size: 14px; color: var(--text-primary); cursor: pointer; font-family: inherit;
+  }
+  button:hover { background: var(--surface-1); }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary { border-color: var(--border-accent); background: var(--bg-accent); color: var(--text-accent); font-weight: 500; }
+  input[type="text"] { width: 100%; padding: 9px 12px; border-radius: var(--radius); border: 0.5px solid var(--border-strong); font-size: 14px; font-family: inherit; background: var(--surface-2); color: var(--text-primary); }
+  .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+  .stat-label { font-size: 12px; color: var(--text-secondary); }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  #roster-list { max-height: 260px; overflow-y: auto; border: 0.5px solid var(--border); border-radius: 12px; padding: 8px; margin: 10px 0; background: var(--surface-2); }
+  .team-heading { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 10px 4px 4px; }
+  .team-heading:first-child { margin-top: 2px; }
+  .player-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .player-row:hover { background: var(--surface-1); }
+  .player-row.added { opacity: 0.35; cursor: default; }
+  .player-row .add-icon { color: var(--text-accent); font-size: 13px; }
+  #group-section { margin: 14px 0; }
+  #group-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .group-chip { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+  .group-chip .num { font-weight: 700; color: var(--text-secondary); width: 20px; }
+  .group-chip .team-tag { font-size: 11px; color: var(--text-secondary); margin-left: auto; }
+  .group-chip .remove { cursor: pointer; color: var(--text-secondary); font-size: 16px; padding: 0 4px; }
+  .group-chip .remove:hover { color: var(--text-warning); }
+  #board { width: 100%; height: auto; display: block; background: var(--surface-1); border: 0.5px solid var(--border); border-radius: 12px; }
+  #banner { display: none; margin: 14px 0; padding: 14px 16px; border-radius: 12px; font-size: 15px; font-weight: 600; text-align: center; line-height: 1.5; }
+  #legend-list { font-size: 12.5px; color: var(--text-secondary); margin: 12px 0; line-height: 1.7; }
+  #legend-list b { color: var(--text-primary); }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+  #info-box { display: none; font-size: 13px; color: var(--text-secondary); background: var(--surface-1); border-radius: var(--radius); padding: 12px 16px; line-height: 1.6; margin-bottom: 14px; }
+  .legend-swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Big Night Out</h1>
+  <p class="sub">Pick footballers from the World Cup quarter-finalists for a night out before tomorrow's match. If three or more of them know each other from playing at the same club, they get lost reminiscing and none of them leave the bar. If three or more are total strangers, the awkwardness boils over into a fight. Either way, nobody makes the match tomorrow. Build the biggest group where everyone actually turns up.</p>
+
+  <div class="row">
+    <div style="display:flex; gap:20px;">
+      <div><div class="stat-label">Best group</div><div class="stat-value" id="best-score">0</div></div>
+      <div><div class="stat-label">Attempts</div><div class="stat-value" id="attempt-count">0</div></div>
+    </div>
+  </div>
+
+  <div id="setup-view">
+    <button id="continue-best-btn" class="primary" style="width:100%; display:none; margin-bottom:10px;"></button>
+    <input type="text" id="search-box" placeholder="Search players by name or team...">
+    <div id="roster-list"></div>
+
+    <div id="group-section">
+      <div style="font-size:14px; color:var(--text-secondary);">Your group (<span id="group-count">0</span>)</div>
+      <div id="group-list"></div>
+      <button id="resolve-btn" class="primary" style="width:100%;" disabled>Resolve</button>
+    </div>
+  </div>
+
+  <div id="board-view" style="display:none;">
+    <canvas id="board" width="640" height="460"></canvas>
+    <div id="banner"></div>
+    <div id="legend-list">
+      <span class="legend-swatch" style="background:#378ADD;"></span>played at the same club, ever &nbsp;&nbsp;
+      <span class="legend-swatch" style="background:#D85A30;"></span>never played together
+    </div>
+    <div id="board-legend"></div>
+    <button id="newattempt-btn" class="primary" style="width:100%; margin-top:10px;">New attempt</button>
+  </div>
+
+  <div class="controls">
+    <button id="info-btn" style="display:none;">Why can't you beat 5?</button>
+  </div>
+  <div id="info-box"></div>
+</div>
+
+<script>
+var ROSTER = [{"name":"Emiliano Martínez","team":"Argentina","clubs":["Oxford United","Arsenal","Sheff Wed","Rotherham","Wolves","Getafe","Reading","Aston Villa"]},{"name":"Nahuel Molina","team":"Argentina","clubs":["Defensa","Rosario Central","Udinese","Atlético"]},{"name":"Cristian Romero","team":"Argentina","clubs":["Belgrano","Genoa","Juventus","Atalanta","Tottenham"]},{"name":"Lisandro Martínez","team":"Argentina","clubs":["Defensa","Ajax","Man Utd"]},{"name":"Nicolás Tagliafico","team":"Argentina","clubs":["Banfield","Real Murcia","Independiente","Ajax","Lyon"]},{"name":"Rodrigo De Paul","team":"Argentina","clubs":["Racing Club","Valencia","Udinese","Atlético","Miami"]},{"name":"Enzo Fernández","team":"Argentina","clubs":["Defensa","River Plate","Benfica","Chelsea"]},{"name":"Alexis Mac Allister","team":"Argentina","clubs":["Argentinos Jrs.","Brighton","Boca Juniors","Liverpool"]},{"name":"Leandro Paredes","team":"Argentina","clubs":["Boca Juniors","Chievo Verona","Roma","FC Empoli","Zenit S-Pb","PSG","Juventus"]},{"name":"Julián Alvarez","team":"Argentina","clubs":["CA Atalaya","River Plate","Man City","Atlético"]},{"name":"Lionel Messi","team":"Argentina","clubs":["Barcelona","PSG","Miami"]},{"name":"Mike Maignan","team":"France","clubs":["PSG","Lille","AC Milan"]},{"name":"Jules Koundé","team":"France","clubs":["G. Bordeaux","Sevilla FC","Barcelona"]},{"name":"Dayot Upamecano","team":"France","clubs":["Salzburg","Leipzig","Bayern Munich"]},{"name":"William Saliba","team":"France","clubs":["Saint-Étienne","Arsenal","Nice","Marseille"]},{"name":"Lucas Digne","team":"France","clubs":["Crepy en Valois","Lille","PSG","Roma","Barcelona","Everton","Aston Villa"]},{"name":"Manu Koné","team":"France","clubs":["Toulouse","Mönchengladbach","Roma"]},{"name":"Adrien Rabiot","team":"France","clubs":["PSG","Toulouse","Juventus","Marseille","AC Milan"]},{"name":"Ousmane Dembélé","team":"France","clubs":["Stade Rennais","Dortmund","Barcelona","PSG"]},{"name":"Michael Olise","team":"France","clubs":["Reading","Crystal Palace","Bayern Munich"]},{"name":"Bradley Barcola","team":"France","clubs":["Lyon","PSG"]},{"name":"Kylian Mbappé","team":"France","clubs":["Monaco","PSG","Real Madrid"]},{"name":"Jordan Pickford","team":"England","clubs":["Darlington","Alfreton","Sunderland","Burton Albion","Carlisle United","Bradford","Preston","Everton"]},{"name":"Jarell Quansah","team":"England","clubs":["Bristol Rovers","Liverpool","Leverkusen"]},{"name":"Ezri Konsa","team":"England","clubs":["Charlton","Brentford","Aston Villa"]},{"name":"Marc Guéhi","team":"England","clubs":["Chelsea","Swansea","Crystal Palace","Man City"]},{"name":"Nico O'Reilly","team":"England","clubs":["Man City"]},{"name":"Declan Rice","team":"England","clubs":["West Ham","Arsenal"]},{"name":"Elliot Anderson","team":"England","clubs":["Bristol Rovers","Newcastle","Nott'm Forest"]},{"name":"Bukayo Saka","team":"England","clubs":["Arsenal"]},{"name":"Jude Bellingham","team":"England","clubs":["Birmingham","Dortmund","Real Madrid"]},{"name":"Anthony Gordon","team":"England","clubs":["Everton","Preston","Newcastle","Barcelona"]},{"name":"Harry Kane","team":"England","clubs":["Tottenham","Leyton Orient","Millwall","Norwich","Leicester","Bayern Munich"]},{"name":"Unai Simón","team":"Spain","clubs":["CD Basconia","Bilbao Athletic","Athletic Club"]},{"name":"Pedro Porro","team":"Spain","clubs":["CF Peralada","Girona","Man City","Real Valladolid","Sporting","Tottenham"]},{"name":"Pau Cubarsí","team":"Spain","clubs":["Barça Atlètic","Barcelona"]},{"name":"Aymeric Laporte","team":"Spain","clubs":["CD Basconia","Bilbao Athletic","Athletic Club","Man City","Al-Nassr"]},{"name":"Marc Cucurella","team":"Spain","clubs":["Barcelona","SD Eibar","Getafe","Brighton","Chelsea"]},{"name":"Rodri","team":"Spain","clubs":["Villarreal","Atlético","Man City"]},{"name":"Pedri","team":"Spain","clubs":["UD Las Palmas","Barcelona"]},{"name":"Lamine Yamal","team":"Spain","clubs":["Barcelona"]},{"name":"Dani Olmo","team":"Spain","clubs":["Dinamo Zagreb","Leipzig","Barcelona"]},{"name":"Álex Baena","team":"Spain","clubs":["Villarreal","Girona","Atlético"]},{"name":"Mikel Oyarzabal","team":"Spain","clubs":["Real Sociedad Y","Real Sociedad"]},{"name":"Thibaut Courtois","team":"Belgium","clubs":["Genk","Chelsea","Atlético","Real Madrid"]},{"name":"Timothy Castagne","team":"Belgium","clubs":["Genk","Atalanta","Leicester","Fulham"]},{"name":"Brandon Mechele","team":"Belgium","clubs":["Club Brugge","Sint-Truiden"]},{"name":"Nathan Ngoy","team":"Belgium","clubs":["Standard Liège","Lille"]},{"name":"Maxim De Cuyper","team":"Belgium","clubs":["Club Brugge","KVC Westerlo","Brighton"]},{"name":"Amadou Onana","team":"Belgium","clubs":["Hamburg","Lille","Everton","Aston Villa"]},{"name":"Nicolas Raskin","team":"Belgium","clubs":["Standard Liège","Rangers"]},{"name":"Dodi Lukébakio","team":"Belgium","clubs":["RSC Anderlecht","Toulouse","R Charleroi SC","Watford","F. Düsseldorf","Hertha BSC","Wolfsburg","Sevilla FC","Benfica"]},{"name":"Youri Tielemans","team":"Belgium","clubs":["RSC Anderlecht","Monaco","Leicester","Aston Villa"]},{"name":"Leandro Trossard","team":"Belgium","clubs":["Genk","Lommel United","KVC Westerlo","OH Leuven","Brighton","Arsenal"]},{"name":"Charles De Ketelaere","team":"Belgium","clubs":["Club Brugge","AC Milan","Atalanta"]},{"name":"Ørjan Nyland","team":"Norway","clubs":["Hødd","Molde FK","FC Ingolstadt","Aston Villa","Norwich","Bournemouth","Reading","Leipzig","Sevilla FC"]},{"name":"Julian Ryerson","team":"Norway","clubs":["Viking FK","Union Berlin","Dortmund"]},{"name":"Kristoffer Ajer","team":"Norway","clubs":["IK Start","Celtic","Kilmarnock FC","Brentford"]},{"name":"Torbjørn Heggem","team":"Norway","clubs":["Ranheim","Sandnes Ulf","Brommapojkarna","West Brom","Bologna"]},{"name":"David Møller Wolfe","team":"Norway","clubs":["Bergen Nord","Åsane","SK Brann","AZ Alkmaar","Wolves"]},{"name":"Martin Ødegaard","team":"Norway","clubs":["Strømsgodset","RM Castilla","Real Madrid","Heerenveen","Vitesse","Real Sociedad","Arsenal"]},{"name":"Sander Berge","team":"Norway","clubs":["Asker","Vålerenga","Genk","Sheff Utd","Burnley","Fulham"]},{"name":"Patrick Berg","team":"Norway","clubs":["Bodø/Glimt","Lens"]},{"name":"Alexander Sørloth","team":"Norway","clubs":["Rosenborg BK","Bodø/Glimt","FC Groningen","Midtjylland","Crystal Palace","KAA Gent","Trabzonspor","Leipzig","Real Sociedad","Villarreal","Atlético"]},{"name":"Erling Haaland","team":"Norway","clubs":["Bryne","Molde FK","Salzburg","Dortmund","Man City"]},{"name":"Antonio Nusa","team":"Norway","clubs":["Stabæk","Club Brugge","Leipzig"]},{"name":"Yassine Bounou","team":"Morocco","clubs":["Wydad AC","Atl. Madrileño","Atlético","Real Zaragoza","Girona","Sevilla FC","Al-Hilal"]},{"name":"Achraf Hakimi","team":"Morocco","clubs":["RM Castilla","Real Madrid","Dortmund","Inter","PSG"]},{"name":"Issa Diop","team":"Morocco","clubs":["Toulouse","West Ham","Fulham"]},{"name":"Redouane Halhal","team":"Morocco","clubs":["Atl. Madrileño","KV Mechelen","Helmond Sport"]},{"name":"Noussair Mazraoui","team":"Morocco","clubs":["Ajax","Bayern Munich","Man Utd"]},{"name":"Neil El Aynaoui","team":"Morocco","clubs":["AS Nancy","Lens","Roma"]},{"name":"Ayyoub Bouaddi","team":"Morocco","clubs":["Lille"]},{"name":"Brahim Díaz","team":"Morocco","clubs":["Man City","Real Madrid","AC Milan"]},{"name":"Azzedine Ounahi","team":"Morocco","clubs":["AM Football","US Avranches","Angers SCO","Marseille","Panathinaikos","Girona"]},{"name":"Bilal El Khannouss","team":"Morocco","clubs":["Genk","Leicester","Stuttgart"]},{"name":"Ismael Saibari","team":"Morocco","clubs":["PSV"]},{"name":"Gregor Kobel","team":"Switzerland","clubs":["Hoffenheim","Augsburg","Stuttgart","Dortmund"]},{"name":"Denis Zakaria","team":"Switzerland","clubs":["Servette FC","Young Boys","Mönchengladbach","Juventus","Chelsea","Monaco"]},{"name":"Nico Elvedi","team":"Switzerland","clubs":["FC Zürich","Mönchengladbach"]},{"name":"Manuel Akanji","team":"Switzerland","clubs":["FC Winterthur","Basel","Dortmund","Man City","Inter"]},{"name":"Ricardo Rodríguez","team":"Switzerland","clubs":["FC Zürich","Wolfsburg","AC Milan","PSV","Torino","Real Betis"]},{"name":"Granit Xhaka","team":"Switzerland","clubs":["Basel","Mönchengladbach","Arsenal","Leverkusen","Sunderland"]},{"name":"Remo Freuler","team":"Switzerland","clubs":["Grasshoppers","FC Winterthur","FC Luzern","Atalanta","Nott'm Forest","Bologna"]},{"name":"Dan Ndoye","team":"Switzerland","clubs":["FC Stade Nyonnai","Lausanne-Sport","Nice","Basel","Bologna","Nott'm Forest"]},{"name":"Fabian Rieder","team":"Switzerland","clubs":["Young Boys","Stade Rennais","Stuttgart","Augsburg"]},{"name":"Ardon Jashari","team":"Switzerland","clubs":["FC Luzern","Club Brugge","AC Milan"]},{"name":"Breel Embolo","team":"Switzerland","clubs":["Basel","FC Schalke 04","Mönchengladbach","Monaco","Stade Rennais"]}];
+
+(function(){
+  var searchBox=document.getElementById('search-box');
+  var rosterListEl=document.getElementById('roster-list');
+  var groupListEl=document.getElementById('group-list');
+  var groupCountEl=document.getElementById('group-count');
+  var resolveBtn=document.getElementById('resolve-btn');
+  var setupView=document.getElementById('setup-view');
+  var boardView=document.getElementById('board-view');
+  var canvas=document.getElementById('board'), ctx=canvas.getContext('2d');
+  var banner=document.getElementById('banner');
+  var boardLegend=document.getElementById('board-legend');
+  var newAttemptBtn=document.getElementById('newattempt-btn');
+  var continueBestBtn=document.getElementById('continue-best-btn');
+  var infoBtn=document.getElementById('info-btn'), infoBox=document.getElementById('info-box');
+  var bestScoreEl=document.getElementById('best-score'), attemptCountEl=document.getElementById('attempt-count');
+
+  var nameToIndex = {};
+  ROSTER.forEach(function(p, idx){ nameToIndex[p.name] = idx; });
+
+  function getAnonId(){
+    try{
+      var id = localStorage.getItem('tmp_anon_id');
+      if (!id){
+        id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now())+Math.random();
+        localStorage.setItem('tmp_anon_id', id);
+      }
+      return id;
+    }catch(e){ return 'unknown'; }
+  }
+  function trackEvent(gameSlug, eventType, meta){
+    try{
+      fetch('/api/games/track', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ game: gameSlug, event: eventType, anon_id: getAnonId(), meta: meta||null }),
+        keepalive: true
+      }).catch(function(){});
+    }catch(e){}
+  }
+
+  var selected = [];
+  var bestScore = parseInt(localStorage.getItem('bno_best')||'0', 10);
+  var attempts = parseInt(localStorage.getItem('bno_attempts')||'0', 10);
+  var attemptsSinceBest = parseInt(localStorage.getItem('bno_since')||'0', 10);
+
+  function updateStatsDisplay(){
+    bestScoreEl.textContent = bestScore;
+    attemptCountEl.textContent = attempts;
+  }
+
+  function shareClub(a,b){
+    for (var i=0;i<a.clubs.length;i++){
+      if (b.clubs.indexOf(a.clubs[i])>=0) return true;
+    }
+    return false;
+  }
+  function pairSharedClub(a,b){
+    for (var i=0;i<a.clubs.length;i++){
+      if (b.clubs.indexOf(a.clubs[i])>=0) return a.clubs[i];
+    }
+    return null;
+  }
+  function tripleSharedClub(a,b,c){
+    for (var i=0;i<a.clubs.length;i++){
+      if (b.clubs.indexOf(a.clubs[i])>=0 && c.clubs.indexOf(a.clubs[i])>=0) return a.clubs[i];
+    }
+    return null;
+  }
+
+  function isSelected(idx){
+    for (var i=0;i<selected.length;i++) if (selected[i].idx===idx) return true;
+    return false;
+  }
+
+  function renderRoster(){
+    var filter = searchBox.value.trim().toLowerCase();
+    rosterListEl.innerHTML = '';
+    var lastTeam = null;
+    ROSTER.forEach(function(p, idx){
+      var matches = !filter || p.name.toLowerCase().indexOf(filter)>=0 || p.team.toLowerCase().indexOf(filter)>=0;
+      if (!matches) return;
+      if (p.team !== lastTeam){
+        var h = document.createElement('div');
+        h.className = 'team-heading';
+        h.textContent = p.team;
+        rosterListEl.appendChild(h);
+        lastTeam = p.team;
+      }
+      var row = document.createElement('div');
+      row.className = 'player-row' + (isSelected(idx) ? ' added' : '');
+      row.innerHTML = '<span>'+p.name+'</span><span class="add-icon">'+(isSelected(idx)?'added':'+ add')+'</span>';
+      if (!isSelected(idx)){
+        row.addEventListener('click', function(){ addPlayer(idx); });
+      }
+      rosterListEl.appendChild(row);
+    });
+  }
+
+  function renderGroup(){
+    groupListEl.innerHTML = '';
+    groupCountEl.textContent = selected.length;
+    selected.forEach(function(item, pos){
+      var chip = document.createElement('div');
+      chip.className = 'group-chip';
+      chip.innerHTML = '<span class="num">'+(pos+1)+'.</span><span>'+item.player.name+'</span><span class="team-tag">'+item.player.team+'</span><span class="remove">&times;</span>';
+      chip.querySelector('.remove').addEventListener('click', function(){ removeFromGroup(pos); });
+      groupListEl.appendChild(chip);
+    });
+    resolveBtn.disabled = selected.length < 1;
+    updateContinueBestBtn();
+  }
+
+  function addPlayer(idx){
+    if (selected.length === 0){
+      trackEvent('big-night-out', 'game_start', {});
+    }
+    selected.push({ idx: idx, player: ROSTER[idx] });
+    renderRoster();
+    renderGroup();
+  }
+  function removeFromGroup(pos){
+    selected.splice(pos,1);
+    renderRoster();
+    renderGroup();
+  }
+
+  searchBox.addEventListener('input', renderRoster);
+
+  function findMonochromaticTriangle(items){
+    var n = items.length;
+    for (var i=0;i<n;i++){
+      for (var j=i+1;j<n;j++){
+        var cij = shareClub(items[i].player, items[j].player);
+        for (var k=j+1;k<n;k++){
+          var cik = shareClub(items[i].player, items[k].player);
+          var cjk = shareClub(items[j].player, items[k].player);
+          if (cij===cik && cij===cjk){
+            return { i:i, j:j, k:k, color: cij };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function layoutDots(n, W, H){
+    var cx=W/2, cy=H/2 - 10;
+    var r = Math.min(190, 110 + n*4);
+    var dots = [];
+    for (var i=0;i<n;i++){
+      var ang = -Math.PI/2 + i*(2*Math.PI/n);
+      dots.push({x:cx+r*Math.cos(ang), y:cy+r*Math.sin(ang)});
+    }
+    return dots;
+  }
+
+  function resolve(){
+    var n = selected.length;
+    attempts++;
+    var tri = n>=3 ? findMonochromaticTriangle(selected) : null;
+
+    var W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+    var dots = layoutDots(n, W, H);
+    var dotR = Math.max(7, 12 - Math.floor(n/7));
+
+    for (var i=0;i<n;i++){
+      for (var j=i+1;j<n;j++){
+        var isTriEdge = tri && ((i===tri.i&&j===tri.j)||(i===tri.i&&j===tri.k)||(i===tri.j&&j===tri.k));
+        var col = shareClub(selected[i].player, selected[j].player) ? '#378ADD' : '#D85A30';
+        ctx.beginPath();
+        ctx.moveTo(dots[i].x, dots[i].y);
+        ctx.lineTo(dots[j].x, dots[j].y);
+        if (isTriEdge){
+          ctx.strokeStyle = col; ctx.lineWidth = 4.5; ctx.globalAlpha = 1;
+        } else {
+          ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.globalAlpha = 0.5;
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+    for (var d=0; d<n; d++){
+      var isTriDot = tri && (d===tri.i||d===tri.j||d===tri.k);
+      ctx.beginPath();
+      ctx.arc(dots[d].x, dots[d].y, dotR + (isTriDot?4:0), 0, Math.PI*2);
+      if (isTriDot){
+        ctx.fillStyle = '#FAC775';
+        ctx.fill();
+        ctx.strokeStyle = '#854F0B'; ctx.lineWidth = 2; ctx.stroke();
+      } else {
+        ctx.fillStyle = '#5F5E5A';
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(dots[d].x, dots[d].y, dotR, 0, Math.PI*2);
+      if (!isTriDot){ ctx.fillStyle = '#5F5E5A'; ctx.fill(); }
+      ctx.fillStyle = isTriDot ? '#2C2C2A' : '#ffffff';
+      ctx.font = '600 11px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(d+1), dots[d].x, dots[d].y+1);
+    }
+
+    boardLegend.innerHTML = selected.map(function(item, pos){
+      return '<div style="font-size:12.5px; color:var(--text-secondary); padding:2px 0;"><b style="color:var(--text-primary);">'+(pos+1)+'.</b> '+item.player.name+' <span style="color:var(--text-secondary);">('+item.player.team+')</span></div>';
+    }).join('');
+
+    banner.style.display = 'block';
+    var wasNewBest = false;
+    if (tri){
+      attemptsSinceBest++;
+      var pI = selected[tri.i].player, pJ = selected[tri.j].player, pK = selected[tri.k].player;
+      var names = [pI.name, pJ.name, pK.name];
+      var story;
+      if (tri.color){
+        var all3 = tripleSharedClub(pI,pJ,pK);
+        if (all3){
+          story = names.join(', ') + ' have all played for ' + all3 + ' — they get swept up catching up over a few too many, and none of them make it to the match.';
+        } else {
+          var ij = pairSharedClub(pI,pJ), jk = pairSharedClub(pJ,pK), ik = pairSharedClub(pI,pK);
+          story = pI.name+' and '+pJ.name+' both played at '+ij+', '+pJ.name+' and '+pK.name+' both played at '+jk+', and '+pI.name+' and '+pK.name+' both played at '+ik+' — three old faces meeting at once, and none of them make it to the match.';
+        }
+      } else {
+        story = names.join(', ') + ' are all total strangers — the tension turns into a fight, and none of them make it to the match.';
+      }
+      banner.textContent = 'Game over at ' + n + '. ' + story;
+      banner.style.background = 'var(--bg-warning)'; banner.style.color = 'var(--text-warning)';
+    } else {
+      if (n > bestScore){
+        bestScore = n; attemptsSinceBest = 0; wasNewBest = true;
+        localStorage.setItem('bno_best_group', JSON.stringify(selected.map(function(item){ return item.player.name; })));
+        banner.textContent = 'Everyone made it to the match! New personal best: ' + n + ' players.';
+      } else {
+        attemptsSinceBest++;
+        banner.textContent = 'Everyone made it to the match! (' + n + ' players — your best is still ' + bestScore + '.)';
+      }
+      banner.style.background = 'var(--bg-success)'; banner.style.color = 'var(--text-success)';
+    }
+
+    localStorage.setItem('bno_best', String(bestScore));
+    localStorage.setItem('bno_attempts', String(attempts));
+    localStorage.setItem('bno_since', String(attemptsSinceBest));
+    trackEvent('big-night-out', 'resolve', { groupSize: n, success: !tri, newBest: wasNewBest });
+    updateStatsDisplay();
+    updateInfoBtnVisibility();
+
+    setupView.style.display = 'none';
+    boardView.style.display = 'block';
+  }
+
+  function updateInfoBtnVisibility(){
+    if (attempts >= 10){
+      infoBtn.style.display = '';
+    }
+  }
+
+  function explainerText(){
+    return "Once a group hits 6 people, it doesn't matter who you pick — among any 6 real footballers on Earth, there must be 3 who all know each other from a shared club, or 3 who are total strangers. Here's why: take any one person in a group of 6. They have a relationship (played together, or never played together) with each of the other 5. By pigeonhole, at least 3 of those 5 relationships must be the same type — say this person shares a club with 3 others, call them A, B and C. Now look at A-B, B-C and A-C: if any one of those pairs also shares a club, that's a same-club triangle. If none of them do, then A, B and C are all strangers to each other — which is itself a triangle of strangers. Either way, a matching trio is unavoidable. This is a famous result called Ramsey's theorem (specifically, R(3,3)=6) — it's not bad luck, a group of 6 was never going to survive a resolve, no matter how carefully you picked them.";
+  }
+
+  function updateContinueBestBtn(){
+    var saved = localStorage.getItem('bno_best_group');
+    if (saved && selected.length===0){
+      var names = JSON.parse(saved);
+      continueBestBtn.style.display = '';
+      continueBestBtn.textContent = 'Continue from your best (' + names.length + ') and try for ' + (names.length+1);
+    } else {
+      continueBestBtn.style.display = 'none';
+    }
+  }
+  continueBestBtn.addEventListener('click', function(){
+    var saved = localStorage.getItem('bno_best_group');
+    if (!saved) return;
+    var names = JSON.parse(saved);
+    selected = [];
+    names.forEach(function(nm){
+      if (nameToIndex.hasOwnProperty(nm)){
+        selected.push({ idx: nameToIndex[nm], player: ROSTER[nameToIndex[nm]] });
+      }
+    });
+    renderRoster();
+    renderGroup();
+    updateContinueBestBtn();
+  });
+
+  resolveBtn.addEventListener('click', resolve);
+  newAttemptBtn.addEventListener('click', function(){
+    selected = [];
+    banner.style.display = 'none';
+    boardView.style.display = 'none';
+    setupView.style.display = 'block';
+    renderRoster();
+    renderGroup();
+    updateContinueBestBtn();
+  });
+  infoBtn.addEventListener('click', function(){
+    var open = infoBox.style.display === 'block';
+    infoBox.style.display = open ? 'none' : 'block';
+    if (!open) infoBox.textContent = explainerText();
+  });
+
+  updateStatsDisplay();
+  updateInfoBtnVisibility();
+  renderRoster();
+  renderGroup();
+})();
+</script>
+</body>
+</html>

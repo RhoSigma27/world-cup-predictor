@@ -15,7 +15,13 @@ const GAMES = [
     tagline: 'Pass the ball between players — everyone gets 3 touches. Work out who can force the other player out of moves.',
     href: '/games/rondo.html',
   },
-  // Add more games here as you build them.
+  {
+  slug: 'big-night-out',
+  name: 'Big Night Out',
+  emoji: '🍻',
+  tagline: 'Pick footballers from the quarter-finalists for a night out — three who know each other or three total strangers, and nobody makes tomorrow\'s match.',
+  href: '/games/big-night-out.html',
+},// Add more games here as you build them.
 ]
 
 export default function GamesPage() {
