@@ -45,10 +45,11 @@
   .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
   .stat-label { font-size: 12px; color: var(--text-secondary); }
   .stat-value { font-size: 22px; font-weight: 700; }
-  #roster-list { max-height: 260px; overflow-y: auto; border: 0.5px solid var(--border); border-radius: 12px; padding: 8px; margin: 10px 0; background: var(--surface-2); }
-  .team-heading { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 10px 4px 4px; }
-  .team-heading:first-child { margin-top: 2px; }
-  .player-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  #roster-list { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 440px; overflow-y: auto; padding: 4px; margin: 10px 0; }
+  @media (max-width: 480px) { #roster-list { grid-template-columns: 1fr; } }
+  .team-box { border: 0.5px solid var(--border); border-radius: 10px; padding: 8px 10px 4px; background: var(--surface-2); }
+  .team-box-header { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin-bottom: 4px; }
+  .player-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 6px; border-radius: 6px; cursor: pointer; font-size: 13.5px; }
   .player-row:hover { background: var(--surface-1); }
   .player-row.added { opacity: 0.35; cursor: default; }
   .player-row .add-icon { color: var(--text-accent); font-size: 13px; }
@@ -75,7 +76,7 @@
 
   <div class="row">
     <div style="display:flex; gap:20px;">
-      <div><div class="stat-label">Best group</div><div class="stat-value" id="best-score">0</div></div>
+      <div><div class="stat-label">Biggest group</div><div class="stat-value" id="best-score">0</div></div>
       <div><div class="stat-label">Attempts</div><div class="stat-value" id="attempt-count">0</div></div>
     </div>
   </div>
@@ -189,24 +190,34 @@ var ROSTER = [{"name":"Emiliano Martínez","team":"Argentina","clubs":["Oxford U
   function renderRoster(){
     var filter = searchBox.value.trim().toLowerCase();
     rosterListEl.innerHTML = '';
-    var lastTeam = null;
+    var teamsOrder = [], teamMap = {};
     ROSTER.forEach(function(p, idx){
-      var matches = !filter || p.name.toLowerCase().indexOf(filter)>=0 || p.team.toLowerCase().indexOf(filter)>=0;
-      if (!matches) return;
-      if (p.team !== lastTeam){
-        var h = document.createElement('div');
-        h.className = 'team-heading';
-        h.textContent = p.team;
-        rosterListEl.appendChild(h);
-        lastTeam = p.team;
-      }
-      var row = document.createElement('div');
-      row.className = 'player-row' + (isSelected(idx) ? ' added' : '');
-      row.innerHTML = '<span>'+p.name+'</span><span class="add-icon">'+(isSelected(idx)?'added':'+ add')+'</span>';
-      if (!isSelected(idx)){
-        row.addEventListener('click', function(){ addPlayer(idx); });
-      }
-      rosterListEl.appendChild(row);
+      if (!teamMap[p.team]){ teamMap[p.team] = []; teamsOrder.push(p.team); }
+      teamMap[p.team].push(idx);
+    });
+    teamsOrder.forEach(function(team){
+      var visibleIndices = teamMap[team].filter(function(idx){
+        var p = ROSTER[idx];
+        return !filter || p.name.toLowerCase().indexOf(filter)>=0 || p.team.toLowerCase().indexOf(filter)>=0;
+      });
+      if (visibleIndices.length===0) return;
+      var box = document.createElement('div');
+      box.className = 'team-box';
+      var header = document.createElement('div');
+      header.className = 'team-box-header';
+      header.textContent = team;
+      box.appendChild(header);
+      visibleIndices.forEach(function(idx){
+        var p = ROSTER[idx];
+        var row = document.createElement('div');
+        row.className = 'player-row' + (isSelected(idx) ? ' added' : '');
+        row.innerHTML = '<span>'+p.name+'</span><span class="add-icon">'+(isSelected(idx)?'added':'+ add')+'</span>';
+        if (!isSelected(idx)){
+          row.addEventListener('click', function(){ addPlayer(idx); });
+        }
+        box.appendChild(row);
+      });
+      rosterListEl.appendChild(box);
     });
   }
 
