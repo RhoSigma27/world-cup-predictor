@@ -9,6 +9,13 @@ const GAMES = [
     href: '/games/sundae-showdown.html',
   },
   {
+    slug: 'fibonicy-sundaes',
+    name: 'Fibon-icy Sundaes',
+    emoji: '🍨',
+    tagline: "One bowl, take some scoops — but never more than double what the computer just took. Whoever takes the last scoop wins.",
+    href: '/games/fibonicy-sundaes.html',
+  },
+  {
     slug: 'rondo',
     name: 'Rondo',
     emoji: '⚽',
