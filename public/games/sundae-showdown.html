@@ -119,6 +119,7 @@
       <div style="display:flex; gap:20px;">
         <div><div class="stat-label" id="p1-label">You</div><div class="stat-value" id="score-player">0</div></div>
         <div><div class="stat-label" id="opp-label">kAI Havertz</div><div class="stat-value" id="score-ai">0</div></div>
+        <div style="align-self:flex-end;"><a href="#" id="resetScoreLink" style="font-size:11px; color:var(--text-secondary);">Reset score</a></div>
       </div>
       <div id="turn-indicator">Your turn</div>
     </div>
@@ -261,7 +262,18 @@
   var player2PickerWrap=document.getElementById('player2-picker-wrap'), picker1Label=document.getElementById('picker1-label');
 
   var opponentType='ai', difficulty='hard';
-  var piles=[], currentPlayer='P1', gameOver=false, winner=null, scorePlayer=0, scoreAi=0;
+  var piles=[], currentPlayer='P1', gameOver=false, winner=null;
+  var scorePlayer=0, scoreAi=0;
+  try {
+    scorePlayer = parseInt(localStorage.getItem('sundae_score_player') || '0', 10) || 0;
+    scoreAi = parseInt(localStorage.getItem('sundae_score_ai') || '0', 10) || 0;
+  } catch(e){}
+  function saveScore(){
+    try {
+      localStorage.setItem('sundae_score_player', scorePlayer);
+      localStorage.setItem('sundae_score_ai', scoreAi);
+    } catch(e){}
+  }
   var myPlayerIdx=0, myPlayer2Idx=0;
 
   function twoDistinctRandom(n){
@@ -543,7 +555,8 @@
     if (total(piles)===0){
       gameOver=true; winner=currentPlayer;
       if (currentPlayer==='P1') scorePlayer++; else scoreAi++;
-      trackEvent('sundae-showdown', 'game_end', { winner: winner, opponentType: opponentType });
+      saveScore();
+      trackEvent('sundae-showdown', 'game_end', { winner: winner, opponentType: opponentType, difficulty: opponentType==='ai' ? difficulty : null });
       render();
       showBanner();
       return;
@@ -582,13 +595,25 @@
     bounceStack(idx);
     if (total(piles)===0){
       gameOver=true; winner='P2'; scoreAi++;
-      trackEvent('sundae-showdown', 'game_end', { winner: 'P2', opponentType: 'ai' });
+      saveScore();
+      trackEvent('sundae-showdown', 'game_end', { winner: 'P2', opponentType: 'ai', difficulty: difficulty });
       render();
       showBanner();
       return;
     }
     currentPlayer='P1';
     render();
+  }
+
+  var resetScoreLink = document.getElementById('resetScoreLink');
+  if (resetScoreLink) {
+    resetScoreLink.addEventListener('click', function(e){
+      e.preventDefault();
+      scorePlayer = 0; scoreAi = 0;
+      saveScore();
+      scorePlayerEl.textContent = scorePlayer;
+      scoreAiEl.textContent = scoreAi;
+    });
   }
 
   newgameBtn.addEventListener('click', function(){
@@ -599,7 +624,7 @@
   startBtn.addEventListener('click', function(){
     var n=parseInt(nSlider.value,10);
     piles=randomPiles(n);
-    currentPlayer='P1'; gameOver=false; winner=null; scorePlayer=0; scoreAi=0;
+    currentPlayer='P1'; gameOver=false; winner=null;
     myPlayerIdx=picks.p1; myPlayer2Idx=picks.p2;
     banner.style.display='none';
     setupView.style.display='none'; gameView.style.display='block';

@@ -16,6 +16,13 @@ const GAMES = [
     href: '/games/fibonicy-sundaes.html',
   },
   {
+    slug: 'the-spiked-bar',
+    name: 'The Spiked Bar',
+    emoji: '🍫',
+    tagline: "Cold War Mexico, 1970. Break off pieces of a shared chocolate bar — whoever's left holding the spiked square is out before kick-off.",
+    href: '/games/the-spiked-bar.html',
+  },
+  {
     slug: 'rondo',
     name: 'Rondo',
     emoji: '⚽',
