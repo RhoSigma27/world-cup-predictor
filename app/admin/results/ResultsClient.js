@@ -235,6 +235,9 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
     return saved ? new Set(saved) : null
   })
   const [overrideOpen, setOverrideOpen] = useState(false)
+  const [totalGoals, setTotalGoals] = useState(initialMasterExtras?.total_goals ?? '')
+  const [totalRedCards, setTotalRedCards] = useState(initialMasterExtras?.total_red_cards ?? '')
+  const [extrasSaving, setExtrasSaving] = useState(false)
 
   const supabaseRef = useRef(null)
   if (!supabaseRef.current) supabaseRef.current = createClient()
@@ -543,6 +546,24 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
     }
   }
 
+  const saveExtras = async () => {
+    const goals = totalGoals === '' ? null : parseInt(totalGoals)
+    const reds = totalRedCards === '' ? null : parseInt(totalRedCards)
+    if (goals == null || reds == null || isNaN(goals) || isNaN(reds)) {
+      showToast('Enter both totals', 'error'); return
+    }
+    setExtrasSaving(true)
+    const { error } = await supabase
+      .from('master_extras')
+      .upsert({ id: '00000000-0000-0000-0000-000000000001', total_goals: goals, total_red_cards: reds, updated_at: new Date().toISOString() })
+      .eq('id', '00000000-0000-0000-0000-000000000001')
+    setExtrasSaving(false)
+    if (!error) {
+      showToast('✓ Extras totals saved')
+    } else {
+      showToast('Save failed — ' + error.message, 'error')
+    }
+  }
   // ── derived data ──────────────────────────────────────────────────────────────
 
   const groupFixtures = fixtureData.filter(f => f.round === 'group')
@@ -827,7 +848,7 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {[['group','Group Stage'],['knockout','Knockout'],['override','3rd Place Slots']].map(([id, label]) => (
+          {[['group','Group Stage'],['knockout','Knockout'],['override','3rd Place Slots'],['extras','Extras Totals']].map(([id, label]) => (
             <button key={id} onClick={() => setActiveTab(id)}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors relative
                 ${activeTab === id ? 'bg-yellow-500 text-gray-950' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
@@ -975,6 +996,37 @@ export default function ResultsClient({ fixtures, masterExtras: initialMasterExt
 
         {/* 3rd place override */}
         {activeTab === 'override' && renderOverridePanel()}
+        {activeTab === 'extras' && (
+          <div className="max-w-md">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+              <p className="text-gray-400 text-sm">
+                Enter the final tournament totals once the last match has finished. This feeds the extras proximity scoring across every league.
+              </p>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Total Goals (non-penalty shootout)</label>
+                <input
+                  type="number" min="0"
+                  value={totalGoals}
+                  onChange={e => setTotalGoals(e.target.value)}
+                  className="w-full py-2 px-3 rounded-lg text-sm font-bold bg-gray-800 border border-gray-700 text-white focus:border-yellow-500 outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Total Red Cards</label>
+                <input
+                  type="number" min="0"
+                  value={totalRedCards}
+                  onChange={e => setTotalRedCards(e.target.value)}
+                  className="w-full py-2 px-3 rounded-lg text-sm font-bold bg-gray-800 border border-gray-700 text-white focus:border-yellow-500 outline-none transition-colors"
+                />
+              </div>
+              <button onClick={saveExtras} disabled={extrasSaving}
+                className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 disabled:bg-gray-700 text-gray-950 font-bold rounded-lg text-sm transition-colors">
+                {extrasSaving ? 'Saving…' : 'Save Extras Totals'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Mobile tables button — only on group tab */}
