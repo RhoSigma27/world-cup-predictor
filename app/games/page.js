@@ -23,6 +23,27 @@ const GAMES = [
     href: '/games/the-spiked-bar.html',
   },
   {
+    slug: 'park-the-bus',
+    name: 'Park the Bus',
+    emoji: '🚌',
+    tagline: "Every turn, either player can place an X or an O. The Attack is building a route of 5 to goal — the Defence is parking the bus to stop it.",
+    href: '/games/park-the-bus.html',
+  },
+  {
+    slug: 'honeycomb-havoc',
+    name: 'Honeycomb Havoc',
+    emoji: '🐝',
+    tagline: "Red connects left to right, Blue connects top to bottom. Claim a hex each turn — first to link both your sides wins.",
+    href: '/games/honeycomb-havoc.html',
+  },
+  {
+    slug: 'total-football',
+    name: 'Total Football',
+    emoji: '🔄',
+    tagline: "Place a marble, then rotate a quadrant of the pitch a quarter turn. First to line up 5 in a row — before or after the spin — wins.",
+    href: '/games/total-football.html',
+  },
+  {
     slug: 'rondo',
     name: 'Rondo',
     emoji: '⚽',

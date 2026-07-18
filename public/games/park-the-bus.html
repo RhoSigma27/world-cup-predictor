@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Park the Bus</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap">
+<style>
+  :root {
+    --surface-2: #ffffff; --surface-1: #f5f4f0; --surface-0: #ebe9e3;
+    --border: rgba(0,0,0,0.12); --border-strong: rgba(0,0,0,0.22);
+    --border-accent: #378ADD; --bg-accent: #E6F1FB; --text-accent: #0C447C;
+    --text-primary: #1a1a1a; --text-secondary: #5f5e5a;
+    --bg-success: #EAF3DE; --text-success: #27500A;
+    --bg-warning: #FAEEDA; --text-warning: #633806;
+    --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-2: #262523; --surface-1: #302f2c; --surface-0: #201f1d;
+      --border: rgba(255,255,255,0.14); --border-strong: rgba(255,255,255,0.24);
+      --bg-accent: #0C447C; --text-accent: #B5D4F4;
+      --text-primary: #f1efe8; --text-secondary: #b4b2a9;
+      --bg-success: #173404; --text-success: #C0DD97;
+      --bg-warning: #412402; --text-warning: #FAC775;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface-0); color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; justify-content: center; padding: 20px 12px 50px;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+  h1 { font-family:'Baloo 2',sans-serif; font-size: 24px; font-weight: 700; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px; }
+  button, select {
+    background: transparent; border: 0.5px solid var(--border-strong); border-radius: var(--radius);
+    padding: 9px 14px; font-size: 14px; color: var(--text-primary); cursor: pointer; font-family: inherit;
+  }
+  button:hover { background: var(--surface-1); }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button:disabled:hover { background: transparent; }
+
+  #game-card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 18px; }
+
+  .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  #turn-indicator { font-family:'Baloo 2',sans-serif; font-size: 15px; font-weight: 700; padding: 7px 14px; border-radius: 999px; background: var(--bg-accent); color: var(--text-accent); white-space: nowrap; display: inline-block; }
+  .stats-group { display: flex; gap: 18px; flex-wrap: wrap; }
+  .stat-label { font-size: 12px; color: var(--text-secondary); }
+  .stat-value { font-size: 22px; font-weight: 700; font-family:'Baloo 2',sans-serif; }
+  .right-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+  .setup-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .setup-row label { font-size: 13px; color: var(--text-secondary); }
+
+  .rules-btn { font-size: 13px; padding: 6px 12px; margin-bottom: 12px; }
+  .rules-box { display:none; background: var(--surface-1); border-radius: 12px; padding: 12px 14px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 12px; }
+  .rules-box.show { display: block; }
+  .rules-box b { color: var(--text-primary); }
+
+  #board-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(6, 44px);
+    grid-template-rows: repeat(6, 44px);
+    gap: 4px;
+  }
+  .cell {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: var(--surface-1);
+    border: 0.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.12s ease, box-shadow 0.12s ease;
+  }
+  .cell.selected {
+    box-shadow: 0 0 0 3px var(--border-accent);
+    background: var(--bg-accent);
+  }
+  .cell.locked { cursor: not-allowed; }
+  .cell.x-mark { color: #D85A30; }
+  .cell.o-mark { color: #378ADD; }
+  .cell.in-winning-line { background: var(--bg-success); }
+
+  .place-controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 6px; }
+  .place-btn { font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: 16px; padding: 10px 26px; }
+  .place-btn.x { border-color: #D85A30; color: #D85A30; }
+  .place-btn.o { border-color: #378ADD; color: #378ADD; }
+
+  .take-info { font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 10px; min-height: 18px; }
+
+  #banner { display: none; margin: 12px 0 0; padding: 16px; border-radius: 12px; font-family:'Baloo 2',sans-serif; font-size: 16px; font-weight: 700; text-align: center; }
+  #banner .banner-sub { font-weight: 500; font-style: italic; font-size: 13px; margin-top: 4px; }
+  #banner .play-again-btn { margin-top: 12px; font-family: inherit; font-weight: 700; border-color: var(--border-accent); background: var(--surface-2); color: var(--text-accent); }
+
+  .footer-note { margin-top: 18px; font-size: 11px; color: var(--text-secondary); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Park the Bus</h1>
+  <p class="sub">Each turn you place either an X or an O — anywhere. The Attack is trying to build a 5-symbol route to goal (any direction). The Defence is trying to park the bus and run the clock out with no route ever completed.</p>
+
+  <button class="rules-btn" id="rulesToggle">How does this work?</button>
+  <div class="rules-box" id="rulesBox">
+    Unlike tic-tac-toe, you don't own a symbol — <b>every turn, either player may place an X or an O</b>, in any empty square.
+    <br><br>
+    The <b>Attack</b> wins the moment 5 matching symbols line up in a row, column, or diagonal anywhere on the board — a route to goal — and it doesn't matter which player placed them, or whether they're all X or all O.
+    The <b>Defence</b> wins by parking the bus for the full 90: filling the entire board without that route ever forming.
+    <br><br>
+    Pick which side you want to play. The computer plays a strong, deliberately imperfect version of the other side — beatable, but you'll have to work for it.
+  </div>
+
+  <div id="game-card">
+    <div class="setup-row" id="setupRow">
+      <label for="sideSelect">Play as</label>
+      <select id="sideSelect">
+        <option value="order" selected>Attack (build a route of 5)</option>
+        <option value="chaos">Defence (park the bus)</option>
+      </select>
+      <label for="difficultySelect">Difficulty</label>
+      <select id="difficultySelect">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <button id="newGameBtn">🔄 New game</button>
+    </div>
+
+    <div class="row">
+      <div class="stats-group">
+        <div><div class="stat-label">Wins</div><div class="stat-value" id="statWins">0</div></div>
+        <div><div class="stat-label">Losses</div><div class="stat-value" id="statLosses">0</div></div>
+        <div><div class="stat-label">Streak</div><div class="stat-value" id="statStreak">0</div></div>
+      </div>
+      <div class="right-col">
+        <div id="turn-indicator">Your turn</div>
+      </div>
+    </div>
+
+    <div class="take-info" id="takeInfo">Tap an empty square, then choose X or O.</div>
+    <div id="board-wrap"><div id="board"></div></div>
+
+    <div class="place-controls" id="placeControls" style="visibility:hidden;">
+      <button class="place-btn x" id="placeXBtn">Place X</button>
+      <button class="place-btn o" id="placeOBtn">Place O</button>
+    </div>
+
+    <div id="banner"></div>
+  </div>
+
+  <div class="footer-note">Park the Bus &middot; a football spin on the classic Order and Chaos</div>
+</div>
+
+<script>
+(function(){
+  var SIZE = 6;
+  var WIN_LEN = 5;
+
+  var board = []; // board[r][c] = null | 'X' | 'O'
+  var playerSide = 'order'; // 'order' or 'chaos'
+  var difficulty = 'medium';
+  var turn = 'player'; // 'player' | 'ai'
+  var gameOver = false;
+  var selectedCell = null; // {r,c}
+  var winningLineCells = [];
+
+  var wins = 0, losses = 0, streak = 0;
+  try {
+    var saved = JSON.parse(localStorage.getItem('orderchaos_stats') || '{}');
+    wins = saved.wins || 0; losses = saved.losses || 0; streak = saved.streak || 0;
+  } catch(e){}
+
+  var boardEl = document.getElementById('board');
+  var takeInfoEl = document.getElementById('takeInfo');
+  var turnIndicator = document.getElementById('turn-indicator');
+  var bannerEl = document.getElementById('banner');
+  var rulesToggle = document.getElementById('rulesToggle');
+  var rulesBox = document.getElementById('rulesBox');
+  var newGameBtn = document.getElementById('newGameBtn');
+  var sideSelect = document.getElementById('sideSelect');
+  var difficultySelect = document.getElementById('difficultySelect');
+  var placeControls = document.getElementById('placeControls');
+  var placeXBtn = document.getElementById('placeXBtn');
+  var placeOBtn = document.getElementById('placeOBtn');
+  var statWins = document.getElementById('statWins');
+  var statLosses = document.getElementById('statLosses');
+  var statStreak = document.getElementById('statStreak');
+
+  function saveStats(){
+    try { localStorage.setItem('orderchaos_stats', JSON.stringify({wins:wins, losses:losses, streak:streak})); } catch(e){}
+    statWins.textContent = wins;
+    statLosses.textContent = losses;
+    statStreak.textContent = streak;
+  }
+
+  function emptyBoard(){
+    var b = [];
+    for (var r=0;r<SIZE;r++){
+      var row = [];
+      for (var c=0;c<SIZE;c++) row.push(null);
+      b.push(row);
+    }
+    return b;
+  }
+
+  function cellsEmpty(b){
+    var n = 0;
+    for (var r=0;r<SIZE;r++) for (var c=0;c<SIZE;c++) if (!b[r][c]) n++;
+    return n;
+  }
+
+  // All lines of length WIN_LEN on the board, precomputed once.
+  var ALL_WINDOWS = (function(){
+    var windows = [];
+    var dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (var r=0;r<SIZE;r++){
+      for (var c=0;c<SIZE;c++){
+        for (var d=0; d<dirs.length; d++){
+          var dr = dirs[d][0], dc = dirs[d][1];
+          var cells = [];
+          var ok = true;
+          for (var k=0;k<WIN_LEN;k++){
+            var rr = r + dr*k, cc = c + dc*k;
+            if (rr<0||rr>=SIZE||cc<0||cc>=SIZE){ ok=false; break; }
+            cells.push([rr,cc]);
+          }
+          if (ok) windows.push(cells);
+        }
+      }
+    }
+    return windows;
+  })();
+
+  function checkWin(b){
+    for (var i=0;i<ALL_WINDOWS.length;i++){
+      var w = ALL_WINDOWS[i];
+      var sym = null, all = true;
+      for (var k=0;k<w.length;k++){
+        var v = b[w[k][0]][w[k][1]];
+        if (!v){ all = false; break; }
+        if (sym === null) sym = v;
+        else if (sym !== v){ all = false; break; }
+      }
+      if (all) return w;
+    }
+    return null;
+  }
+
+  // Heuristic: positive favors Order, negative favors Chaos.
+  // For every window, if it contains cells of only one symbol (plus empties), it's "alive" —
+  // score by how many cells are already filled (closer to complete = bigger threat).
+  function evaluate(b){
+    var score = 0;
+    for (var i=0;i<ALL_WINDOWS.length;i++){
+      var w = ALL_WINDOWS[i];
+      var xCount = 0, oCount = 0;
+      for (var k=0;k<w.length;k++){
+        var v = b[w[k][0]][w[k][1]];
+        if (v === 'X') xCount++;
+        else if (v === 'O') oCount++;
+      }
+      if (xCount > 0 && oCount > 0) continue; // dead window, both symbols present
+      var filled = xCount + oCount;
+      if (filled === 0) continue;
+      score += Math.pow(3, filled); // more filled = exponentially bigger threat
+    }
+    return score;
+  }
+
+  function candidateMoves(b){
+    // restrict to empty cells within distance 2 of any existing piece, to keep branching sane;
+    // if board is empty, just offer the center cells.
+    var moves = [];
+    var hasAny = false;
+    for (var r=0;r<SIZE;r++) for (var c=0;c<SIZE;c++) if (b[r][c]) hasAny = true;
+
+    if (!hasAny){
+      var mid = Math.floor(SIZE/2);
+      for (var rr = mid-1; rr<=mid; rr++){
+        for (var cc = mid-1; cc<=mid; cc++){
+          moves.push([rr,cc,'X']);
+          moves.push([rr,cc,'O']);
+        }
+      }
+      return moves;
+    }
+
+    var seen = {};
+    for (var r2=0;r2<SIZE;r2++){
+      for (var c2=0;c2<SIZE;c2++){
+        if (!b[r2][c2]) continue;
+        for (var dr=-2; dr<=2; dr++){
+          for (var dc=-2; dc<=2; dc++){
+            var nr = r2+dr, nc = c2+dc;
+            if (nr<0||nr>=SIZE||nc<0||nc>=SIZE) continue;
+            if (b[nr][nc]) continue;
+            var key = nr+'_'+nc;
+            if (seen[key]) continue;
+            seen[key] = true;
+            moves.push([nr,nc,'X']);
+            moves.push([nr,nc,'O']);
+          }
+        }
+      }
+    }
+    return moves;
+  }
+
+  function applyMove(b, move){
+    var next = b.map(function(row){ return row.slice(); });
+    next[move[0]][move[1]] = move[2];
+    return next;
+  }
+
+  // Depth-limited minimax with alpha-beta. Order maximizes, Chaos minimizes.
+  function minimax(b, depth, alpha, beta, maximizing){
+    var win = checkWin(b);
+    if (win) return maximizing ? -100000 : 100000; // if it's Order's "maximize" turn and a line already exists, that's terminal
+    if (cellsEmpty(b) === 0) return maximizing ? -50000 : 50000; // board full = Chaos win
+    if (depth === 0) return evaluate(b);
+
+    var moves = candidateMoves(b);
+    if (moves.length === 0) return evaluate(b);
+
+    if (maximizing){
+      var best = -Infinity;
+      for (var i=0;i<moves.length;i++){
+        var next = applyMove(b, moves[i]);
+        var val = minimax(next, depth-1, alpha, beta, false);
+        if (val > best) best = val;
+        if (best > alpha) alpha = best;
+        if (alpha >= beta) break;
+      }
+      return best;
+    } else {
+      var best2 = Infinity;
+      for (var j=0;j<moves.length;j++){
+        var next2 = applyMove(b, moves[j]);
+        var val2 = minimax(next2, depth-1, alpha, beta, true);
+        if (val2 < best2) best2 = val2;
+        if (best2 < beta) beta = best2;
+        if (alpha >= beta) break;
+      }
+      return best2;
+    }
+  }
+
+  function aiChooseMove(b, aiIsOrder){
+    var depth = difficulty === 'hard' ? 3 : (difficulty === 'medium' ? 2 : 1);
+    var noise = difficulty === 'hard' ? 0.05 : (difficulty === 'medium' ? 0.2 : 0.45);
+
+    var moves = candidateMoves(b);
+    if (moves.length === 0) return null;
+
+    if (Math.random() < noise){
+      return moves[Math.floor(Math.random()*moves.length)];
+    }
+
+    var bestMove = null;
+    var bestVal = aiIsOrder ? -Infinity : Infinity;
+    for (var i=0;i<moves.length;i++){
+      var next = applyMove(b, moves[i]);
+      var val = minimax(next, depth-1, -Infinity, Infinity, !aiIsOrder);
+      if (aiIsOrder){
+        if (val > bestVal){ bestVal = val; bestMove = moves[i]; }
+      } else {
+        if (val < bestVal){ bestVal = val; bestMove = moves[i]; }
+      }
+    }
+    return bestMove || moves[0];
+  }
+
+  function newGame(){
+    board = emptyBoard();
+    playerSide = sideSelect.value;
+    difficulty = difficultySelect.value;
+    turn = 'player';
+    gameOver = false;
+    selectedCell = null;
+    winningLineCells = [];
+    bannerEl.style.display = 'none';
+    turnIndicator.style.display = 'inline-block';
+    turnIndicator.textContent = 'Your turn';
+    turnIndicator.style.background = 'var(--bg-accent)';
+    turnIndicator.style.color = 'var(--text-accent)';
+    takeInfoEl.textContent = 'Tap an empty square, then choose X or O.';
+    renderBoard();
+    updatePlaceControls();
+  }
+
+  function renderBoard(){
+    boardEl.innerHTML = '';
+    for (var r=0;r<SIZE;r++){
+      for (var c=0;c<SIZE;c++){
+        var el = document.createElement('div');
+        el.className = 'cell';
+        el.dataset.r = r; el.dataset.c = c;
+        var v = board[r][c];
+        if (v === 'X'){ el.textContent = 'X'; el.classList.add('x-mark'); }
+        else if (v === 'O'){ el.textContent = 'O'; el.classList.add('o-mark'); }
+        if (v || turn !== 'player' || gameOver) el.classList.add('locked');
+        if (selectedCell && selectedCell.r === r && selectedCell.c === c) el.classList.add('selected');
+        for (var i=0;i<winningLineCells.length;i++){
+          if (winningLineCells[i][0]===r && winningLineCells[i][1]===c) el.classList.add('in-winning-line');
+        }
+        boardEl.appendChild(el);
+      }
+    }
+  }
+
+  function updatePlaceControls(){
+    var canPlace = turn === 'player' && !gameOver && selectedCell;
+    placeControls.style.visibility = canPlace ? 'visible' : 'hidden';
+  }
+
+  function doMove(r, c, symbol){
+    board[r][c] = symbol;
+    selectedCell = null;
+    renderBoard();
+    updatePlaceControls();
+
+    var win = checkWin(board);
+    if (win){
+      winningLineCells = win;
+      renderBoard();
+      endGame('order');
+      return;
+    }
+    if (cellsEmpty(board) === 0){
+      endGame('chaos');
+      return;
+    }
+
+    if (turn === 'player'){
+      turn = 'ai';
+      takeInfoEl.textContent = '';
+      turnIndicator.textContent = 'Computer is thinking...';
+      turnIndicator.style.background = 'var(--surface-1)';
+      turnIndicator.style.color = 'var(--text-secondary)';
+      renderBoard();
+      setTimeout(aiTake, 450 + Math.random()*450);
+    } else {
+      turn = 'player';
+      takeInfoEl.textContent = 'Tap an empty square, then choose X or O.';
+      turnIndicator.textContent = 'Your turn';
+      turnIndicator.style.background = 'var(--bg-accent)';
+      turnIndicator.style.color = 'var(--text-accent)';
+      renderBoard();
+      updatePlaceControls();
+    }
+  }
+
+  function aiTake(){
+    if (gameOver) return;
+    var aiIsOrder = playerSide === 'chaos';
+    var move = aiChooseMove(board, aiIsOrder);
+    if (!move) return;
+    doMove(move[0], move[1], move[2]);
+  }
+
+  function endGame(winnerSide){
+    gameOver = true;
+    turn = 'none';
+    turnIndicator.style.display = 'none';
+    bannerEl.style.display = 'block';
+    updatePlaceControls();
+
+    var playerWon = (winnerSide === playerSide);
+    if (playerWon){
+      wins++; streak++;
+      bannerEl.style.background = 'var(--bg-success)';
+      bannerEl.style.color = 'var(--text-success)';
+      bannerEl.innerHTML = 'You win!<div class="banner-sub">' +
+        (winnerSide === 'order' ? 'A route to goal came together on your watch.' : 'You parked the bus for 90 minutes straight.') +
+        '</div>';
+    } else {
+      losses++; streak = 0;
+      bannerEl.style.background = 'var(--bg-warning)';
+      bannerEl.style.color = 'var(--text-warning)';
+      bannerEl.innerHTML = 'Computer wins!<div class="banner-sub">' +
+        (winnerSide === 'order' ? 'A route to goal formed before the bus could be parked.' : 'The bus stayed parked all match.') +
+        '</div>';
+    }
+    var playAgainBtn = document.createElement('button');
+    playAgainBtn.className = 'play-again-btn';
+    playAgainBtn.textContent = 'Play again';
+    playAgainBtn.addEventListener('click', newGame);
+    bannerEl.appendChild(playAgainBtn);
+    saveStats();
+  }
+
+  boardEl.addEventListener('click', function(e){
+    var el = e.target.closest('.cell');
+    if (!el || turn !== 'player' || gameOver) return;
+    var r = parseInt(el.dataset.r,10), c = parseInt(el.dataset.c,10);
+    if (board[r][c]) return;
+    selectedCell = { r: r, c: c };
+    renderBoard();
+    updatePlaceControls();
+  });
+
+  placeXBtn.addEventListener('click', function(){
+    if (!selectedCell || turn !== 'player' || gameOver) return;
+    doMove(selectedCell.r, selectedCell.c, 'X');
+  });
+  placeOBtn.addEventListener('click', function(){
+    if (!selectedCell || turn !== 'player' || gameOver) return;
+    doMove(selectedCell.r, selectedCell.c, 'O');
+  });
+
+  newGameBtn.addEventListener('click', newGame);
+  rulesToggle.addEventListener('click', function(){ rulesBox.classList.toggle('show'); });
+
+  saveStats();
+  newGame();
+})();
+</script>
+</body>
+</html>

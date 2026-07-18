@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Total Football</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap">
+<style>
+  :root {
+    --surface-2: #ffffff; --surface-1: #f5f4f0; --surface-0: #ebe9e3;
+    --border: rgba(0,0,0,0.12); --border-strong: rgba(0,0,0,0.22);
+    --border-accent: #378ADD; --bg-accent: #E6F1FB; --text-accent: #0C447C;
+    --text-primary: #1a1a1a; --text-secondary: #5f5e5a;
+    --bg-success: #EAF3DE; --text-success: #27500A;
+    --bg-warning: #FAEEDA; --text-warning: #633806;
+    --radius: 8px;
+    --q0-tint: #E6F1FB; --q1-tint: #EAF3DE; --q2-tint: #FAEEDA; --q3-tint: #F6E6F5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-2: #262523; --surface-1: #302f2c; --surface-0: #201f1d;
+      --border: rgba(255,255,255,0.14); --border-strong: rgba(255,255,255,0.24);
+      --bg-accent: #0C447C; --text-accent: #B5D4F4;
+      --text-primary: #f1efe8; --text-secondary: #b4b2a9;
+      --bg-success: #173404; --text-success: #C0DD97;
+      --bg-warning: #412402; --text-warning: #FAC775;
+      --q0-tint: #16283a; --q1-tint: #17240e; --q2-tint: #2e1f06; --q3-tint: #2b1729;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface-0); color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; justify-content: center; padding: 20px 12px 50px;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+  h1 { font-family:'Baloo 2',sans-serif; font-size: 24px; font-weight: 700; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px; }
+  button, select {
+    background: transparent; border: 0.5px solid var(--border-strong); border-radius: var(--radius);
+    padding: 9px 14px; font-size: 14px; color: var(--text-primary); cursor: pointer; font-family: inherit;
+  }
+  button:hover { background: var(--surface-1); }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button:disabled:hover { background: transparent; }
+
+  #game-card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 18px; }
+
+  .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  #turn-indicator { font-family:'Baloo 2',sans-serif; font-size: 15px; font-weight: 700; padding: 7px 14px; border-radius: 999px; background: var(--bg-accent); color: var(--text-accent); white-space: nowrap; display: inline-block; }
+  .stats-group { display: flex; gap: 18px; flex-wrap: wrap; }
+  .stat-label { font-size: 12px; color: var(--text-secondary); }
+  .stat-value { font-size: 22px; font-weight: 700; font-family:'Baloo 2',sans-serif; }
+  .right-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+  .setup-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .setup-row label { font-size: 13px; color: var(--text-secondary); }
+
+  .rules-btn { font-size: 13px; padding: 6px 12px; margin-bottom: 12px; }
+  .rules-box { display:none; background: var(--surface-1); border-radius: 12px; padding: 12px 14px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 12px; }
+  .rules-box.show { display: block; }
+  .rules-box b { color: var(--text-primary); }
+
+  #board-wrap { display: flex; justify-content: center; margin-bottom: 14px; padding: 30px; }
+  #board-outer { position: relative; }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    grid-template-rows: repeat(2, auto);
+    gap: 8px;
+    background: var(--border);
+    border-radius: 12px;
+    padding: 8px;
+  }
+  .quadrant {
+    display: grid;
+    grid-template-columns: repeat(3, 36px);
+    grid-template-rows: repeat(3, 36px);
+    gap: 4px;
+    padding: 6px;
+    border-radius: 8px;
+  }
+  .quadrant.q0 { background: var(--q0-tint); }
+  .quadrant.q1 { background: var(--q1-tint); }
+  .quadrant.q2 { background: var(--q2-tint); }
+  .quadrant.q3 { background: var(--q3-tint); }
+  .cell {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s ease, box-shadow 0.12s ease;
+  }
+  .cell.p1 { background: linear-gradient(160deg, #8ac2ff, #378ADD); }
+  .cell.p2 { background: linear-gradient(160deg, #ff9d8a, #D85A30); }
+  .cell.locked { cursor: not-allowed; }
+  .cell.in-winning-line { box-shadow: 0 0 0 3px var(--text-primary) inset; }
+
+  .rotate-corner {
+    position: absolute;
+    display: none;
+    gap: 4px;
+  }
+  .rotate-corner.show { display: flex; }
+  .rotate-corner.tl { top: 0px; left: 0px; }
+  .rotate-corner.tr { top: 0px; right: 0px; }
+  .rotate-corner.bl { bottom: 0px; left: 0px; }
+  .rotate-corner.br { bottom: 0px; right: 0px; }
+  .rotate-btn {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    cursor: pointer;
+  }
+  .rotate-btn:hover { filter: brightness(1.08); }
+  .rotate-btn.q0 { background: var(--q0-tint); }
+  .rotate-btn.q1 { background: var(--q1-tint); }
+  .rotate-btn.q2 { background: var(--q2-tint); }
+  .rotate-btn.q3 { background: var(--q3-tint); }
+
+  .take-info { font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 10px; min-height: 18px; }
+
+  #banner { display: none; margin: 12px 0 0; padding: 16px; border-radius: 12px; font-family:'Baloo 2',sans-serif; font-size: 16px; font-weight: 700; text-align: center; }
+  #banner .banner-sub { font-weight: 500; font-style: italic; font-size: 13px; margin-top: 4px; }
+  #banner .play-again-btn { margin-top: 12px; font-family: inherit; font-weight: 700; border-color: var(--border-accent); background: var(--surface-2); color: var(--text-accent); }
+
+  .footer-note { margin-top: 18px; font-size: 11px; color: var(--text-secondary); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Total Football</h1>
+  <p class="sub">Place a marble, then rotate one of the four 3×3 quadrants a quarter turn — everything on the pitch keeps moving. First to line up 5 in a row — before or after the rotation — wins.</p>
+
+  <button class="rules-btn" id="rulesToggle">How does this work?</button>
+  <div class="rules-box" id="rulesBox">
+    The board is split into four 3×3 quadrants, each tinted a different colour. Every turn has two parts: <b>place</b> a marble on any empty circle, then <b>rotate</b> any one quadrant (your choice, even a different one to where you just played) a quarter-turn.
+    <br><br>
+    The two small buttons at each corner rotate that corner's quadrant — clockwise or counter-clockwise — and are coloured to match it, so there's no need to pick a quadrant separately first.
+    <br><br>
+    5 in a row — horizontally, vertically, or diagonally — wins, and it counts whether it appears right after your placement or only once the rotation completes. If a rotation happens to complete a line for both players at once, it's a draw.
+  </div>
+
+  <div id="game-card">
+    <div class="setup-row" id="setupRow">
+      <label for="opponentSelect">Opponent</label>
+      <select id="opponentSelect">
+        <option value="ai" selected>Computer</option>
+        <option value="pass">Pass and play</option>
+      </select>
+      <label for="difficultySelect">Difficulty</label>
+      <select id="difficultySelect">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <label for="firstSelect">Goes first</label>
+      <select id="firstSelect">
+        <option value="p1" selected>You / Player 1</option>
+        <option value="p2">Computer / Player 2</option>
+      </select>
+      <button id="newGameBtn">🔄 New game</button>
+    </div>
+
+    <div class="row">
+      <div class="stats-group">
+        <div><div class="stat-label">Wins</div><div class="stat-value" id="statWins">0</div></div>
+        <div><div class="stat-label">Losses</div><div class="stat-value" id="statLosses">0</div></div>
+        <div><div class="stat-label">Streak</div><div class="stat-value" id="statStreak">0</div></div>
+      </div>
+      <div class="right-col">
+        <div id="turn-indicator">Your turn</div>
+      </div>
+    </div>
+
+    <div class="take-info" id="takeInfo">Tap an empty circle to place your marble.</div>
+    <div id="board-wrap">
+      <div id="board-outer">
+        <div id="board"></div>
+        <div class="rotate-corner tl" id="cornerTL">
+          <button class="rotate-btn q0" data-q="0" data-dir="ccw">↺</button>
+          <button class="rotate-btn q0" data-q="0" data-dir="cw">↻</button>
+        </div>
+        <div class="rotate-corner tr" id="cornerTR">
+          <button class="rotate-btn q1" data-q="1" data-dir="ccw">↺</button>
+          <button class="rotate-btn q1" data-q="1" data-dir="cw">↻</button>
+        </div>
+        <div class="rotate-corner bl" id="cornerBL">
+          <button class="rotate-btn q2" data-q="2" data-dir="ccw">↺</button>
+          <button class="rotate-btn q2" data-q="2" data-dir="cw">↻</button>
+        </div>
+        <div class="rotate-corner br" id="cornerBR">
+          <button class="rotate-btn q3" data-q="3" data-dir="ccw">↺</button>
+          <button class="rotate-btn q3" data-q="3" data-dir="cw">↻</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="banner"></div>
+  </div>
+
+  <div class="footer-note">Total Football &middot; a football spin on the classic game of Pentago</div>
+</div>
+
+<script>
+(function(){
+  var SIZE = 6;
+  var EMPTY = null, P1 = 'p1', P2 = 'p2';
+
+  var board = [];
+  var opponentType = 'ai'; // 'ai' | 'pass'
+  var difficulty = 'medium';
+  var firstMover = 'p1';
+  var turn = 'p1'; // whose turn: 'p1' or 'p2'
+  var gameOver = false;
+  var pendingCell = null;
+  var winningLineCells = [];
+
+  var wins = 0, losses = 0, streak = 0;
+  try {
+    var saved = JSON.parse(localStorage.getItem('pentago_stats') || '{}');
+    wins = saved.wins || 0; losses = saved.losses || 0; streak = saved.streak || 0;
+  } catch(e){}
+
+  var boardEl = document.getElementById('board');
+  var takeInfoEl = document.getElementById('takeInfo');
+  var turnIndicator = document.getElementById('turn-indicator');
+  var bannerEl = document.getElementById('banner');
+  var rulesToggle = document.getElementById('rulesToggle');
+  var rulesBox = document.getElementById('rulesBox');
+  var newGameBtn = document.getElementById('newGameBtn');
+  var opponentSelect = document.getElementById('opponentSelect');
+  var difficultySelect = document.getElementById('difficultySelect');
+  var firstSelect = document.getElementById('firstSelect');
+  var corners = {
+    0: document.getElementById('cornerTL'),
+    1: document.getElementById('cornerTR'),
+    2: document.getElementById('cornerBL'),
+    3: document.getElementById('cornerBR')
+  };
+  var statWins = document.getElementById('statWins');
+  var statLosses = document.getElementById('statLosses');
+  var statStreak = document.getElementById('statStreak');
+
+  function saveStats(){
+    try { localStorage.setItem('pentago_stats', JSON.stringify({wins:wins, losses:losses, streak:streak})); } catch(e){}
+    statWins.textContent = wins;
+    statLosses.textContent = losses;
+    statStreak.textContent = streak;
+  }
+
+  function emptyBoardGrid(){
+    var b = [];
+    for (var r=0;r<SIZE;r++){
+      var row = [];
+      for (var c=0;c<SIZE;c++) row.push(EMPTY);
+      b.push(row);
+    }
+    return b;
+  }
+
+  function quadrantOrigin(q){
+    return [ [0,0], [0,3], [3,0], [3,3] ][q];
+  }
+  function quadrantOf(r,c){
+    return (r<3?0:2) + (c<3?0:1);
+  }
+
+  function rotateQuadrant(b, q, dir){
+    var origin = quadrantOrigin(q);
+    var or = origin[0], oc = origin[1];
+    var sub = [];
+    for (var r=0;r<3;r++){
+      var row = [];
+      for (var c=0;c<3;c++) row.push(b[or+r][oc+c]);
+      sub.push(row);
+    }
+    var rotated = [[null,null,null],[null,null,null],[null,null,null]];
+    for (var r2=0;r2<3;r2++){
+      for (var c2=0;c2<3;c2++){
+        if (dir === 'cw'){
+          rotated[c2][2-r2] = sub[r2][c2];
+        } else {
+          rotated[2-c2][r2] = sub[r2][c2];
+        }
+      }
+    }
+    var next = b.map(function(row){ return row.slice(); });
+    for (var r3=0;r3<3;r3++){
+      for (var c3=0;c3<3;c3++){
+        next[or+r3][oc+c3] = rotated[r3][c3];
+      }
+    }
+    return next;
+  }
+
+  var ALL_WINDOWS = (function(){
+    var windows = [];
+    var dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (var r=0;r<SIZE;r++){
+      for (var c=0;c<SIZE;c++){
+        for (var d=0; d<dirs.length; d++){
+          var dr = dirs[d][0], dc = dirs[d][1];
+          var cells = [];
+          var ok = true;
+          for (var k=0;k<5;k++){
+            var rr = r + dr*k, cc = c + dc*k;
+            if (rr<0||rr>=SIZE||cc<0||cc>=SIZE){ ok=false; break; }
+            cells.push([rr,cc]);
+          }
+          if (ok) windows.push(cells);
+        }
+      }
+    }
+    return windows;
+  })();
+
+  function checkWinner(b){
+    var p1Win = null, p2Win = null;
+    for (var i=0;i<ALL_WINDOWS.length;i++){
+      var w = ALL_WINDOWS[i];
+      var sym = null, all = true;
+      for (var k=0;k<w.length;k++){
+        var v = b[w[k][0]][w[k][1]];
+        if (!v){ all=false; break; }
+        if (sym===null) sym=v;
+        else if (sym!==v){ all=false; break; }
+      }
+      if (all){
+        if (sym === P1 && !p1Win) p1Win = w;
+        if (sym === P2 && !p2Win) p2Win = w;
+      }
+    }
+    return { p1: p1Win, p2: p2Win };
+  }
+
+  function evaluateFor(b, color){
+    var opp = color === P1 ? P2 : P1;
+    var score = 0;
+    for (var i=0;i<ALL_WINDOWS.length;i++){
+      var w = ALL_WINDOWS[i];
+      var mine = 0, theirs = 0;
+      for (var k=0;k<w.length;k++){
+        var v = b[w[k][0]][w[k][1]];
+        if (v === color) mine++;
+        else if (v === opp) theirs++;
+      }
+      if (mine>0 && theirs>0) continue;
+      if (mine>0) score += Math.pow(3, mine);
+      if (theirs>0) score -= Math.pow(3, theirs);
+    }
+    return score;
+  }
+
+  function emptyCells(b){
+    var cells = [];
+    for (var r=0;r<SIZE;r++) for (var c=0;c<SIZE;c++) if (!b[r][c]) cells.push([r,c]);
+    return cells;
+  }
+
+  function applyPlacement(b, r, c, color){
+    var next = b.map(function(row){ return row.slice(); });
+    next[r][c] = color;
+    return next;
+  }
+
+  var ALL_ROTATIONS = [
+    [0,'cw'],[0,'ccw'],[1,'cw'],[1,'ccw'],[2,'cw'],[2,'ccw'],[3,'cw'],[3,'ccw']
+  ];
+
+  function allFullMoves(b){
+    var cells = emptyCells(b);
+    var moves = [];
+    for (var i=0;i<cells.length;i++){
+      for (var j=0;j<ALL_ROTATIONS.length;j++){
+        moves.push({ cell: cells[i], quadrant: ALL_ROTATIONS[j][0], dir: ALL_ROTATIONS[j][1] });
+      }
+    }
+    return moves;
+  }
+
+  function applyFullMove(b, move, color){
+    var afterPlace = applyPlacement(b, move.cell[0], move.cell[1], color);
+    return rotateQuadrant(afterPlace, move.quadrant, move.dir);
+  }
+
+  function randomFullMove(b){
+    var cells = emptyCells(b);
+    if (cells.length === 0) return null;
+    var cell = cells[Math.floor(Math.random()*cells.length)];
+    var rot = ALL_ROTATIONS[Math.floor(Math.random()*ALL_ROTATIONS.length)];
+    return { cell: cell, quadrant: rot[0], dir: rot[1] };
+  }
+
+  function randomPlayoutWinner(b, nextColor){
+    var current = b.map(function(row){ return row.slice(); });
+    var mover = nextColor;
+    var guard = 0;
+    while (guard++ < 40){
+      var move = randomFullMove(current);
+      if (!move) break;
+      current = applyFullMove(current, move, mover);
+      var result = checkWinner(current);
+      if (result.p1 || result.p2){
+        if (result.p1 && result.p2) return 'draw';
+        return result.p1 ? P1 : P2;
+      }
+      mover = mover === P1 ? P2 : P1;
+    }
+    return 'draw';
+  }
+
+  function aiChooseMove(b){
+    var allMoves = allFullMoves(b);
+
+    for (var i=0;i<allMoves.length;i++){
+      var afterMove = applyFullMove(b, allMoves[i], P2);
+      var res = checkWinner(afterMove);
+      if (res.p2 && !res.p1) return allMoves[i];
+    }
+
+    var quickScored = allMoves.map(function(m){
+      var after = applyFullMove(b, m, P2);
+      var res = checkWinner(after);
+      var score;
+      if (res.p2 && res.p1) score = -50000;
+      else if (res.p1 && !res.p2) score = -100000;
+      else score = evaluateFor(after, P2);
+      return { move: m, score: score };
+    });
+    quickScored.sort(function(a,c){ return c.score - a.score; });
+
+    var shortlistSize = difficulty === 'hard' ? 24 : (difficulty === 'medium' ? 14 : 8);
+    var noise = difficulty === 'hard' ? 0.03 : (difficulty === 'medium' ? 0.1 : 0.3);
+    var rollouts = difficulty === 'hard' ? 60 : (difficulty === 'medium' ? 30 : 10);
+
+    if (Math.random() < noise){
+      return allMoves[Math.floor(Math.random()*allMoves.length)];
+    }
+
+    var shortlist = quickScored.slice(0, shortlistSize);
+
+    var best = shortlist[0].move, bestScore = -Infinity;
+    for (var s=0; s<shortlist.length; s++){
+      var afterAiMove = applyFullMove(b, shortlist[s].move, P2);
+      var immediateRes = checkWinner(afterAiMove);
+      if (immediateRes.p2 && !immediateRes.p1){ return shortlist[s].move; }
+
+      var winsCount = 0, total = 0;
+      for (var p=0;p<rollouts;p++){
+        var outcome = randomPlayoutWinner(afterAiMove, P1);
+        total++;
+        if (outcome === P2) winsCount++;
+        else if (outcome === 'draw') winsCount += 0.5;
+      }
+      var rate = winsCount / total;
+      if (rate > bestScore){ bestScore = rate; best = shortlist[s].move; }
+    }
+    return best;
+  }
+
+  function opponentLabel(){
+    return opponentType === 'ai' ? 'Computer' : 'Player 2';
+  }
+  function selfLabel(who){
+    if (who === 'p1') return opponentType === 'ai' ? 'You' : 'Player 1';
+    return opponentLabel();
+  }
+
+  function newGame(){
+    board = emptyBoardGrid();
+    opponentType = opponentSelect.value;
+    difficulty = difficultySelect.value;
+    firstMover = firstSelect.value;
+    turn = firstMover;
+    gameOver = false;
+    pendingCell = null;
+    winningLineCells = [];
+    bannerEl.style.display = 'none';
+    turnIndicator.style.display = 'inline-block';
+    hideAllCorners();
+    renderBoard();
+    updateTurnUI();
+
+    if (turn === 'p2' && opponentType === 'ai'){
+      turnIndicator.textContent = 'Computer is thinking...';
+      turnIndicator.style.background = 'var(--surface-1)';
+      turnIndicator.style.color = 'var(--text-secondary)';
+      setTimeout(aiTakeTurn, 450 + Math.random()*450);
+    }
+  }
+
+  function updateTurnUI(){
+    if (gameOver) return;
+    if (turn === 'p2' && opponentType === 'ai'){
+      takeInfoEl.textContent = '';
+      return;
+    }
+    turnIndicator.textContent = selfLabel(turn) + "'s turn";
+    turnIndicator.style.background = 'var(--bg-accent)';
+    turnIndicator.style.color = 'var(--text-accent)';
+    takeInfoEl.textContent = 'Tap an empty circle to place a marble.';
+  }
+
+  function hideAllCorners(){
+    for (var q in corners) corners[q].classList.remove('show');
+  }
+
+  function renderBoard(){
+    boardEl.innerHTML = '';
+    for (var q=0;q<4;q++){
+      var qEl = document.createElement('div');
+      qEl.className = 'quadrant q' + q;
+      var origin = quadrantOrigin(q);
+      for (var lr=0; lr<3; lr++){
+        for (var lc=0; lc<3; lc++){
+          var r = origin[0]+lr, c = origin[1]+lc;
+          var el = document.createElement('div');
+          el.className = 'cell';
+          el.dataset.r = r; el.dataset.c = c;
+          var v = board[r][c];
+          if (v === P1) el.classList.add('p1');
+          if (v === P2) el.classList.add('p2');
+          var locked = v || gameOver || pendingCell || (turn === 'p2' && opponentType === 'ai');
+          if (locked) el.classList.add('locked');
+          for (var i=0;i<winningLineCells.length;i++){
+            if (winningLineCells[i][0]===r && winningLineCells[i][1]===c) el.classList.add('in-winning-line');
+          }
+          qEl.appendChild(el);
+        }
+      }
+      boardEl.appendChild(qEl);
+    }
+  }
+
+  function finishTurn(afterBoard){
+    board = afterBoard;
+    pendingCell = null;
+    hideAllCorners();
+    renderBoard();
+
+    var result = checkWinner(board);
+    if (result.p1 || result.p2){
+      if (result.p1) winningLineCells = winningLineCells.concat(result.p1);
+      if (result.p2) winningLineCells = winningLineCells.concat(result.p2);
+      renderBoard();
+      if (result.p1 && result.p2) endGame('draw');
+      else endGame(result.p1 ? 'p1' : 'p2');
+      return;
+    }
+    if (emptyCells(board).length === 0){
+      endGame('draw');
+      return;
+    }
+
+    turn = turn === 'p1' ? 'p2' : 'p1';
+    renderBoard();
+    updateTurnUI();
+
+    if (turn === 'p2' && opponentType === 'ai'){
+      turnIndicator.textContent = 'Computer is thinking...';
+      turnIndicator.style.background = 'var(--surface-1)';
+      turnIndicator.style.color = 'var(--text-secondary)';
+      setTimeout(aiTakeTurn, 450 + Math.random()*450);
+    }
+  }
+
+  function aiTakeTurn(){
+    if (gameOver) return;
+    var move = aiChooseMove(board);
+    if (!move) return;
+    var afterMove = applyFullMove(board, move, P2);
+    finishTurn(afterMove);
+  }
+
+  function endGame(result){
+    gameOver = true;
+    turnIndicator.style.display = 'none';
+    hideAllCorners();
+    bannerEl.style.display = 'block';
+
+    if (result === 'draw'){
+      bannerEl.style.background = 'var(--surface-1)';
+      bannerEl.style.color = 'var(--text-primary)';
+      bannerEl.innerHTML = "It's a draw!<div class=\"banner-sub\">A rotation completed both lines at once, or the board filled up.</div>";
+    } else if (result === 'p1'){
+      if (opponentType === 'ai'){ wins++; streak++; }
+      bannerEl.style.background = 'var(--bg-success)';
+      bannerEl.style.color = 'var(--text-success)';
+      bannerEl.innerHTML = (opponentType === 'ai' ? 'You win!' : 'Player 1 wins!') + '<div class="banner-sub">5 in a row.</div>';
+    } else {
+      if (opponentType === 'ai'){ losses++; streak = 0; }
+      bannerEl.style.background = 'var(--bg-warning)';
+      bannerEl.style.color = 'var(--text-warning)';
+      bannerEl.innerHTML = (opponentType === 'ai' ? 'Computer wins!' : 'Player 2 wins!') + '<div class="banner-sub">The rotation sealed it.</div>';
+    }
+    var playAgainBtn = document.createElement('button');
+    playAgainBtn.className = 'play-again-btn';
+    playAgainBtn.textContent = 'Play again';
+    playAgainBtn.addEventListener('click', newGame);
+    bannerEl.appendChild(playAgainBtn);
+    if (opponentType === 'ai') saveStats();
+  }
+
+  boardEl.addEventListener('click', function(e){
+    var el = e.target.closest('.cell');
+    if (!el || gameOver || pendingCell) return;
+    if (turn === 'p2' && opponentType === 'ai') return;
+    var r = parseInt(el.dataset.r,10), c = parseInt(el.dataset.c,10);
+    if (board[r][c]) return;
+    board[r][c] = turn;
+    pendingCell = [r,c];
+    renderBoard();
+    takeInfoEl.textContent = 'Tap a corner arrow to rotate that quadrant.';
+    for (var q=0;q<4;q++) corners[q].classList.add('show');
+  });
+
+  Object.keys(corners).forEach(function(q){
+    corners[q].addEventListener('click', function(e){
+      var btn = e.target.closest('.rotate-btn');
+      if (!btn || !pendingCell) return;
+      var qi = parseInt(btn.dataset.q, 10);
+      var dir = btn.dataset.dir;
+      var afterRotate = rotateQuadrant(board, qi, dir);
+      finishTurn(afterRotate);
+    });
+  });
+
+  newGameBtn.addEventListener('click', newGame);
+  rulesToggle.addEventListener('click', function(){ rulesBox.classList.toggle('show'); });
+
+  saveStats();
+  newGame();
+})();
+</script>
+</body>
+</html>
